@@ -1,0 +1,36 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { BonCommandeDetail } from "./bon-commande-detail";
+
+export default async function BonCommandePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  const [bc, fournisseurs, chantiers] = await Promise.all([
+    prisma.bonCommande.findUnique({
+      where: { id },
+      include: {
+        fournisseur:   { select: { id: true, nom: true } },
+        chantier:      { select: { id: true, nom: true } },
+        lignes:        { orderBy: { ordre: "asc" } },
+        bonsLivraison: { select: { id: true, numero: true, statut: true } },
+      },
+    }),
+    prisma.fournisseur.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+    prisma.chantier.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, nom: true } }),
+  ]);
+
+  if (!bc) notFound();
+
+  return (
+    <BonCommandeDetail
+      bc={bc as Parameters<typeof BonCommandeDetail>[0]["bc"]}
+      fournisseurs={fournisseurs}
+      chantiers={chantiers}
+    />
+  );
+}

@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\"; npx tsc --noEmit 2>&1 | Select-String \"error TS\" | Select-Object -First 30)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\"; npx tsc --noEmit 2>&1 | Select-String \"error TS\" | Where-Object { $_ -notmatch \"analytique-charts\" })",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\"; npx tsc --noEmit 2>&1 | Select-String \"error TS\")",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\"; npx prisma db push --accept-data-loss 2>&1 | Select-Object -Last 5; npx prisma generate 2>&1 | Select-Object -Last 5)",
+      "PowerShell(cd \"C:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\"; $env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npx prisma db push --accept-data-loss 2>&1 | Select-Object -Last 20)",
+      "PowerShell(cd \"C:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\"; $env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npx prisma generate 2>&1 | Select-Object -Last 10)",
+      "Bash(mkdir -p \"c:/Users/Utilisateur/OneDrive/Bureau/CRM SDA Rénovation/src/app/\\(app\\)/conception/elements/nouveau\" \"c:/Users/Utilisateur/OneDrive/Bureau/CRM SDA Rénovation/src/app/\\(app\\)/conception/elements/[id]\" \"c:/Users/Utilisateur/OneDrive/Bureau/CRM SDA Rénovation/src/app/\\(app\\)/conception/plans/nouveau\")",
+      "PowerShell(cd \"C:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\"; $env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npx prisma db push --accept-data-loss 2>&1 | Select-Object -Last 8; npx prisma generate 2>&1 | Select-Object -Last 5)",
+      "PowerShell(cd \"C:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\"; $env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npx tsc --noEmit 2>&1 | Select-Object -Last 30)",
+      "PowerShell(cd \"C:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\"; $env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npx tsc --noEmit 2>&1 | Select-Object -Last 15)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\\\\src\\\\app\\\\\\(app\\)\\\\fiches-techniques\\\\[id]\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\Utilisateur\\\\OneDrive\\\\Bureau\\\\CRM SDA Rénovation\\\\src\\\\app\\\\\\(app\\)\\\\doe\\\\[id]\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Utilisateur\\OneDrive\\Bureau\\CRM SDA Rénovation\\src\\app\\(app)\\conception\\elements"
+    ]
+  }
+}

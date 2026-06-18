@@ -1,0 +1,2400 @@
+// Schema Prisma — CRM SDA Rénovation
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Utilisateurs
+// ---------------------------------------------------------------------------
+
+model User {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  password            String
+  role                String    @default("DIRIGEANT")
+  permissions         String    @default("[]") // JSON string[] — routes autorisées pour les rôles restreints
+  passwordChangedAt   DateTime? // null = jamais changé depuis la création du compte
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  tachesAssignees Tache[] @relation("TachesAssignees")
+  tachesCrees     Tache[] @relation("TachesCrees")
+  rapports        RapportMensuel[]
+
+  conversations    ConversationParticipant[]
+  messagesSendus   Message[]
+}
+
+// ---------------------------------------------------------------------------
+// Annuaire : clients, fournisseurs, sous-traitants
+// ---------------------------------------------------------------------------
+
+model Client {
+  id            String   @id @default(cuid())
+  reference     String?  @unique // CLI-0001 | PAR-0001
+  type          String   @default("PARTICULIER") // PARTICULIER | ENTREPRISE | PARTENAIRE
+  civilite      String?
+  nom           String
+  prenom        String?
+  raisonSociale String?
+  siret         String?
+  email         String?
+  telephone     String?
+  adresse       String?
+  codePostal    String?
+  ville         String?
+  notes         String?
+  statut        String   @default("ACTIF") // ACTIF | PROSPECT | ARCHIVE
+  source        String? // SITE_WEB | TELEPHONE | RECOMMANDATION | GOOGLE | AUTRE
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  chantiers             Chantier[]
+  devis                 Devis[]
+  factures              Facture[]
+  documents             Document[]
+  etatsReserves         EtatReserves[]
+  prospects             Prospect[]
+  reservationsPompe     BonReservationPompe[]
+  pvsReception          PvReception[]
+  fichesIntervention    FicheIntervention[]  @relation("FIClient")
+  rapportsHebdo         RapportHebdomadaire[] @relation("RCHClient")
+  fichesNonConformite   FicheNonConformite[] @relation("FNCClient")
+  pvReunions            PVReunionChantier[]  @relation("PVRCClient")
+  demandesAppro         DemandeApprovisionnement[] @relation("DAClient")
+  bonsTravaux           BonTravaux[]         @relation("BTClient")
+  plansAssuranceQualite PlanAssuranceQualite[] @relation("PAQClient")
+  fichesAutocontrole    FicheAutocontrole[]    @relation("FACClient")
+  daacts                DAACT[]                @relation("DAACTClient")
+}
+
+model Fournisseur {
+  id         String   @id @default(cuid())
+  reference  String?  @unique // FOU-0001
+  nom        String
+  contact    String?
+  email      String?
+  telephone  String?
+  adresse    String?
+  codePostal String?
+  ville      String?
+  siret      String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  bonsCommande          BonCommande[]
+  bonsLivraison         BonLivraison[]
+  bonsCommandeBeton     BonCommandeBeton[]
+  reservationsPompe     BonReservationPompe[]
+  pvsReception          PvReception[]
+  bonsCommandeFournitures BonCommandeFournitures[]
+  depenses              Depense[]
+  documents             Document[]
+  articlesStock         ArticleStock[]
+  fichesNonConformite   FicheNonConformite[] @relation("FNCFournisseur")
+  demandesAppro         DemandeApprovisionnement[] @relation("DAFournisseur")
+}
+
+model SousTraitant {
+  id          String   @id @default(cuid())
+  reference   String?  @unique // ST-0001
+  nom         String
+  specialite  String?
+  contact     String?
+  email       String?
+  telephone   String?
+  adresse     String?
+  tauxHoraire Float?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  interventions ChantierSousTraitant[]
+  contrats      ContratSousTraitance[]
+  ordresMission OrdreMission[]
+}
+
+// ---------------------------------------------------------------------------
+// Chantiers
+// ---------------------------------------------------------------------------
+
+model Chantier {
+  id           String    @id @default(cuid())
+  reference    String    @unique
+  nom          String
+  clientId     String
+  adresse      String?
+  codePostal   String?
+  ville        String?
+  statut       String    @default("PROSPECT") // PROSPECT | DEVIS_ENVOYE | EN_COURS | TERMINE | ANNULE
+  dateDebut    DateTime?
+  dateFin      DateTime?
+  budgetEstime Float?
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  client         Client                 @relation(fields: [clientId], references: [id])
+  devis          Devis[]
+  factures       Facture[]
+  bonsCommande          BonCommande[]
+  bonsLivraison         BonLivraison[]
+  bonsCommandeBeton     BonCommandeBeton[]
+  reservationsPompe     BonReservationPompe[]
+  pvsReception          PvReception[]
+  documents             Document[]
+  evenements            Evenement[]
+  depenses          Depense[]
+  notesDeFrais      NoteDeFrais[]
+  etatsReserves     EtatReserves[]
+  sousTraitants     ChantierSousTraitant[]
+  contrats          ContratSousTraitance[]
+  ordresMission     OrdreMission[]
+  taches             Tache[]
+  mouvementsStock    MouvementStock[]
+  checklistDocuments ChecklistDocumentChantier[]
+  heuresInterimaires SuiviHeureInterimaire[]
+  plansConception    PlanConception[]
+  doe                DOE[]
+  ppsps              PPSPS[]
+  projets3d          Projet3D[]
+  memoiresTechniques MemoireTechnique[]
+  fichesIntervention   FicheIntervention[]  @relation("FIChantier")
+  rapportsHebdo        RapportHebdomadaire[] @relation("RCHChantier")
+  fichesNonConformite  FicheNonConformite[] @relation("FNCChantier")
+  pvReunions           PVReunionChantier[]  @relation("PVRCChantier")
+  demandesAppro        DemandeApprovisionnement[] @relation("DAChantier")
+  bonsTravaux          BonTravaux[]               @relation("BTChantier")
+  fichesAgrement       FicheAgrementProduit[]      @relation("FAPChantier")
+  coutsMateriauxRendus CoutMateriauxRenduChantier[] @relation("CMRChantier")
+  approvisionements    ApprovisionementChantier[]  @relation("ACChantier")
+  etudesDebourse       EtudeDebourse[]             @relation("EDSChantier")
+  fraisChantiers       FraisChantier[]             @relation("FCChantier")
+  plansAssuranceQualite PlanAssuranceQualite[] @relation("PAQChantier")
+  fichesAutocontrole    FicheAutocontrole[]    @relation("FACChantier")
+  daacts                DAACT[]                @relation("DAACTChantier")
+}
+
+model ChantierSousTraitant {
+  id             String  @id @default(cuid())
+  chantierId     String
+  sousTraitantId String
+  role           String?
+
+  chantier     Chantier     @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  sousTraitant SousTraitant @relation(fields: [sousTraitantId], references: [id], onDelete: Cascade)
+
+  @@unique([chantierId, sousTraitantId])
+}
+
+// ---------------------------------------------------------------------------
+// Contrats de sous-traitance & Ordres de mission
+// ---------------------------------------------------------------------------
+
+model ContratSousTraitance {
+  id             String  @id @default(cuid())
+  numero         String  @unique
+  sousTraitantId String
+  chantierId     String
+  statut         String  @default("BROUILLON") // BROUILLON | ENVOYE | SIGNE | TERMINE | RESILIE | ANNULE
+
+  objet             String?
+  lot               String?
+  montantHT         Float?
+  tauxTVA           Float?
+  modaliteReglement String?
+  retenueGarantie   Float? // %
+  delaiExecution    String?
+  dateDebut         DateTime?
+  dateFin           DateTime?
+  penalitesRetard   String?
+  assuranceRC       String?
+  notes             String?
+
+  // Signature électronique simple
+  signatureToken    String?   @unique
+  signataireNom     String?
+  signatureImage    String?
+  dateSignature     DateTime?
+  signatureIp       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sousTraitant SousTraitant @relation(fields: [sousTraitantId], references: [id])
+  chantier     Chantier     @relation(fields: [chantierId], references: [id])
+}
+
+model OrdreMission {
+  id             String    @id @default(cuid())
+  numero         String    @unique
+  sousTraitantId String
+  chantierId     String?
+  statut         String    @default("BROUILLON") // BROUILLON | ENVOYE | EN_COURS | TERMINE | ANNULE
+
+  titre       String
+  description String?
+  lieu        String?
+  dateDebut   DateTime
+  dateFin     DateTime?
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sousTraitant SousTraitant @relation(fields: [sousTraitantId], references: [id])
+  chantier     Chantier?    @relation(fields: [chantierId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Devis (métré hiérarchique style DPGF) + signature électronique
+// ---------------------------------------------------------------------------
+
+model Devis {
+  id         String   @id @default(cuid())
+  numero     String   @unique
+  chantierId String
+  clientId   String
+  statut     String   @default("BROUILLON") // BROUILLON | ENVOYE | ACCEPTE | REFUSE | EXPIRE
+  type       String   @default("INITIAL") // INITIAL | VARIANTE | AVENANT
+  devisParentId String?
+
+  dateCreation DateTime  @default(now())
+  dateValidite DateTime?
+  version      Int       @default(1)
+
+  // En-tête façon dossier de consultation des entreprises (DCE)
+  referenceMarche   String?
+  maitreOuvrage     String?
+  maitreOeuvre      String?
+  lot               String?
+  objet             String?
+  delaiExecution    String?
+  modaliteReglement String?
+
+  modelePdf String @default("APPEL_OFFRE") // APPEL_OFFRE | MINIMALISTE | CLASSIQUE
+
+  totalHT  Float @default(0)
+  totalTVA Float @default(0)
+  totalTTC Float @default(0)
+
+  signatureToken    String? @unique
+  mentionsLibres    String? // texte libre ajouté manuellement avant envoi (visible dans le PDF)
+  notesInternes     String? // notes internes (non affichées dans le PDF)
+
+  // Page de garde
+  modeleCouverture         String   @default("RENOVATION") // APPEL_OFFRE | RENOVATION | CONSTRUCTION_NEUVE | SERVICES
+  nomProjet                String?
+  photoProjetUrl           String?
+
+  // Maître d'ouvrage
+  moNom                    String?
+  moRepresentant           String?
+  moEmail                  String?
+  moTelephone              String?
+
+  // Maître d'œuvre
+  moeNom                   String?
+  moeRepresentant          String?
+  moeEmail                 String?
+  moeTelephone             String?
+
+  // BETs (JSON : [{specialite, nom, representant, email, telephone}])
+  bets                     String?
+
+  // Entreprise générale
+  egNom                    String?
+  egRepresentant           String?
+  egEmail                  String?
+  egTelephone              String?
+
+  // Coordinateur SPS
+  spsNom                   String?
+  spsRepresentant          String?
+  spsTelephone             String?
+
+  // OPC
+  opcNom                   String?
+  opcRepresentant          String?
+  opcTelephone             String?
+
+  // Bordereau de diffusion (JSON : [{destinataire, societe, exemplaires, dateEnvoi, visa}])
+  bordereauDiffusion       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chantier  Chantier     @relation(fields: [chantierId], references: [id])
+  client    Client       @relation(fields: [clientId], references: [id])
+  lignes    DevisLigne[]
+  factures  Facture[]
+  signature Signature?
+  documents Document[]
+
+  devisParent Devis?  @relation("DevisAvenants", fields: [devisParentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  avenants    Devis[] @relation("DevisAvenants")
+  doe         DOE[]
+  ppsps       PPSPS[]
+  memoiresTechniques   MemoireTechnique[]
+  fichesAgrement       FicheAgrementProduit[]      @relation("FAPDevis")
+  coutsMateriauxRendus CoutMateriauxRenduChantier[] @relation("CMRDevis")
+  approvisionements    ApprovisionementChantier[]  @relation("ACDevis")
+  etudesDebourse       EtudeDebourse[]             @relation("EDSDevis")
+  fraisChantiers       FraisChantier[]             @relation("FCDevis")
+}
+
+model DevisLigne {
+  id             String  @id @default(cuid())
+  devisId        String
+  type           String  @default("LIGNE") // CHAPITRE | SOUS_CHAPITRE | LIGNE
+  ordre          Int
+  codeArticle    String?
+  designation    String
+  unite          String?
+  quantite       Float?
+  prixUnitaireHT Float?
+  remise         Float?
+  tauxTVA        Float?
+  totalHT        Float?
+  styleTexte      String  @default("{}") // JSON: { bold, italic, underline, fontSize, color, align }
+  clausesReserves String? // JSON: string[] — liste de clauses et réserves
+
+  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
+}
+
+model Signature {
+  id             String   @id @default(cuid())
+  devisId        String   @unique
+  nomSignataire  String
+  imageSignature String // image (data URL) encodée en base64
+  dateSignature  DateTime @default(now())
+  adresseIp      String?
+  userAgent      String?
+
+  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Factures + paiements
+// ---------------------------------------------------------------------------
+
+model Facture {
+  id         String  @id @default(cuid())
+  numero     String  @unique
+  chantierId String
+  clientId   String
+  devisId    String?
+  statut     String  @default("BROUILLON") // BROUILLON | ENVOYEE | PAYEE_PARTIELLE | PAYEE | EN_RETARD | ANNULEE
+  type       String  @default("STANDARD") // STANDARD | ACOMPTE | SITUATION | SOLDE | AVOIR
+
+  dateEmission DateTime  @default(now())
+  dateEcheance DateTime?
+
+  modelePdf String @default("APPEL_OFFRE")
+
+  totalHT     Float @default(0)
+  totalTVA    Float @default(0)
+  totalTTC    Float @default(0)
+  montantPaye Float @default(0)
+
+  lienPaiement     String?
+  bridgeLinkId     String? // ID du payment link Bridge
+  bridgeLinkStatut String? // PENDING | COMPLETED | EXPIRED | CANCELLED
+  mentionsLibres   String? // texte libre ajouté manuellement avant envoi (visible dans le PDF)
+  notesInternes    String? // notes internes (non affichées dans le PDF)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chantier  Chantier       @relation(fields: [chantierId], references: [id])
+  client    Client         @relation(fields: [clientId], references: [id])
+  devis     Devis?         @relation(fields: [devisId], references: [id])
+  lignes    FactureLigne[]
+  paiements Paiement[]
+  documents Document[]
+}
+
+model FactureLigne {
+  id             String  @id @default(cuid())
+  factureId      String
+  type           String  @default("LIGNE") // CHAPITRE | SOUS_CHAPITRE | LIGNE
+  ordre          Int
+  codeArticle    String?
+  designation    String
+  unite          String?
+  quantite       Float?
+  prixUnitaireHT Float?
+  remise         Float?
+  tauxTVA        Float?
+  totalHT        Float?
+
+  facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+}
+
+model Paiement {
+  id        String   @id @default(cuid())
+  factureId String
+  montant   Float
+  date      DateTime @default(now())
+  methode   String   @default("VIREMENT") // VIREMENT | CHEQUE | CB | ESPECES | EN_LIGNE | PRELEVEMENT
+  reference String?
+  notes     String?
+
+  facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Bons de commande / bons de livraison
+// ---------------------------------------------------------------------------
+
+model BonCommande {
+  id            String   @id @default(cuid())
+  numero        String   @unique
+  fournisseurId String
+  chantierId    String?
+  statut        String   @default("BROUILLON") // BROUILLON | ENVOYE | CONFIRME | RECU_PARTIEL | RECU | ANNULE
+  dateCreation  DateTime @default(now())
+  notes         String?
+
+  totalHT  Float @default(0)
+  totalTVA Float @default(0)
+  totalTTC Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fournisseur   Fournisseur        @relation(fields: [fournisseurId], references: [id])
+  chantier      Chantier?          @relation(fields: [chantierId], references: [id])
+  lignes        BonCommandeLigne[]
+  bonsLivraison BonLivraison[]
+}
+
+model BonCommandeLigne {
+  id             String  @id @default(cuid())
+  bonCommandeId  String
+  ordre          Int
+  designation    String
+  unite          String?
+  quantite       Float?
+  prixUnitaireHT Float?
+  tauxTVA        Float?
+  totalHT        Float?
+
+  bonCommande BonCommande @relation(fields: [bonCommandeId], references: [id], onDelete: Cascade)
+}
+
+model BonLivraison {
+  id            String    @id @default(cuid())
+  numero        String    @unique
+  fournisseurId String
+  chantierId    String?
+  bonCommandeId String?
+  statut        String    @default("ATTENDU") // ATTENDU | PARTIEL | COMPLET
+  dateLivraison DateTime?
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fournisseur Fournisseur         @relation(fields: [fournisseurId], references: [id])
+  chantier    Chantier?           @relation(fields: [chantierId], references: [id])
+  bonCommande BonCommande?        @relation(fields: [bonCommandeId], references: [id])
+  lignes      BonLivraisonLigne[]
+}
+
+model BonLivraisonLigne {
+  id                String  @id @default(cuid())
+  bonLivraisonId    String
+  ordre             Int
+  designation       String
+  unite             String?
+  quantiteCommandee Float?
+  quantiteRecue     Float?
+  notes             String?
+
+  bonLivraison BonLivraison @relation(fields: [bonLivraisonId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Bons de commande BÉTON — NF EN 206 / CN article NA.7.5
+// ---------------------------------------------------------------------------
+
+model BonCommandeBeton {
+  id            String   @id @default(cuid())
+  numero        String   @unique // BCB-2025-0001
+  fournisseurId String
+  chantierId    String?
+  statut        String   @default("BROUILLON") // BROUILLON | ENVOYE | CONFIRME | LIVRE | ANNULE
+
+  // Identification du chantier (pour rappel sur BL et factures)
+  nomChantier      String?
+  adresseChantier  String?
+  refAnalytique    String? // N° analytique
+  modeReglement    String?
+
+  // Spécifications béton (NF EN 206 / NF EN 206/CN)
+  classeResistance  String?  // C20/25, C25/30, C30/37, C35/45, C40/50…
+  classeExposition  String?  // XC2, XC3, XC4, XS1, XS3, XA1, XA2, XF1, XF4…
+  consistance       String?  // S1, S2, S3, S4, C0-C4, F1-F6
+  affaissement      Float?   // mm (cône d'Abrams)
+  dmax              Float?   // mm — diamètre max des granulats (14, 16, 20, 22)
+  typeCiment        String?  // CEM I 52,5R, CEM II/A-LL 32,5R…
+  rapportEauCiment  Float?   // E/C max
+  teneurCimentMin   Float?   // kg/m³
+  adjuvant          String?  // Type d'adjuvant si prévu
+  chlorures         String?  // Teneur max en ions chlorure (Cl 0,10 / 0,20 / 0,40)
+
+  // Commande
+  qteTotale     Float   @default(0)  // m³ total
+  prixM3        Float?              // € HT/m³ (rendu chantier)
+  betonPompe    Boolean @default(false)
+  essaisBeton   Boolean @default(false)
+  ajoutEau      Boolean @default(false) // NF EN 206/CN NA.7.5 — interdit si false
+
+  // Mise en œuvre
+  modeMiseEnOeuvre String? // POMPE | GRUE | BENNE | DIRECTE | AUTRE
+
+  // Planning de livraison global
+  dateLivraison DateTime?
+  heureDebut    String?   // "07:00"
+  heureFin      String?   // "17:00"
+  cadenceM3h    Float?    // m³/h
+
+  observations  String?
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fournisseur Fournisseur                @relation(fields: [fournisseurId], references: [id])
+  chantier    Chantier?                  @relation(fields: [chantierId], references: [id])
+  livraisons  BonCommandeBetonLivraison[]
+}
+
+model BonCommandeBetonLivraison {
+  id                 String   @id @default(cuid())
+  bonCommandeBetonId String
+  ordre              Int
+  dateLivraison      DateTime
+  quantiteM3         Float    @default(0)
+  heureDebut         String?
+  heureFin           String?
+  cadenceM3h         Float?
+  observations       String?
+
+  bonCommandeBeton BonCommandeBeton @relation(fields: [bonCommandeBetonId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Bon de Commande Fournitures Bureau & Entrepôt (service Administratif)
+// ---------------------------------------------------------------------------
+
+model BonCommandeFournitures {
+  id              String   @id @default(cuid())
+  numero          String   @unique                   // BCF-2025-0001
+  type            String   @default("BUREAU")        // BUREAU / ENTREPOT / MIXTE
+  statut          String   @default("BROUILLON")     // BROUILLON / EN_ATTENTE / VALIDE / ENVOYE / RECU / ANNULE
+
+  // Fournisseur
+  fournisseurId   String
+  fournisseur     Fournisseur @relation(fields: [fournisseurId], references: [id])
+
+  // Service demandeur
+  service         String   @default("ADMINISTRATION") // ADMINISTRATION / DIRECTION / PRODUCTION / COMMERCIAL / AUTRE
+  demandeurNom    String?
+  demandeurEmail  String?
+  validateurNom   String?  // Nom du valideur interne
+
+  // Références
+  refBudget       String?  // code analytique / centre de coût
+  refBonLivraison String?
+
+  // Livraison
+  adresseLivraison  String?  // bureau ou entrepôt
+  dateCommande      DateTime @default(now())
+  dateSouhaitee     DateTime? // date de livraison souhaitée
+
+  // Mode de règlement
+  modeReglement   String?
+
+  // Totaux
+  totalHT   Float @default(0)
+  totalTVA  Float @default(0)
+  totalTTC  Float @default(0)
+
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lignes BonCommandeFournituresLigne[]
+}
+
+model BonCommandeFournituresLigne {
+  id                       String  @id @default(cuid())
+  bonCommandeFournituresId String
+  ordre                    Int
+  categorie                String  @default("AUTRE") // PAPETERIE / INFORMATIQUE / MOBILIER / HYGIENE / CONSOMMABLES / EPI / OUTILLAGE / STOCKAGE / EMBALLAGE / AUTRE
+  designation              String
+  reference                String? // SKU / ref fournisseur
+  quantite                 Float   @default(1)
+  unite                    String  @default("u")
+  prixUnitaireHT           Float   @default(0)
+  tauxTVA                  Float   @default(20)
+  totalHT                  Float   @default(0)
+
+  bonCommandeFournitures BonCommandeFournitures @relation(fields: [bonCommandeFournituresId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// PV de Réception de Support (Production / Exploitation)
+// ---------------------------------------------------------------------------
+
+model PvReception {
+  id              String    @id @default(cuid())
+  numero          String    @unique                   // PVR-2025-0001
+
+  statut          String    @default("BROUILLON")     // BROUILLON / FINALISE / SIGNE / ARCHIVE
+  typeSupport     String    @default("PRESTATION")    // PRESTATION / MAINTENANCE / FORMATION / LIVRAISON / ETUDE / AUTRE
+
+  // Objet
+  objet           String?
+  descriptionPrestations String?
+
+  // Dates & lieu
+  dateReception   DateTime?
+  lieuReception   String?
+  periodeDebut    DateTime?
+  periodeFin      DateTime?
+
+  // Références documentaires
+  refContrat      String?
+  refDevis        String?
+  refCommande     String?
+  refBonLivraison String?
+
+  // Relations CRM
+  clientId        String?
+  chantierId      String?
+  fournisseurId   String?
+
+  // Représentants — Maître d'ouvrage
+  repMO           String?
+  fonctionRepMO   String?
+  emailRepMO      String?
+
+  // Représentants — Prestataire
+  repPrestataire       String?
+  fonctionPrestataire  String?
+  emailPrestataire     String?
+
+  // Résultat de la réception
+  resultat        String?         // ACCEPTE / ACCEPTE_RESERVES / REFUSE
+  motifRefus      String?
+  dateEffet       DateTime?       // Date de prise d'effet (déclenchement garanties)
+
+  // Garanties
+  garantieConformite Boolean  @default(false)
+  dureeGarantie      String?  // ex: "12 mois"
+
+  // Lien de partage (email / signature distante)
+  shareToken      String?   @unique
+  shareExpiry     DateTime?
+  signatureMO     String?   // base64 image
+  signaturePrestataire String? // base64 image
+  dateSignatureMO       DateTime?
+  dateSignaturePrestataire DateTime?
+
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  client      Client?      @relation(fields: [clientId],     references: [id], onDelete: SetNull)
+  chantier    Chantier?    @relation(fields: [chantierId],   references: [id], onDelete: SetNull)
+  fournisseur Fournisseur? @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
+  lignes      PvReceptionLigne[]
+  reserves    PvReceptionReserve[]
+}
+
+model PvReceptionLigne {
+  id             String  @id @default(cuid())
+  pvReceptionId  String
+  ordre          Int
+  designation    String
+  reference      String?
+  quantite       Float?
+  unite          String?
+  conformite     String  @default("CONFORME") // CONFORME / NON_CONFORME / SANS_OBJET
+  observations   String?
+
+  pvReception PvReception @relation(fields: [pvReceptionId], references: [id], onDelete: Cascade)
+}
+
+model PvReceptionReserve {
+  id             String    @id @default(cuid())
+  pvReceptionId  String
+  ordre          Int
+  description    String
+  delaiLevee     DateTime?
+  responsable    String?
+  statut         String    @default("OUVERTE")  // OUVERTE / LEVEE
+  dateLevee      DateTime?
+  commentaireLevee String?
+
+  pvReception PvReception @relation(fields: [pvReceptionId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Bon de Réservation de Pompe à Béton
+// ---------------------------------------------------------------------------
+
+model BonReservationPompe {
+  id              String   @id @default(cuid())
+  numero          String   @unique // BRP-2025-0001
+  statut          String   @default("BROUILLON") // BROUILLON / ENVOYE / CONFIRME / ANNULE
+
+  // Pompage — fournisseur de la pompe
+  fournisseurId   String
+  fournisseur     Fournisseur @relation(fields: [fournisseurId], references: [id])
+
+  // Chantier CRM
+  chantierId      String?
+  chantier        Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+
+  // Client
+  clientId        String?
+  client          Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  // Identification chantier (libre)
+  nomChantier      String?
+  adresseChantier  String?
+  contactTelephone String?
+  refAnalytique    String?
+
+  // Planning
+  dateReservation   DateTime?
+  heureArriveePompe String?
+  heureDebutPompage String?
+  heureFinPompage   String?
+
+  // Béton
+  cubagePrévu    Float?   // m³
+  centraleBeton  String?  // nom de la centrale
+
+  // Pompe
+  typePompe               String?   // marque / modèle
+  avecFleche              Boolean   @default(true)
+  flecheMetres            Float?    // longueur flèche en mètres
+  sansFleche              Boolean   @default(false)
+  tuyauterieMetres        Float?    // tuyauterie sans flèche (mètres)
+  tuyauterieSupp          Boolean   @default(false)
+  tuyauterieSupplementaire Float?   // mètres tuyauterie supplémentaire
+
+  // Tarif & règlement
+  prixHT          Float?
+  tauxTVA         Float?   @default(20)
+  modeReglement   String?  // "Virement 30j fin de mois le 15", etc.
+  conditions      String?  // autres conditions
+
+  notes           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Documents joints
+// ---------------------------------------------------------------------------
+
+model Dossier {
+  id        String   @id @default(cuid())
+  nom       String
+  parentId  String?
+  ordre     Int      @default(0)
+  systeme   Boolean  @default(false) // true = dossier racine non supprimable
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent    Dossier?   @relation("DossierEnfants", fields: [parentId], references: [id], onDelete: Cascade)
+  enfants   Dossier[]  @relation("DossierEnfants")
+  documents Document[]
+}
+
+model Document {
+  id          String  @id @default(cuid())
+  nom         String
+  nomFichier  String  @default("") // nom physique sur disque
+  type        String  @default("") // type mime / extension
+  chemin      String  @default("") // chemin relatif sous /uploads/documents/
+  taille      Int     @default(0)
+  description String?
+  dossierId   String? // dossier dans l'arborescence Documents
+
+  clientId      String?
+  chantierId    String?
+  devisId       String?
+  factureId     String?
+  fournisseurId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  dossier     Dossier?     @relation(fields: [dossierId], references: [id], onDelete: SetNull)
+  client      Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  chantier    Chantier?    @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  devis       Devis?       @relation(fields: [devisId], references: [id], onDelete: Cascade)
+  facture     Facture?     @relation(fields: [factureId], references: [id], onDelete: Cascade)
+  fournisseur Fournisseur? @relation(fields: [fournisseurId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Planning
+// ---------------------------------------------------------------------------
+
+model Evenement {
+  id          String    @id @default(cuid())
+  titre       String
+  description String?
+  dateDebut   DateTime
+  dateFin     DateTime?
+  type        String    @default("AUTRE") // VISITE | INTERVENTION | LIVRAISON | REUNION | AUTRE
+  lieu        String?
+  chantierId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chantier Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Finances
+// ---------------------------------------------------------------------------
+
+model Depense {
+  id            String   @id @default(cuid())
+  libelle       String
+  montant       Float
+  date          DateTime @default(now())
+  categorie     String   @default("AUTRE") // MATERIAUX | MAIN_OEUVRE | SOUS_TRAITANCE | TRANSPORT | ADMINISTRATIF | AUTRE
+  chantierId    String?
+  fournisseurId String?
+  notes         String?
+
+  createdAt DateTime @default(now())
+
+  chantier    Chantier?    @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  fournisseur Fournisseur? @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Paramètres de l'entreprise
+// ---------------------------------------------------------------------------
+
+model Parametres {
+  id                String @id @default("default")
+  nomEntreprise     String @default("SDA Rénovation")
+  siret             String?
+  adresse           String?
+  codePostal        String?
+  ville             String?
+  telephone         String?
+  email             String?
+  siteWeb           String?
+  iban              String?
+  bic               String?
+  nomBanque         String? // ex. "Crédit Agricole Toulouse"
+  domiciliation     String? // ex. "Agence Cugnaux / Centre d'Affaires Professionnels"
+  tvaIntracom       String?
+  logoUrl           String?
+  emailComptable    String? // adresse de transfert iPaidThat (export comptable)
+  leadsApiKey       String? // clé pour /api/leads (formulaire site web)
+  conditionsDevis   String?
+  conditionsFacture String?
+  tauxTvaDefaut     Float  @default(20)
+}
+
+// ---------------------------------------------------------------------------
+// État des réserves + Constat de levée de réserves
+// ---------------------------------------------------------------------------
+
+model EtatReserves {
+  id                String    @id @default(cuid())
+  numero            String    @unique
+  chantierId        String?
+  clientId          String?
+  dateDocument      DateTime  @default(now())
+  natureReserves    String    @default("")
+  travauxAExecuter  String    @default("")
+  delaiExecution    String    @default("") // ex. "15 jours"
+  lieuSignature     String    @default("")
+  nombreExemplaires Int       @default(2)
+  statut            String    @default("EN_COURS") // EN_COURS | SIGNE | LEVE
+  dateLevee         DateTime?
+  lieuLevee         String    @default("")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  chantier Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  client   Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Ressources humaines
+// ---------------------------------------------------------------------------
+
+model Salarie {
+  id             String    @id @default(cuid())
+  matricule      String    @unique
+  nom            String
+  prenom         String
+  numeroSS       String?   // 15 chiffres + clé
+  dateNaissance  DateTime?
+  dateEmbauche   DateTime  @default(now())
+  dateSortie     DateTime?
+  typeContrat    String    @default("CDI")     // CDI | CDD | INTERIM
+  typeCcn        String    @default("OUVRIERS") // OUVRIERS | ETAM | CADRES
+  coefficient    Int?      // Ouvriers : 100-185
+  position       String?   // ETAM : A1-G  /  Cadres : 1-3.3
+  qualification  String?   // ex. "Maçon P2", "Chef de chantier", "Conducteur de travaux"
+  salaireBase    Float     @default(0)
+  heuresMois     Float     @default(151.67) // base 35h
+  adresse        String?
+  codePostal     String?
+  ville          String?
+  email          String?
+  telephone      String?
+  numeroCIBTP    String?   // matricule caisse congés payés BTP
+  statutRH       String    @default("ACTIF") // ACTIF | CONGE | RUPTURE | INACTIF
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  bulletins        BulletinDePaie[]
+  adhesionMutuelle AdhesionMutuelle?
+}
+
+model BulletinDePaie {
+  id                    String    @id @default(cuid())
+  salarieId             String
+  periode               String    // "2026-06"
+  datePaiement          DateTime?
+  heuresTravaillees     Float     @default(151.67)
+  heuresSupp25          Float     @default(0)
+  heuresSupp50          Float     @default(0)
+  salaireBase           Float     @default(0)
+  autresElements        Float     @default(0) // primes, indemnités, avantages nature
+  totalBrut             Float     @default(0)
+  cotisationsSalarie    Float     @default(0)
+  csgNonDeductible      Float     @default(0)  // CSG NI + CRDS (non déductibles)
+  cotisationsPatronales Float     @default(0)
+  netImposable          Float     @default(0)
+  netAPayer             Float     @default(0)
+  lignes                String    @default("[]") // JSON : LigneBulletin[]
+  commentaires          String?
+  statut                String    @default("BROUILLON") // BROUILLON | VALIDE | PAYE
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  salarie Salarie @relation(fields: [salarieId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Gestionnaire de tâches internes
+// ---------------------------------------------------------------------------
+
+model Tache {
+  id              String    @id @default(cuid())
+  titre           String
+  description     String?
+  statut          String    @default("A_FAIRE") // A_FAIRE | EN_COURS | EN_ATTENTE | TERMINEE | ANNULEE
+  priorite        String    @default("NORMALE")  // FAIBLE | NORMALE | HAUTE | URGENTE
+  periodicite     String    @default("PONCTUELLE") // QUOTIDIENNE | HEBDOMADAIRE | MENSUELLE | TRIMESTRIELLE | ANNUELLE | PONCTUELLE
+  service         String?   // SERVICE_COMMERCIAL | SERVICE_TRAVAUX | SERVICE_COMPTABILITE | SERVICE_RH | SERVICE_ACHAT | SERVICE_ADMIN | SERVICE_DIRECTION | TOUS
+  dateEcheance    DateTime?
+  dateRealisation DateTime?
+  commentaires    String?
+  assigneAId      String?
+  creeParId       String?
+  chantierId      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  assigneA    User?     @relation("TachesAssignees", fields: [assigneAId], references: [id], onDelete: SetNull)
+  creePar     User?     @relation("TachesCrees", fields: [creeParId], references: [id], onDelete: SetNull)
+  chantier    Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Gestion de stock
+// ---------------------------------------------------------------------------
+
+model ArticleStock {
+  id                   String   @id @default(cuid())
+  reference            String   @unique // ELE-MAT-0001, PLO-FOU-0002…
+  designation          String
+  corpsEtat            String   // GO | CHA | COU | ETA | MEX | MIN | PLA | ISO | CAR | PEI | PLO | ELE | CVC | VRD | DEM | BUR
+  categorie            String   @default("MATERIAU") // MATERIAU | FOURNITURE | OUTILLAGE | EPI | CONSOMMABLE
+  emplacement          String   @default("DEPOT") // DEPOT | BUREAU | CHANTIER
+  unite                String   @default("u") // u, m², ml, L, kg, m³, boîte, rouleau…
+  conditionnement      String?  // ex. "Rouleau de 25 ml", "Sac 25 kg", "Carton 10 u."
+  ratioConsommation    Float    @default(1) // ratio consommation à l'unité (ex. 1.05 = 5 % de perte)
+  prixUnitaireHT       Float    @default(0)
+  fournisseurId        String?
+  refFournisseur       String?  // référence article chez le fournisseur
+  indexMatiere         String?  // code matière première (CUIVRE, ACIER, PVC, BOIS…) pour suivi cours
+  stockActuel          Float    @default(0)
+  stockMinimum         Float    @default(0)  // seuil d'alerte de réapprovisionnement
+  stockMaximum         Float?
+  notes                String?
+  actif                Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  fournisseur     Fournisseur?     @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
+  mouvements      MouvementStock[]
+  historiquesPrix HistoriquePrix[]
+  lignesCoutMtx   CoutMateriauxLigne[]    @relation("CMRArticle")
+  lignesAppro     ApprovisionementLigne[] @relation("ACArticle")
+}
+
+model MouvementStock {
+  id             String   @id @default(cuid())
+  articleId      String
+  type           String   // ENTREE | SORTIE | INVENTAIRE | TRANSFERT | PERTE
+  quantite       Float
+  prixUnitaireHT Float?
+  date           DateTime @default(now())
+  motif          String?  // LIVRAISON | CHANTIER | PERTE | AJUSTEMENT | BON_COMMANDE
+  refDocument    String?  // N° bon de livraison, bon de commande, devis…
+  chantierId     String?
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  article  ArticleStock @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  chantier Chantier?    @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+}
+
+model HistoriquePrix {
+  id         String   @id @default(cuid())
+  articleId  String
+  prixHT     Float
+  variation  Float?   // % de variation vs prix précédent
+  dateMAJ    DateTime @default(now())
+  source     String   @default("MANUEL") // MANUEL | FOURNISSEUR | BOURSE
+  notes      String?
+
+  article ArticleStock @relation(fields: [articleId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Notes de frais
+// ---------------------------------------------------------------------------
+
+model NoteDeFrais {
+  id           String   @id @default(cuid())
+  date         DateTime @default(now())
+  montant      Float    @default(0)
+  tva          Float?
+  categorie    String   @default("AUTRE") // REPAS | DEPLACEMENT | MATERIEL | SOUS_TRAITANCE | HEBERGEMENT | CARBURANT | AUTRE
+  fournisseur  String   @default("")
+  description  String   @default("")
+  justificatif String?  // chemin fichier : /uploads/notes-de-frais/<nom>
+  statut       String   @default("EN_ATTENTE") // EN_ATTENTE | VALIDEE | REMBOURSEE
+  chantierId   String?
+
+  chantier  Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Checklist documents dossier chantier
+// ---------------------------------------------------------------------------
+
+model ChecklistDocumentChantier {
+  id            String    @id @default(cuid())
+  chantierId    String
+  cle           String    // ex. "DC4", "PV_RECEPTION", "ASSURANCE_DECENNALE_SDA"
+  statut        String    @default("MANQUANT") // MANQUANT | EN_COURS | RECU | VALIDE | NON_APPLICABLE
+  notes         String?
+  dateReception DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+
+  @@unique([chantierId, cle])
+}
+
+// ---------------------------------------------------------------------------
+// Bibliothèque d'ouvrages — Bordereau des Prix Unitaires (BPU)
+// ---------------------------------------------------------------------------
+
+model Ouvrage {
+  id          String  @id @default(cuid())
+  code        String  @unique // ex. TER-001, MAC-012
+  corpsEtat   String  // TER | MAC | DAL | COV | RAV | PLA | MEN | RSD | RSS | PEI | SER
+  designation String  // description de l'ouvrage
+  unite       String  @default("m²") // m², ml, m³, u, forfait, h…
+  tauxTVA     Float   @default(10) // taux TVA applicable (%)
+  description String? // détail technique optionnel
+  actif       Boolean @default(true)
+
+  // ── OFFRE ÉCONOMIQUE ────────────────────────────────────────────────────
+  ecoTempsPose       Float @default(0) // h/unité
+  ecoPrixPose        Float @default(0) // €HT pose seule
+  ecoPrixFourniture  Float @default(0) // €HT fourniture seule
+  ecoPrixTotal       Float @default(0) // = pose + fourniture
+
+  // ── OFFRE OPTIMISÉE (défaut — remplace anciens prixPose/prixFourniture) ─
+  optTempsPose       Float @default(0)
+  optPrixPose        Float @default(0)
+  optPrixFourniture  Float @default(0)
+  optPrixTotal       Float @default(0)
+
+  // ── OFFRE PREMIUM ───────────────────────────────────────────────────────
+  premTempsPose      Float @default(0)
+  premPrixPose       Float @default(0)
+  premPrixFourniture Float @default(0)
+  premPrixTotal      Float @default(0)
+
+  // Anciens champs conservés pour compatibilité devis existants (= offre optimisée)
+  prixFourniture Float @default(0)
+  prixPose       Float @default(0)
+  prixUnitaire   Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sousDetailPrix     SousDetailPrix?
+  tempsUnitaires     TempsUnitaire[]
+  postsEtudeDebourse EtudeDeboursePoste[] @relation("EDSPosteOuvrage")
+}
+
+// ---------------------------------------------------------------------------
+// Taux de main d'œuvre (salariés, sous-traitants, intérimaires)
+// ---------------------------------------------------------------------------
+
+model TauxMainOeuvre {
+  id                String   @id @default(cuid())
+  corpsEtat         String
+  categorie         String   @default("SALARIE") // SALARIE | SOUS_TRAITANT | INTERIMAIRE
+  qualification     String   @default("COMPAGNON") // MANOEUVRE | OUVRIER | COMPAGNON | CHEF_EQUIPE | CHEF_CHANTIER | MAITRISE
+  designation       String
+  tauxHoraireHT     Float    @default(0)
+  chargesPatronales Float?
+  coutCompletHT     Float?
+  notes             String?
+  actif             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  lignesSDP LigneSousDetailPrix[]
+}
+
+// ---------------------------------------------------------------------------
+// Base de temps unitaires (UT) par corps d'état
+// ---------------------------------------------------------------------------
+
+model TempsUnitaire {
+  id            String   @id @default(cuid())
+  corpsEtat     String
+  designation   String
+  nature        String   @default("POSE") // PREPARATION | POSE | FINITION | DIVERS
+  unite         String   @default("m²")
+  tempsUnitaire Float    @default(0)
+  difficulte    String   @default("MOYEN") // FACILE | MOYEN | DIFFICILE | TRES_DIFFICILE
+  notes         String?
+  ouvrageId     String?
+  actif         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  ouvrage   Ouvrage?             @relation(fields: [ouvrageId], references: [id], onDelete: SetNull)
+  lignesSDP LigneSousDetailPrix[]
+}
+
+// ---------------------------------------------------------------------------
+// Sous-détail de prix (SDP) — 1:1 avec Ouvrage
+// ---------------------------------------------------------------------------
+
+model SousDetailPrix {
+  id             String   @id @default(cuid())
+  ouvrageId      String   @unique
+  fraisGeneraux  Float    @default(15)
+  benefice       Float    @default(8)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  ouvrage Ouvrage              @relation(fields: [ouvrageId], references: [id], onDelete: Cascade)
+  lignes  LigneSousDetailPrix[]
+}
+
+model LigneSousDetailPrix {
+  id               String  @id @default(cuid())
+  sousDetailId     String
+  ordre            Int     @default(0)
+  nature           String  // MAIN_OEUVRE | MATERIAU | MATERIEL | SOUS_TRAITANCE
+  designation      String
+  unite            String  @default("h")
+  quantite         Float   @default(0)
+  prixUnitaireHT   Float   @default(0)
+  totalHT          Float   @default(0)
+  tauxMainOeuvreId String?
+  tempsUnitaireId  String?
+
+  sousDetail     SousDetailPrix  @relation(fields: [sousDetailId], references: [id], onDelete: Cascade)
+  tauxMainOeuvre TauxMainOeuvre? @relation(fields: [tauxMainOeuvreId], references: [id], onDelete: SetNull)
+  tempsUnitaire  TempsUnitaire?  @relation(fields: [tempsUnitaireId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Intérimaires & suivi heures
+// ---------------------------------------------------------------------------
+
+model Interimaire {
+  id            String   @id @default(cuid())
+  reference     String   @unique
+  nom           String
+  prenom        String
+  agence        String?
+  corpsEtat     String
+  qualification String   @default("COMPAGNON")
+  tauxHoraireHT Float    @default(0)
+  tauxAgenceHT  Float    @default(0)
+  telephone     String?
+  notes         String?
+  actif         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  heures SuiviHeureInterimaire[]
+}
+
+model SuiviHeureInterimaire {
+  id                String   @id @default(cuid())
+  interimaireId     String
+  chantierId        String?
+  semaine           String
+  heuresTravaillees Float    @default(0)
+  heuresSupp25      Float    @default(0)
+  heuresSupp50      Float    @default(0)
+  tauxHoraireHT     Float    @default(0)
+  tauxAgenceHT      Float    @default(0)
+  coutTotalHT       Float    @default(0)
+  facturePaye       Boolean  @default(false)
+  observations      String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  interimaire Interimaire @relation(fields: [interimaireId], references: [id], onDelete: Cascade)
+  chantier    Chantier?   @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Maintenance & rapports mensuels qualité
+// ---------------------------------------------------------------------------
+
+model RapportMensuel {
+  id          String   @id @default(cuid())
+  periode     String   // "2026-06" (YYYY-MM)
+  contenu     String   @default("{}") // JSON: données statistiques collectées
+  analyseIA   String?  // Rapport complet rédigé par Alba-Ayla via Anthropic API
+  genereParId String?
+  createdAt   DateTime @default(now())
+
+  generePar User? @relation(fields: [genereParId], references: [id], onDelete: SetNull)
+}
+
+model SauvegardeLog {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  type        String   @default("MANUELLE") // MANUELLE | AUTOMATIQUE
+  destination String   @default("")
+  statut      String   @default("OK") // OK | ERREUR
+  message     String?
+  tailleMo    Float?
+}
+
+// ---------------------------------------------------------------------------
+// Bibliothèque matériaux & équipements (module Conception)
+// ---------------------------------------------------------------------------
+
+model ElementCatalogue {
+  id            String   @id @default(cuid())
+  // Catégories : MENUISERIE_INT | MOBILIER | MATERIAUX | MENUISERIE_EXT |
+  //              CHARPENTE | COUVERTURE | RAVALEMENT | MATIERES_PREM |
+  //              PLOMBERIE | CVC | ELECTRICITE
+  categorie     String
+  sousCategorie String?
+  designation   String
+  reference     String?
+  marque        String?
+  unite         String   @default("unité")
+  description   String?
+  matiere       String?  // ex: béton ciré, bois massif, acier inox…
+  finition      String?  // ex: mat, satiné, brossé, patiné…
+  couleur       String?
+  prixUnitHT    Float?   // prix indicatif HT
+  fournisseur   String?
+  image         String?  // chemin vers image de référence (JPG/PNG exporté depuis ArchiCAD, SketchUp, CEDREO…)
+  fichierPlan   String?  // chemin vers plan PDF/image exporté depuis logiciel CAO
+  notes         String?
+  actif         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PlanConception {
+  id          String   @id @default(cuid())
+  titre       String
+  description String?
+  type        String   @default("PLAN") // PLAN | RENDU_3D | COUPE | FACADE | IMPLANTATION | CALEPINAGE
+  source      String?  // ARCHICAD | SKETCHUP | CEDREO | AUTOCAD | AUTRE
+  fichier     String   // chemin vers le fichier uploadé (PDF / JPG / PNG / IFC)
+  taille      Int?     // taille en octets
+  chantierId  String?
+  tags        String?  // JSON string[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chantier Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Fiches techniques produits / matériaux / consommables
+// ---------------------------------------------------------------------------
+
+model FicheTechnique {
+  id          String   @id @default(cuid())
+  // Catégorie : PRODUIT | MATERIAU | CONSOMMABLE | EQUIPEMENT
+  categorie   String   @default("PRODUIT")
+  // Corps d'état : TER, MAC, DAL, COV, RAV, PLA, MEN, RSD, RSS, PEI, SER, etc.
+  corpsEtat   String
+  designation String
+  marque      String?
+  reference   String?
+  description String?
+  normes      String?  // normes applicables (CE, NF, ISO…)
+  fichierPdf  String?  // chemin vers PDF de la fiche technique uploadé
+  lienUrl     String?  // lien fabricant optionnel
+  actif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  doeSections DOESection[] @relation("DOESectionFiches")
+}
+
+// ---------------------------------------------------------------------------
+// DOE — Dossier des Ouvrages Exécutés
+// ---------------------------------------------------------------------------
+
+model DOE {
+  id         String    @id @default(cuid())
+  // Modèle : MARCHE_PUBLIC | PERSONNALISE
+  modele     String    @default("PERSONNALISE")
+  // Statut : BROUILLON | FINAL | TRANSMIS
+  statut     String    @default("BROUILLON")
+  titre      String
+  reference  String?   // référence du marché (pour MARCHE_PUBLIC)
+  intro      String?   // texte d'introduction
+  conclusion String?   // texte de conclusion
+  chantierId String
+  devisId    String?   // devis source (auto-remplissage)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  chantier Chantier      @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  devis    Devis?        @relation(fields: [devisId], references: [id], onDelete: SetNull)
+  sections DOESection[]
+}
+
+model DOESection {
+  id            String   @id @default(cuid())
+  doeId         String
+  ordre         Int      @default(0)
+  // Type : TRAVAUX | MATERIAUX | ATTESTATION | PLAN | NOTICE | GARANTIE | AUTRE
+  type          String   @default("TRAVAUX")
+  titre         String
+  corpsEtat     String?  // corps d'état concerné
+  description   String?  // texte descriptif des travaux réalisés
+  fichiers      String?  // JSON string[] — chemins vers fichiers joints (photos, plans…)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  doe          DOE              @relation(fields: [doeId], references: [id], onDelete: Cascade)
+  fiches       FicheTechnique[] @relation("DOESectionFiches")
+}
+
+// ---------------------------------------------------------------------------
+// PPSPS — Plan Particulier de Sécurité et de Protection de la Santé
+// ---------------------------------------------------------------------------
+
+model PPSPS {
+  id                   String   @id @default(cuid())
+  // Modèle : APPEL_OFFRE | PERSONNALISE
+  modele               String   @default("PERSONNALISE")
+  // Statut : BROUILLON | VALIDE | TRANSMIS
+  statut               String   @default("BROUILLON")
+  titre                String
+  reference            String?  // référence du marché / opération
+  // Renseignements généraux
+  nomOperation         String?
+  adresseChantier      String?
+  maitreOuvrage        String?
+  maitreOeuvre         String?
+  coordonateurSPS      String?
+  dateDebutChantier    DateTime?
+  dateFinChantier      DateTime?
+  effectifPrevu        Int?     // nombre de travailleurs prévus
+  // Entreprise
+  nomEntreprise        String   @default("SDA Rénovation")
+  sirenEntreprise      String   @default("988681672")
+  assuranceDecennale   String?
+  assuranceRC          String?
+  // Contenu structuré (sections éditables)
+  contenuLibre         String?  // JSON: { [sectionKey]: string } — édition manuelle des sections
+  // Relations
+  chantierId           String
+  devisId              String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  chantier  Chantier         @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  devis     Devis?           @relation(fields: [devisId], references: [id], onDelete: SetNull)
+  risques   PPSPSRisque[]
+  secours   PPSPSSecours[]
+}
+
+model PPSPSRisque {
+  id            String  @id @default(cuid())
+  ppspsId       String
+  ordre         Int     @default(0)
+  phase         String  // phase de travaux (terrassement, maçonnerie…)
+  corpsEtat     String?
+  description   String  // description du risque
+  mesures       String  // mesures de prévention
+  responsable   String? // personne responsable de la prévention
+  priorite      String  @default("MOYEN") // FAIBLE | MOYEN | ELEVE | CRITIQUE
+  epi           String? // EPI requis (JSON array)
+
+  ppsps PPSPS @relation(fields: [ppspsId], references: [id], onDelete: Cascade)
+}
+
+model PPSPSSecours {
+  id        String @id @default(cuid())
+  ppspsId   String
+  type      String // SAMU | POMPIERS | MEDECIN | HOPITAL | SSIAP | AUTRE
+  nom       String?
+  telephone String
+  adresse   String?
+  distance  String?
+
+  ppsps PPSPS @relation(fields: [ppspsId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Bibliothèque DTU (Documents Techniques Unifiés)
+// ---------------------------------------------------------------------------
+
+model DTU {
+  id          String   @id @default(cuid())
+  reference   String
+  titre       String
+  domaine     String   // TERRASSEMENT | MACONNERIE | BETON | DALLAGE | CHAPE | COUVERTURE | RAVALEMENT | PLATRERIE | MENUISERIE | AGENCEMENT | REVETEMENT_SOL | REVETEMENT_MURAL | PEINTURE | PLOMBERIE | ELECTRICITE | RENFORCEMENT_STRUCTUREL | AUTRE
+  corpsEtat   String?
+  version     String?
+  normeNF     String?
+  description String?
+  lienAchat   String?
+  fichierPdf  String?
+  actif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Mutuelle — complémentaire santé d'entreprise (obligatoire ANI)
+// ---------------------------------------------------------------------------
+
+model ContratMutuelle {
+  id            String    @id @default(cuid())
+  // Organisme : Pro BTP | Malakoff Humanis | Apicil | AG2R La Mondiale | Autre
+  organisme     String
+  numeroContrat String?
+  dateEffet     DateTime?
+  dateFin       DateTime?
+  actif         Boolean   @default(true)
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  formules  FormuleMutuelle[]
+  adhesions AdhesionMutuelle[]
+}
+
+model FormuleMutuelle {
+  id                  String  @id @default(cuid())
+  contratMutuelleId   String
+  // Niveau : BASE | OPTION_1 | OPTION_2 | OPTION_3
+  niveau              String  @default("BASE")
+  label               String  // "Formule Essentielle", "Formule Confort", "Formule Premium"
+  cotisationSalarie   Float   @default(0) // mensuelle €
+  cotisationPatronale Float   @default(0) // mensuelle €
+  garanties           String? // description libre des garanties
+
+  contratMutuelle ContratMutuelle  @relation(fields: [contratMutuelleId], references: [id], onDelete: Cascade)
+  adhesions       AdhesionMutuelle[]
+}
+
+model AdhesionMutuelle {
+  id                 String    @id @default(cuid())
+  salarieId          String    @unique
+  contratMutuelleId  String
+  formuleMutuelleId  String
+  dateAdhesion       DateTime  @default(now())
+  dateSortie         DateTime?
+  // JSON: [{nom: string, lienFamilial: string, dateNaissance: string}]
+  beneficiaires      String?
+  actif              Boolean   @default(true)
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  salarie         Salarie         @relation(fields: [salarieId], references: [id], onDelete: Cascade)
+  contratMutuelle ContratMutuelle @relation(fields: [contratMutuelleId], references: [id], onDelete: Cascade)
+  formuleMutuelle FormuleMutuelle @relation(fields: [formuleMutuelleId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Messagerie interne
+// ---------------------------------------------------------------------------
+
+model Conversation {
+  id              String   @id @default(cuid())
+  nom             String?
+  type            String   @default("DIRECT") // DIRECT | GROUPE
+  suppressionAuto String   @default("JAMAIS") // JAMAIS | 7_JOURS | 30_JOURS | 90_JOURS
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String @id @default(cuid())
+  conversationId String
+  userId         String
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  texte          String?
+  createdAt      DateTime @default(now())
+
+  conversation  Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender        User                @relation(fields: [senderId], references: [id])
+  piecesJointes MessagePieceJointe[]
+}
+
+model MessagePieceJointe {
+  id        String @id @default(cuid())
+  messageId String
+  nom       String
+  url       String
+  type      String
+  taille    Int?
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Mémoire Technique — 4 types × 2 modèles
+// ---------------------------------------------------------------------------
+
+model MemoireTechnique {
+  id              String    @id @default(cuid())
+  reference       String    @unique  // MT-2024-0001
+  titre           String
+  // TYPE_1 (5-10p <100k) | TYPE_2 (12p classique) | TYPE_3 (22p multi-lots) | TYPE_4 (30p gros marchés)
+  type            String    @default("TYPE_2")
+  // APPEL_OFFRE | CLIENT_SDA
+  modele          String    @default("APPEL_OFFRE")
+  statut          String    @default("BROUILLON") // BROUILLON | FINALISE | ENVOYE
+
+  // Liens obligatoires
+  chantierId      String
+  devisId         String?
+
+  // Méta-données marché
+  maitreOuvrage   String?
+  objetMarche     String?
+  lotNumero       String?
+  lotDesignation  String?
+  montantEstime   Float?
+  dateRemise      DateTime?
+
+  // Contenu — JSON: { [sectionKey]: { titre, contenu, visible, ordre, nbPages } }
+  sections        String    @default("{}")
+
+  // Pages perso — JSON: { ajouts: PageAjout[], suppressions: string[] }
+  pagesConfig     String    @default("{}")
+
+  // Annexes — JSON: { id, nom, url, type, taille, dateAjout }[]
+  annexes         String    @default("[]")
+
+  // Layout — JSON: couleurs, police, espacements
+  layoutConfig    String    @default("{}")
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  chantier  Chantier  @relation(fields: [chantierId], references: [id])
+  devis     Devis?    @relation(fields: [devisId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Conception 3D — Projets BIM
+// ---------------------------------------------------------------------------
+
+model Projet3D {
+  id          String   @id @default(cuid())
+  titre       String
+  description String?
+  chantierId  String?
+  // JSON: SceneElement[] — éléments placés dans la scène
+  scene       String   @default("[]")
+  // JSON: { longueur, largeur, unitePiece, niveaux }
+  settings    String   @default("{}")
+  // chemin vers screenshot aperçu
+  apercu      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chantier Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Sécurité — Système Alba-ayla IA
+// ---------------------------------------------------------------------------
+
+// Agent Vigil — trace chaque tentative de connexion
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ip        String
+  userAgent String?
+  succes    Boolean
+  userId    String?
+  createdAt DateTime @default(now())
+}
+
+// Agent Bouclier — IPs bloquées automatiquement
+model IpBloquer {
+  id          String    @id @default(cuid())
+  ip          String    @unique
+  raison      String    @default("Trop de tentatives de connexion échouées")
+  tentatives  Int       @default(0)
+  actif       Boolean   @default(true)
+  debloqueAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+// Agent Trace — journal d'audit complet de toutes les actions CRM
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userName  String?
+  action    String   // LOGIN | LOGOUT | CREATE | UPDATE | DELETE | EXPORT | UPLOAD | ACCES_REFUSE
+  entite    String?
+  entiteId  String?
+  details   String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+// Agent Sentinelle — alertes de sécurité générées automatiquement
+model AlerteSecurite {
+  id        String   @id @default(cuid())
+  type      String   // BRUTE_FORCE | IP_SUSPECTE | CONNEXION_INHABITUELLE | TENTATIVE_BLOQUEE
+  niveau    String   @default("MOYEN") // FAIBLE | MOYEN | ELEVE | CRITIQUE
+  titre     String
+  details   String?
+  ip        String?
+  userId    String?
+  resolue   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Prospects — demandes de contact site web / entrants
+// ---------------------------------------------------------------------------
+
+model Prospect {
+  id          String    @id @default(cuid())
+  nom         String
+  prenom      String?
+  email       String?
+  telephone   String?
+  societe     String?
+  adresse     String?
+  ville       String?
+  codePostal  String?
+  message     String?
+  travaux     String?   // Type de travaux demandé
+  budgetEstime Float?
+  source      String    @default("SITE_WEB") // SITE_WEB | TELEPHONE | EMAIL | RECOMMANDATION | AUTRE
+  statut      String    @default("NOUVEAU")  // NOUVEAU | CONTACTE | DEVIS_ENVOYE | GAGNE | PERDU
+  notes       String?
+  clientId    String?   // Rempli si converti en client
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Exploitation / Production — Fiches d'intervention (FI-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model FicheIntervention {
+  id               String    @id @default(cuid())
+  numero           String    @unique
+  statut           String    @default("BROUILLON")
+  chantierId       String?
+  clientId         String?
+  dateIntervention DateTime  @default(now())
+  heureDebut       String?
+  heureFin         String?
+  responsable      String?
+  meteo            String?
+  tempC            Float?
+  travauxRealises  String?
+  materielsUtilises String?
+  incidents        String?
+  observations     String?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  chantier  Chantier? @relation("FIChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  client    Client?   @relation("FIClient",   fields: [clientId],   references: [id], onDelete: SetNull)
+  equipiers FicheInterventionEquipier[]
+  travaux   FicheInterventionTravail[]
+}
+
+model FicheInterventionEquipier {
+  id            String  @id @default(cuid())
+  ficheId       String
+  nom           String
+  prenom        String?
+  role          String?
+  heureDebut    String?
+  heureFin      String?
+  heuresTotales Float?
+
+  fiche FicheIntervention @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+}
+
+model FicheInterventionTravail {
+  id            String  @id @default(cuid())
+  ficheId       String
+  ordre         Int
+  description   String
+  avancementPct Float?
+  quantite      Float?
+  unite         String?
+  observations  String?
+
+  fiche FicheIntervention @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Exploitation / Production — Rapports hebdomadaires (RCH-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model RapportHebdomadaire {
+  id                        String    @id @default(cuid())
+  numero                    String    @unique
+  statut                    String    @default("BROUILLON")
+  chantierId                String?
+  clientId                  String?
+  semaine                   Int
+  annee                     Int
+  dateDebut                 DateTime?
+  dateFin                   DateTime?
+  responsable               String?
+  avancementGlobal          Float?
+  meteoSemaine              String?
+  travauxEffectues          String?
+  problemes                 String?
+  actionsASuivre            String?
+  previsionsSemaineSuivante String?
+  heuresTotales             Float?
+  notes                     String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  chantier Chantier? @relation("RCHChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  client   Client?   @relation("RCHClient",   fields: [clientId],   references: [id], onDelete: SetNull)
+  lignes   RapportHebdomadaireLigne[]
+}
+
+model RapportHebdomadaireLigne {
+  id              String  @id @default(cuid())
+  rapportId       String
+  ordre           Int
+  tache           String
+  avancementDebut Float?
+  avancementFin   Float?
+  commentaire     String?
+
+  rapport RapportHebdomadaire @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Exploitation / Production — Fiches de non-conformité (FNC-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model FicheNonConformite {
+  id                   String    @id @default(cuid())
+  numero               String    @unique
+  statut               String    @default("OUVERTE")
+  chantierId           String?
+  clientId             String?
+  fournisseurId        String?
+  typeNC               String    @default("EXECUTION")
+  gravite              String    @default("MINEURE")
+  dateConstat          DateTime  @default(now())
+  constateePar         String?
+  description          String?
+  causeIdentifiee      String?
+  actionCorrective     String?
+  dateEcheance         DateTime?
+  responsableAction    String?
+  dateVerification     DateTime?
+  verifiePar           String?
+  resultatVerification String?
+  observations         String?
+  notes                String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  chantier    Chantier?    @relation("FNCChantier",    fields: [chantierId],    references: [id], onDelete: SetNull)
+  client      Client?      @relation("FNCClient",      fields: [clientId],      references: [id], onDelete: SetNull)
+  fournisseur Fournisseur? @relation("FNCFournisseur", fields: [fournisseurId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Exploitation / Production — PV de réunion de chantier (PRC-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model PVReunionChantier {
+  id                   String    @id @default(cuid())
+  numero               String    @unique
+  statut               String    @default("BROUILLON")
+  chantierId           String?
+  clientId             String?
+  dateReunion          DateTime?
+  lieuReunion          String?
+  heureDebut           String?
+  heureFin             String?
+  typeReunion          String    @default("COORDINATION")
+  animateur            String?
+  redacteur            String?
+  prochaineDateReunion DateTime?
+  prochaineLieu        String?
+  notes                String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  chantier     Chantier? @relation("PVRCChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  client       Client?   @relation("PVRCClient",   fields: [clientId],   references: [id], onDelete: SetNull)
+  participants PVReunionChantierParticipant[]
+  points       PVReunionChantierPoint[]
+  actions      PVReunionChantierAction[]
+}
+
+model PVReunionChantierParticipant {
+  id       String  @id @default(cuid())
+  pvId     String
+  nom      String
+  societe  String?
+  fonction String?
+  present  Boolean @default(true)
+
+  pv PVReunionChantier @relation(fields: [pvId], references: [id], onDelete: Cascade)
+}
+
+model PVReunionChantierPoint {
+  id      String  @id @default(cuid())
+  pvId    String
+  ordre   Int
+  titre   String
+  contenu String?
+
+  pv PVReunionChantier @relation(fields: [pvId], references: [id], onDelete: Cascade)
+}
+
+model PVReunionChantierAction {
+  id          String    @id @default(cuid())
+  pvId        String
+  ordre       Int
+  description String
+  responsable String?
+  echeance    DateTime?
+  statut      String    @default("OUVERTE")
+
+  pv PVReunionChantier @relation(fields: [pvId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Exploitation / Production — Demandes d'approvisionnement (DA-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model DemandeApprovisionnement {
+  id               String    @id @default(cuid())
+  numero           String    @unique
+  statut           String    @default("BROUILLON")
+  chantierId       String?
+  clientId         String?
+  fournisseurId    String?
+  service          String    @default("PRODUCTION")
+  demandeurNom     String?
+  demandeurEmail   String?
+  validateurNom    String?
+  urgence          String    @default("NORMALE")
+  dateCreation     DateTime  @default(now())
+  dateSouhaitee    DateTime?
+  adresseLivraison String?
+  totalHT          Float     @default(0)
+  totalTVA         Float     @default(0)
+  totalTTC         Float     @default(0)
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  chantier    Chantier?    @relation("DAChantier",    fields: [chantierId],    references: [id], onDelete: SetNull)
+  client      Client?      @relation("DAClient",      fields: [clientId],      references: [id], onDelete: SetNull)
+  fournisseur Fournisseur? @relation("DAFournisseur", fields: [fournisseurId], references: [id], onDelete: SetNull)
+  lignes      DemandeApprovisionnementLigne[]
+}
+
+model DemandeApprovisionnementLigne {
+  id             String  @id @default(cuid())
+  demandeId      String
+  ordre          Int
+  designation    String
+  reference      String?
+  quantite       Float   @default(1)
+  unite          String  @default("u")
+  prixUnitaireHT Float   @default(0)
+  tauxTVA        Float   @default(20)
+  totalHT        Float   @default(0)
+  justification  String?
+
+  demande DemandeApprovisionnement @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Bon de Travaux — équipes internes (BT-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model BonTravaux {
+  id          String    @id @default(cuid())
+  numero      String    @unique
+  statut      String    @default("BROUILLON")
+  chantierId  String?
+  clientId    String?
+  titre       String
+  description String?
+  corpsEtat   String?
+  priorite    String    @default("NORMALE")
+  lieu        String?
+  dateDebut   DateTime?
+  dateFin     DateTime?
+  heureDebut  String?
+  heureFin    String?
+  chefEquipe  String?
+  observations String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  chantier Chantier? @relation("BTChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  client   Client?   @relation("BTClient",   fields: [clientId],   references: [id], onDelete: SetNull)
+  equipe   BonTravauxEquipier[]
+  taches   BonTravauxTache[]
+}
+
+model BonTravauxEquipier {
+  id     String  @id @default(cuid())
+  bonId  String
+  nom    String
+  prenom String?
+  role   String?
+  qualif String?
+
+  bon BonTravaux @relation(fields: [bonId], references: [id], onDelete: Cascade)
+}
+
+model BonTravauxTache {
+  id           String  @id @default(cuid())
+  bonId        String
+  ordre        Int
+  description  String
+  quantite     Float?
+  unite        String?
+  dureeEstimee Float?
+  statut       String  @default("A_FAIRE")
+  observations String?
+
+  bon BonTravaux @relation(fields: [bonId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Étude de Prix & Méthode — Fiche d'agrément produit (FAP-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model FicheAgrementProduit {
+  id           String    @id @default(cuid())
+  numero       String    @unique
+  modele       String    @default("SDA")         // SDA | APPEL_OFFRE
+  statut       String    @default("BROUILLON")   // BROUILLON | SOUMIS | VISA_SANS_OBS | VISA_AVEC_OBS | SUSPENDU | REFUSE
+  chantierId   String?
+  devisId      String?
+  operation    String?
+  lot          String?
+  zone         String?
+  niveau       String?
+  emetteurNom  String?
+  emetteurDate DateTime?
+  marque       String?
+  typeModele   String?
+  descriptionColoris    String?
+  localisation          String?
+  documentationJointe   Boolean  @default(false)
+  ficheTechnique        Boolean  @default(false)
+  avisCSTB              Boolean  @default(false)
+  fds                   Boolean  @default(false)
+  pvFeu                 Boolean  @default(false)
+  pvAcoustique          Boolean  @default(false)
+  autresDocuments       String?
+  avisMO                String?
+  observationsMO        String?
+  nomMO                 String?
+  prenomMO              String?
+  dateMO                DateTime?
+  avisMOE               String?
+  observationsMOE       String?
+  nomMOE                String?
+  prenomMOE             String?
+  dateMOE               DateTime?
+  avisBC                String?
+  observationsBC        String?
+  nomBC                 String?
+  prenomBC              String?
+  dateBC                DateTime?
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  chantier Chantier? @relation("FAPChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  devis    Devis?    @relation("FAPDevis",    fields: [devisId],    references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Étude de Prix & Méthode — Coût des matériaux rendus chantier (CMR-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model CoutMateriauxRenduChantier {
+  id          String    @id @default(cuid())
+  numero      String    @unique
+  titre       String?
+  chantierId  String?
+  devisId     String?
+  responsable String?
+  date        DateTime  @default(now())
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  chantier Chantier? @relation("CMRChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  devis    Devis?    @relation("CMRDevis",    fields: [devisId],    references: [id], onDelete: SetNull)
+  lignes   CoutMateriauxLigne[]
+}
+
+model CoutMateriauxLigne {
+  id                       String  @id @default(cuid())
+  coutId                   String
+  ordre                    Int
+  reference                String?
+  designation              String
+  unite                    String?
+  prixAchatHT              Float   @default(0)
+  transportKm              Float?
+  transportPU              Float?
+  transportTotal           Float?
+  dechargementH            Float?
+  dechargementDH           Float?
+  dechargementTotal        Float?
+  pertesPercent            Float?
+  prixRevientRenduChantier Float?
+  articleStockId           String?
+
+  cout    CoutMateriauxRenduChantier @relation(fields: [coutId],         references: [id], onDelete: Cascade)
+  article ArticleStock?              @relation("CMRArticle", fields: [articleStockId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Étude de Prix & Méthode — Approvisionnement de chantier (AC-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model ApprovisionementChantier {
+  id          String    @id @default(cuid())
+  numero      String    @unique
+  titre       String?
+  chantierId  String?
+  devisId     String?
+  responsable String?
+  date        DateTime  @default(now())
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  chantier Chantier? @relation("ACChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  devis    Devis?    @relation("ACDevis",    fields: [devisId],    references: [id], onDelete: SetNull)
+  lignes   ApprovisionementLigne[]
+}
+
+model ApprovisionementLigne {
+  id                   String  @id @default(cuid())
+  approId              String
+  lot                  String?
+  ordre                Int
+  designation          String
+  rendementConso       Float?
+  uniteRendement       String?
+  qteARealiser         Float?
+  uniteQteARealiser    String?
+  besoinsMateriau      Float?
+  pertesPercent        Float?
+  unite                String?
+  besoinsApresPertes   Float?
+  conditionnement      String?
+  aCommander           String?
+  articleStockId       String?
+
+  appro   ApprovisionementChantier @relation(fields: [approId],       references: [id], onDelete: Cascade)
+  article ArticleStock?            @relation("ACArticle", fields: [articleStockId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Étude de Prix & Méthode — Étude déboursés secs (EDS-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model EtudeDebourse {
+  id               String    @id @default(cuid())
+  numero           String    @unique
+  titre            String?
+  chantierId       String?
+  devisId          String?
+  responsable      String?
+  date             DateTime  @default(now())
+  coeffK           Float     @default(1.0)
+  totalMateriauxHT Float     @default(0)
+  totalMaterielHT  Float     @default(0)
+  totalMOHT        Float     @default(0)
+  totalDSHT        Float     @default(0)
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  chantier Chantier? @relation("EDSChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  devis    Devis?    @relation("EDSDevis",    fields: [devisId],    references: [id], onDelete: SetNull)
+  postes   EtudeDeboursePoste[]
+}
+
+model EtudeDeboursePoste {
+  id               String  @id @default(cuid())
+  etudeId          String
+  ordre            Int
+  codeOuvrage      String?
+  unite            String?
+  designation      String
+  totalMateriauxHT Float   @default(0)
+  totalMaterielHT  Float   @default(0)
+  totalMOHT        Float   @default(0)
+  totalDSPoste     Float   @default(0)
+  ouvrageId        String?
+
+  etude    EtudeDebourse @relation(fields: [etudeId],   references: [id], onDelete: Cascade)
+  ouvrage  Ouvrage?      @relation("EDSPosteOuvrage", fields: [ouvrageId], references: [id], onDelete: SetNull)
+  elements EtudeDebourseElement[]
+}
+
+model EtudeDebourseElement {
+  id               String  @id @default(cuid())
+  posteId          String
+  ordre            Int
+  designation      String
+  unite            String?
+  quantite         Float   @default(0)
+  prixUnitaire     Float   @default(0)
+  montantMateriaux Float   @default(0)
+  montantMateriel  Float   @default(0)
+  montantMO        Float   @default(0)
+
+  poste EtudeDeboursePoste @relation(fields: [posteId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Suivi des frais de chantier (FC-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model FraisChantier {
+  id          String    @id @default(cuid())
+  numero      String    @unique
+  titre       String?
+  chantierId  String?
+  devisId     String?
+  periode     String?
+  responsable String?
+  totalHT     Float     @default(0)
+  totalTVA    Float     @default(0)
+  totalTTC    Float     @default(0)
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  chantier Chantier? @relation("FCChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  devis    Devis?    @relation("FCDevis",    fields: [devisId],    references: [id], onDelete: SetNull)
+  lignes   FraisChantierLigne[]
+}
+
+model FraisChantierLigne {
+  id          String    @id @default(cuid())
+  fraisId     String
+  ordre       Int
+  categorie   String    @default("AUTRES")
+  designation String
+  fournisseur String?
+  date        DateTime?
+  montantHT   Float     @default(0)
+  tauxTVA     Float     @default(20)
+  montantTTC  Float     @default(0)
+  refFacture  String?
+  notes       String?
+
+  frais FraisChantier @relation(fields: [fraisId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Qualité chantier — Plan d'Assurance Qualité (PAQ-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model PlanAssuranceQualite {
+  id                  String    @id @default(cuid())
+  numero              String    @unique
+  statut              String    @default("BROUILLON")
+  chantierId          String?
+  clientId            String?
+  version             String    @default("1.0")
+  dateEmission        DateTime?
+  dateRevision        DateTime?
+  redacteurNom        String?
+  approbateurNom      String?
+  objetMarche         String?
+  delaiExecution      String?
+  listeIntervenants   String?
+  proceduresQualite   String?
+  planControle        String?
+  enregistrements     String?
+  notes               String?
+
+  chantier  Chantier? @relation("PAQChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  client    Client?   @relation("PAQClient",   fields: [clientId],   references: [id], onDelete: SetNull)
+  fiches    FicheAutocontrole[]
+}
+
+// ---------------------------------------------------------------------------
+// Qualité chantier — Fiche d'autocontrôle (FAC-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model FicheAutocontrole {
+  id             String    @id @default(cuid())
+  numero         String    @unique
+  statut         String    @default("EN_COURS")
+  chantierId     String?
+  clientId       String?
+  paqId          String?
+  lot            String?
+  ouvrage        String?
+  localisation   String?
+  dateControle   DateTime?
+  controleurNom  String?
+  entreprise     String?
+  observations   String?
+  notes          String?
+
+  chantier Chantier?             @relation("FACChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  client   Client?               @relation("FACClient",   fields: [clientId],   references: [id], onDelete: SetNull)
+  paq      PlanAssuranceQualite? @relation(fields: [paqId], references: [id], onDelete: SetNull)
+  points   FicheAutocontrolePoint[]
+}
+
+model FicheAutocontrolePoint {
+  id           String  @id @default(cuid())
+  ficheId      String
+  ordre        Int
+  critere      String
+  exigence     String?
+  resultat     String  @default("NON_VERIFIE")
+  observations String?
+
+  fiche FicheAutocontrole @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Qualité chantier — DAACT (DAT-YYYY-XXXX)
+// ---------------------------------------------------------------------------
+
+model DAACT {
+  id                String    @id @default(cuid())
+  numero            String    @unique
+  statut            String    @default("BROUILLON")
+  chantierId        String?
+  clientId          String?
+  adresseChantier   String?
+  dateAchevement    DateTime?
+  dateDepot         DateTime?
+  natureTravaux     String?
+  nomDeclarant      String?
+  qualiteDeclarant  String?
+  conformePC        Boolean   @default(true)
+  reservesMO        String?
+  dateReponse       DateTime?
+  notes             String?
+
+  chantier Chantier? @relation("DAACTChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  client   Client?   @relation("DAACTClient",   fields: [clientId],   references: [id], onDelete: SetNull)
+}

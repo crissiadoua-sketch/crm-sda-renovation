@@ -1,0 +1,403 @@
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { getNextNumero } from "@/lib/numbering";
+import { randomBytes } from "crypto";
+
+const devisHeaderSchema = z.object({
+  chantierId: z.string().min(1, "Le chantier est requis."),
+  statut: z.enum(["BROUILLON", "ENVOYE", "ACCEPTE", "REFUSE", "EXPIRE"]),
+  dateValidite: z.string().optional(),
+  referenceMarche: z.string().optional(),
+  maitreOuvrage: z.string().optional(),
+  maitreOeuvre: z.string().optional(),
+  lot: z.string().optional(),
+  objet: z.string().optional(),
+  delaiExecution: z.string().optional(),
+  modaliteReglement: z.string().optional(),
+  modelePdf: z.enum(["APPEL_OFFRE", "MINIMALISTE", "CLASSIQUE"]),
+});
+
+export type DevisState = {
+  errors?: Record<string, string[]>;
+} | undefined;
+
+function emptyToNull(value?: string) {
+  return value && value.trim() !== "" ? value : null;
+}
+
+function emptyToNullDate(value?: string) {
+  return value && value.trim() !== "" ? new Date(value) : null;
+}
+
+export async function getNextDevisNumero() {
+  const devis = await prisma.devis.findMany({ select: { numero: true } });
+  return getNextNumero("DEV", devis.map((d) => d.numero));
+}
+
+export async function createDevis(
+  _prevState: DevisState,
+  formData: FormData,
+): Promise<DevisState> {
+  const validated = devisHeaderSchema.safeParse(Object.fromEntries(formData.entries()));
+
+  if (!validated.success) {
+    return { errors: validated.error.flatten().fieldErrors };
+  }
+
+  const data = validated.data;
+
+  const chantier = await prisma.chantier.findUnique({ where: { id: data.chantierId } });
+  if (!chantier) {
+    return { errors: { chantierId: ["Chantier introuvable."] } };
+  }
+
+  const numero = await getNextDevisNumero();
+
+  const devis = await prisma.devis.create({
+    data: {
+      numero,
+      chantierId: data.chantierId,
+      clientId: chantier.clientId,
+      statut: data.statut,
+      dateValidite: emptyToNullDate(data.dateValidite),
+      referenceMarche: emptyToNull(data.referenceMarche),
+      maitreOuvrage: emptyToNull(data.maitreOuvrage),
+      maitreOeuvre: emptyToNull(data.maitreOeuvre),
+      lot: emptyToNull(data.lot),
+      objet: emptyToNull(data.objet),
+      delaiExecution: emptyToNull(data.delaiExecution),
+      modaliteReglement: emptyToNull(data.modaliteReglement),
+      modelePdf: data.modelePdf,
+    },
+  });
+
+  revalidatePath("/devis");
+  redirect(`/devis/${devis.id}`);
+}
+
+export async function updateDevisInfo(
+  id: string,
+  _prevState: DevisState,
+  formData: FormData,
+): Promise<DevisState> {
+  const validated = devisHeaderSchema.safeParse(Object.fromEntries(formData.entries()));
+
+  if (!validated.success) {
+    return { errors: validated.error.flatten().fieldErrors };
+  }
+
+  const data = validated.data;
+
+  const chantier = await prisma.chantier.findUnique({ where: { id: data.chantierId } });
+  if (!chantier) {
+    return { errors: { chantierId: ["Chantier introuvable."] } };
+  }
+
+  await prisma.devis.update({
+    where: { id },
+    data: {
+      chantierId: data.chantierId,
+      clientId: chantier.clientId,
+      statut: data.statut,
+      dateValidite: emptyToNullDate(data.dateValidite),
+      referenceMarche: emptyToNull(data.referenceMarche),
+      maitreOuvrage: emptyToNull(data.maitreOuvrage),
+      maitreOeuvre: emptyToNull(data.maitreOeuvre),
+      lot: emptyToNull(data.lot),
+      objet: emptyToNull(data.objet),
+      delaiExecution: emptyToNull(data.delaiExecution),
+      modaliteReglement: emptyToNull(data.modaliteReglement),
+      modelePdf: data.modelePdf,
+    },
+  });
+
+  revalidatePath("/devis");
+  revalidatePath(`/devis/${id}`);
+  redirect(`/devis/${id}`);
+}
+
+export async function creerAvenant(devisParentId: string) {
+  const parent = await prisma.devis.findUnique({
+    where: { id: devisParentId },
+    include: { avenants: true },
+  });
+
+  if (!parent) {
+    redirect("/devis");
+  }
+
+  const numero = `${parent.numero}-AV${parent.avenants.length + 1}`;
+
+  const avenant = await prisma.devis.create({
+    data: {
+      numero,
+      chantierId: parent.chantierId,
+      clientId: parent.clientId,
+      statut: "BROUILLON",
+      type: "AVENANT",
+      devisParentId: parent.id,
+      referenceMarche: parent.referenceMarche,
+      maitreOuvrage: parent.maitreOuvrage,
+      maitreOeuvre: parent.maitreOeuvre,
+      lot: parent.lot,
+      objet: parent.objet ? `Avenant — ${parent.objet}` : null,
+      delaiExecution: parent.delaiExecution,
+      modaliteReglement: parent.modaliteReglement,
+      modelePdf: parent.modelePdf,
+    },
+  });
+
+  revalidatePath(`/devis/${devisParentId}`);
+  revalidatePath("/devis");
+  redirect(`/devis/${avenant.id}`);
+}
+
+export async function deleteDevis(id: string) {
+  try {
+    await prisma.devis.delete({ where: { id } });
+  } catch {
+    redirect(`/devis/${id}?erreur=suppression`);
+  }
+
+  revalidatePath("/devis");
+  redirect("/devis");
+}
+
+// ---------------------------------------------------------------------------
+// Lignes de métré (chapitres / sous-chapitres / lignes)
+// ---------------------------------------------------------------------------
+
+const ligneInputSchema = z.object({
+  type: z.enum(["CHAPITRE", "SOUS_CHAPITRE", "LIGNE"]),
+  codeArticle: z.string().nullable().optional(),
+  designation: z.string(),
+  unite: z.string().nullable().optional(),
+  quantite: z.number().nullable().optional(),
+  prixUnitaireHT: z.number().nullable().optional(),
+  remise: z.number().nullable().optional(),
+  tauxTVA: z.number().nullable().optional(),
+  styleTexte: z.string().optional(),
+  clausesReserves: z.string().nullable().optional(), // JSON string[]
+});
+
+export type DevisLignesState = {
+  error?: string;
+} | undefined;
+
+export async function updateDevisLignes(
+  id: string,
+  _prevState: DevisLignesState,
+  formData: FormData,
+): Promise<DevisLignesState> {
+  const raw = formData.get("lignes");
+  if (typeof raw !== "string") {
+    return { error: "Données de métré invalides." };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { error: "Données de métré invalides." };
+  }
+
+  const result = z.array(ligneInputSchema).safeParse(parsed);
+  if (!result.success) {
+    return { error: "Données de métré invalides." };
+  }
+
+  let totalHT = 0;
+  let totalTVA = 0;
+  const lignesData = result.data.map((ligne, index) => {
+    const remise = ligne.remise ?? 0;
+    const total =
+      ligne.type === "LIGNE" && ligne.quantite != null && ligne.prixUnitaireHT != null
+        ? Math.round(ligne.quantite * ligne.prixUnitaireHT * (1 - remise / 100) * 100) / 100
+        : null;
+
+    if (ligne.type === "LIGNE" && total != null) {
+      totalHT += total;
+      totalTVA += total * ((ligne.tauxTVA ?? 20) / 100);
+    }
+
+    return {
+      ordre: index + 1,
+      type: ligne.type,
+      codeArticle: ligne.codeArticle ?? null,
+      designation: ligne.designation,
+      unite: ligne.unite ?? null,
+      quantite: ligne.quantite ?? null,
+      prixUnitaireHT: ligne.prixUnitaireHT ?? null,
+      remise: ligne.remise ?? null,
+      tauxTVA: ligne.tauxTVA ?? null,
+      totalHT: total,
+      styleTexte: ligne.styleTexte ?? "{}",
+      clausesReserves: ligne.clausesReserves ?? null,
+    };
+  });
+
+  totalHT = Math.round(totalHT * 100) / 100;
+  totalTVA = Math.round(totalTVA * 100) / 100;
+  const totalTTC = Math.round((totalHT + totalTVA) * 100) / 100;
+
+  await prisma.$transaction([
+    prisma.devisLigne.deleteMany({ where: { devisId: id } }),
+    prisma.devis.update({
+      where: { id },
+      data: {
+        totalHT,
+        totalTVA,
+        totalTTC,
+        version: { increment: 1 },
+        lignes: { create: lignesData },
+      },
+    }),
+  ]);
+
+  revalidatePath(`/devis/${id}`);
+  revalidatePath("/devis");
+}
+
+// ---------------------------------------------------------------------------
+// Mentions libres & notes internes
+// ---------------------------------------------------------------------------
+
+export async function updateMentionsDevis(id: string, formData: FormData): Promise<void> {
+  await prisma.devis.update({
+    where: { id },
+    data: {
+      mentionsLibres: (formData.get("mentionsLibres") as string) || null,
+      notesInternes: (formData.get("notesInternes") as string) || null,
+    },
+  });
+  revalidatePath(`/devis/${id}`);
+}
+
+// ---------------------------------------------------------------------------
+// Page de garde
+// ---------------------------------------------------------------------------
+
+export async function updateDevisCouverture(
+  id: string,
+  data: {
+    modeleCouverture: string;
+    nomProjet?: string | null;
+    photoProjetUrl?: string | null;
+    moNom?: string | null; moRepresentant?: string | null; moEmail?: string | null; moTelephone?: string | null;
+    moeNom?: string | null; moeRepresentant?: string | null; moeEmail?: string | null; moeTelephone?: string | null;
+    bets?: string | null;
+    egNom?: string | null; egRepresentant?: string | null; egEmail?: string | null; egTelephone?: string | null;
+    spsNom?: string | null; spsRepresentant?: string | null; spsTelephone?: string | null;
+    opcNom?: string | null; opcRepresentant?: string | null; opcTelephone?: string | null;
+    bordereauDiffusion?: string | null;
+  }
+) {
+  "use server";
+  await prisma.devis.update({ where: { id }, data });
+  revalidatePath(`/devis/${id}`);
+}
+
+// ---------------------------------------------------------------------------
+// Conversion en facture
+// ---------------------------------------------------------------------------
+
+export async function convertirDevisEnFacture(devisId: string) {
+  const devis = await prisma.devis.findUnique({
+    where: { id: devisId },
+    include: { lignes: true },
+  });
+
+  if (!devis) {
+    redirect("/devis");
+  }
+
+  const factures = await prisma.facture.findMany({ select: { numero: true } });
+  const numero = getNextNumero("FAC", factures.map((f) => f.numero));
+
+  const facture = await prisma.facture.create({
+    data: {
+      numero,
+      chantierId: devis.chantierId,
+      clientId: devis.clientId,
+      devisId: devis.id,
+      statut: "BROUILLON",
+      type: "STANDARD",
+      modelePdf: devis.modelePdf,
+      totalHT: devis.totalHT,
+      totalTVA: devis.totalTVA,
+      totalTTC: devis.totalTTC,
+      lignes: {
+        create: devis.lignes.map((ligne) => ({
+          ordre: ligne.ordre,
+          type: ligne.type,
+          codeArticle: ligne.codeArticle,
+          designation: ligne.designation,
+          unite: ligne.unite,
+          quantite: ligne.quantite,
+          prixUnitaireHT: ligne.prixUnitaireHT,
+          remise: ligne.remise,
+          tauxTVA: ligne.tauxTVA,
+          totalHT: ligne.totalHT,
+        })),
+      },
+    },
+  });
+
+  revalidatePath(`/devis/${devisId}`);
+  revalidatePath("/factures");
+  revalidatePath(`/chantiers/${devis.chantierId}`);
+  redirect(`/chantiers/${devis.chantierId}?facture=${facture.numero}`);
+}
+
+// ---------------------------------------------------------------------------
+// Signature électronique
+// ---------------------------------------------------------------------------
+
+export async function genererLienSignature(devisId: string): Promise<string> {
+  const token = randomBytes(32).toString("hex");
+  await prisma.devis.update({
+    where: { id: devisId },
+    data: { signatureToken: token, statut: "ENVOYE" },
+  });
+  revalidatePath(`/devis/${devisId}`);
+  return token;
+}
+
+export async function signerDevis(
+  token: string,
+  nomSignataire: string,
+  imageSignature: string,
+  adresseIp?: string,
+  userAgent?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const devis = await prisma.devis.findUnique({
+    where: { signatureToken: token },
+    select: { id: true, statut: true, signature: { select: { id: true } } },
+  });
+
+  if (!devis) return { ok: false, error: "Lien invalide ou expiré." };
+  if (devis.signature) return { ok: false, error: "Ce devis a déjà été signé." };
+
+  await prisma.$transaction([
+    prisma.signature.create({
+      data: {
+        devisId: devis.id,
+        nomSignataire,
+        imageSignature,
+        adresseIp: adresseIp ?? null,
+        userAgent: userAgent ?? null,
+      },
+    }),
+    prisma.devis.update({
+      where: { id: devis.id },
+      data: { statut: "ACCEPTE" },
+    }),
+  ]);
+
+  revalidatePath(`/devis/${devis.id}`);
+  return { ok: true };
+}

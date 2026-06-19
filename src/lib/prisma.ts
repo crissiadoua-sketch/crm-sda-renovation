@@ -1,14 +1,15 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaNeonHttp } from "@prisma/adapter-neon";
 
-// Le driver HTTP Neon utilise l'URL directe (sans pooler)
-const rawUrl = process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? "";
-const cleanUrl = rawUrl
-  .replace(/&channel_binding=require/g, "")
-  .replace(/\?channel_binding=require&?/g, "?")
-  .replace(/\?$/, "");
+function getNeonHttpUrl(): string {
+  const raw = process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? "";
+  return raw
+    .replace(/-pooler\./g, ".")           // supprime -pooler du hostname
+    .replace(/&?channel_binding=require/g, "") // supprime channel_binding
+    .replace(/\?$/, "");                  // supprime ? final orphelin
+}
 
-const adapter = new PrismaNeonHttp(cleanUrl, {});
+const adapter = new PrismaNeonHttp(getNeonHttpUrl(), {});
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;

@@ -1,11 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import dynamic from "next/dynamic";
-
-const Editeur3D = dynamic(
-  () => import("./editeur-3d").then((m) => ({ default: m.Editeur3D })),
-  { ssr: false },
-);
+import Editeur3D from "./editeur-3d-loader";
 
 export default async function Projet3DPage({
   params,

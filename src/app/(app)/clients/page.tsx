@@ -29,6 +29,7 @@ export default async function ClientsPage({
     where: q
       ? {
           OR: [
+            { reference: { contains: q } },
             { nom: { contains: q } },
             { prenom: { contains: q } },
             { raisonSociale: { contains: q } },
@@ -63,6 +64,7 @@ export default async function ClientsPage({
         <table className="min-w-full divide-y divide-slate-100 text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
             <tr>
+              <th className="px-4 py-3">Code</th>
               <th className="px-4 py-3">Nom / Raison sociale</th>
               <th className="px-4 py-3">Type</th>
               <th className="px-4 py-3">Ville</th>
@@ -73,6 +75,9 @@ export default async function ClientsPage({
           <tbody className="divide-y divide-slate-100">
             {clients.map((client) => (
               <tr key={client.id} className="hover:bg-slate-50">
+                <td className="px-4 py-3 font-mono text-xs font-semibold text-brand-blue">
+                  {client.reference ?? "—"}
+                </td>
                 <td className="px-4 py-3">
                   <Link href={`/clients/${client.id}`} className="font-medium text-brand-navy hover:underline">
                     {client.type === "PA"

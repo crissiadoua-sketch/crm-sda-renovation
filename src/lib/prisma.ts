@@ -1,7 +1,11 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaNeonHttp } from "@prisma/adapter-neon";
 
-const adapter = new PrismaNeonHttp(process.env.DATABASE_URL!, {});
+// Supprimer channel_binding=require incompatible avec le driver HTTP Neon
+const rawUrl = process.env.DATABASE_URL ?? "";
+const cleanUrl = rawUrl.replace(/&?channel_binding=require/g, "").replace(/\?$/, "");
+
+const adapter = new PrismaNeonHttp(cleanUrl, {});
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;

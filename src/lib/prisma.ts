@@ -1,9 +1,12 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaNeonHttp } from "@prisma/adapter-neon";
 
-// Supprimer channel_binding=require incompatible avec le driver HTTP Neon
-const rawUrl = process.env.DATABASE_URL ?? "";
-const cleanUrl = rawUrl.replace(/&?channel_binding=require/g, "").replace(/\?$/, "");
+// Le driver HTTP Neon utilise l'URL directe (sans pooler)
+const rawUrl = process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? "";
+const cleanUrl = rawUrl
+  .replace(/&channel_binding=require/g, "")
+  .replace(/\?channel_binding=require&?/g, "?")
+  .replace(/\?$/, "");
 
 const adapter = new PrismaNeonHttp(cleanUrl, {});
 

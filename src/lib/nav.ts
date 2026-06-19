@@ -4,6 +4,7 @@ import {
   Truck,
   HardHat,
   Building2,
+  Box,
   FileText,
   Receipt,
   ShoppingCart,
@@ -81,6 +82,7 @@ export const navGroups: NavGroup[] = [
       { href: "/chantiers", label: "Chantiers", icon: Building2 },
       { href: "/planning", label: "Planning", icon: Calendar },
       { href: "/conception", label: "Conception & Plans", icon: Compass },
+      { href: "/conception/3d", label: "Design 3D BIM", icon: Box },
     ],
   },
   {

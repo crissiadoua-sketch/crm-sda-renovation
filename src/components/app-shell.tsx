@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, LogOut } from "lucide-react";
 import { Logo } from "@/components/logo";
-import type { NavGroup } from "@/lib/nav";
+import { filterNavGroups, type NavGroup } from "@/lib/nav";
 import { logout } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/permissions";
 import { GlobalSearch } from "@/components/global-search";
@@ -88,17 +88,21 @@ function UserFooter({ user }: { user: CurrentUser }) {
 
 export function AppShell({
   user,
-  navGroups,
+  userRole,
+  userPermissions,
   children,
   banner,
 }: {
   user: CurrentUser;
-  navGroups: NavGroup[];
+  userRole: string;
+  userPermissions: string[];
   children: React.ReactNode;
   banner?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navGroups = filterNavGroups(userRole, userPermissions);
 
   const currentLabel =
     navGroups.flatMap((g) => g.items).find((item) => isActive(pathname, item.href))?.label ??

@@ -290,13 +290,14 @@ export function PlanningClient({
                   <div className="mt-1 flex flex-col gap-0.5">
                     {evs.slice(0, 3).map(ev => {
                       const cfg = TYPE_CONFIG[ev.type] ?? TYPE_CONFIG.AUTRE;
+                      const heure = new Date(ev.dateDebut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
                       return (
                         <button
                           key={ev.id}
                           onClick={e => { e.stopPropagation(); setModalEv(ev); }}
                           className={`w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-semibold ${cfg.color} ${cfg.bg} hover:opacity-80 transition`}
                         >
-                          {ev.titre}
+                          <span className="font-bold">{heure}</span> {ev.titre}
                         </button>
                       );
                     })}

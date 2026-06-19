@@ -9,18 +9,7 @@ export function Logo({
 }) {
   const textSize = size === "lg" ? "text-5xl" : "text-3xl";
 
-  if (variant === "light") {
-    return (
-      <div className={`flex flex-col ${className}`}>
-        <div className={`${textSize} font-extrabold leading-none tracking-tight text-white`}>
-          SDA
-        </div>
-        <div className="mt-1 text-xs font-semibold tracking-[0.35em] text-white/70">
-          RÉNOVATION
-        </div>
-      </div>
-    );
-  }
+  const renovationColor = variant === "light" ? "text-white/70" : "text-brand-navy";
 
   return (
     <div className={`flex flex-col ${className}`}>
@@ -35,7 +24,7 @@ export function Logo({
           A
         </span>
       </div>
-      <div className="mt-1 text-xs font-semibold tracking-[0.35em] text-brand-navy">
+      <div className={`mt-1 text-xs font-semibold tracking-[0.35em] ${renovationColor}`}>
         RÉNOVATION
       </div>
     </div>

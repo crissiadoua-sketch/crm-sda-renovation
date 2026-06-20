@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { updateElementCatalogue, deleteElementCatalogue } from "@/lib/actions/conception";
 import { notFound } from "next/navigation";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 const CATEGORIES = [
   { value: "MENUISERIE_INT", label: "Menuiserie intérieure" },
@@ -78,22 +79,16 @@ export default async function EditElementPage({
               </p>
             </div>
             {/* Delete button */}
-            <form action={deleteAction}>
-              <button
-                type="submit"
-                onClick={(e) => {
-                  if (!confirm(`Supprimer "${element.designation}" ? Cette action est irréversible.`)) {
-                    e.preventDefault();
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Supprimer
-              </button>
-            </form>
+            <DeleteButton
+              action={deleteAction}
+              confirmMessage={`Supprimer "${element.designation}" ? Cette action est irréversible.`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Supprimer
+            </DeleteButton>
           </div>
 
           <form

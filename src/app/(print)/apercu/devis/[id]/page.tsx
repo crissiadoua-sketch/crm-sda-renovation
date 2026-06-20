@@ -46,13 +46,8 @@ export default async function ApercuDevisPage({
           <div className="flex items-start justify-between border-b-2 border-[#1E2F6E] pb-6 mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#29ABE2] to-[#1B3F94] text-white font-bold text-lg">
-                  S
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-[#1E2F6E]">{COMPANY.nom}</p>
-                  <p className="text-xs text-slate-500">{COMPANY.activite}</p>
-                </div>
+                <img src="/logo.png" alt="SDA Rénovation" className="h-10 w-auto object-contain" />
+                <p className="text-xs text-slate-500">{COMPANY.activite}</p>
               </div>
               <div className="mt-2 text-xs text-slate-500 space-y-0.5">
                 <p>{COMPANY.adresse} — {COMPANY.codePostal} {COMPANY.ville}</p>

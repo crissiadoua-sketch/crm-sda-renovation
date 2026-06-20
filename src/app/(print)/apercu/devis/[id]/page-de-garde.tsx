@@ -48,13 +48,8 @@ export function PageDeGarde({ devis }: { devis: {
           {/* En-tête */}
           <div className="flex items-start justify-between border-b-2 border-[#1E2F6E] pb-6 mb-8">
             <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#29ABE2] to-[#1B3F94] shadow-md">
-                <span className="text-3xl font-black text-white">S</span>
-              </div>
-              <div>
-                <p className="text-xl font-black text-[#1E2F6E]">SDA RÉNOVATION</p>
-                <p className="text-xs font-semibold text-[#F7941E] uppercase tracking-wide">{COMPANY.activite}</p>
-              </div>
+              <img src="/logo.png" alt="SDA Rénovation" className="h-14 w-auto object-contain" />
+              <p className="text-xs font-semibold text-[#F7941E] uppercase tracking-wide">{COMPANY.activite}</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Référence</p>
@@ -142,13 +137,8 @@ export function PageDeGarde({ devis }: { devis: {
           {/* En-tête */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#29ABE2] to-[#1B3F94] shadow-md">
-                <span className="text-2xl font-black text-white">S</span>
-              </div>
-              <div>
-                <p className="text-xl font-black text-[#1E2F6E]">SDA RÉNOVATION</p>
-                <p className="text-xs font-semibold text-[#F7941E] uppercase tracking-wide">{COMPANY.activite}</p>
-              </div>
+              <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain" />
+              <p className="text-xs font-semibold text-[#F7941E] uppercase tracking-wide">{COMPANY.activite}</p>
             </div>
             <div className="text-right text-xs text-slate-400">
               <p className="font-mono font-bold text-slate-600">{devis.numero}</p>
@@ -212,13 +202,10 @@ export function PageDeGarde({ devis }: { devis: {
         <div className="bg-gradient-to-br from-[#1E2F6E] to-[#0f1e4a] px-10 py-10 text-white">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 shadow-md">
-                <span className="text-2xl font-black text-white">S</span>
+              <div className="rounded-lg bg-white px-3 py-1.5">
+                <img src="/logo.png" alt="SDA Rénovation" className="h-9 w-auto object-contain" />
               </div>
-              <div>
-                <p className="text-xl font-black text-white">SDA RÉNOVATION</p>
-                <p className="text-xs font-semibold text-[#29ABE2] uppercase tracking-wide">{COMPANY.activite}</p>
-              </div>
+              <p className="text-xs font-semibold text-[#29ABE2] uppercase tracking-wide">{COMPANY.activite}</p>
             </div>
             <div className="text-right text-xs text-white/70">
               <p className="font-mono font-bold text-white">{devis.numero}</p>
@@ -291,13 +278,8 @@ export function PageDeGarde({ devis }: { devis: {
         {/* En-tête épuré */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-6 mb-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#29ABE2] to-[#1B3F94]">
-              <span className="text-xl font-black text-white">S</span>
-            </div>
-            <div>
-              <p className="text-lg font-black text-[#1E2F6E]">SDA RÉNOVATION</p>
-              <p className="text-xs text-slate-400 uppercase tracking-wide">{COMPANY.activite}</p>
-            </div>
+            <img src="/logo.png" alt="SDA Rénovation" className="h-10 w-auto object-contain" />
+            <p className="text-xs text-slate-400 uppercase tracking-wide">{COMPANY.activite}</p>
           </div>
           <div className="text-right">
             <p className="font-mono text-sm font-bold text-slate-600">{devis.numero}</p>

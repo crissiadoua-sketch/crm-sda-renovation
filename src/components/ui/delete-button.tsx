@@ -6,10 +6,12 @@ export function DeleteButton({
   action,
   confirmMessage = "Confirmer la suppression ?",
   children = "Supprimer",
+  className,
 }: {
   action: () => void;
   confirmMessage?: string;
   children?: React.ReactNode;
+  className?: string;
 }) {
   return (
     <form
@@ -20,7 +22,7 @@ export function DeleteButton({
         }
       }}
     >
-      <button type="submit" className={buttonClasses("danger")}>
+      <button type="submit" className={className ?? buttonClasses("danger")}>
         {children}
       </button>
     </form>

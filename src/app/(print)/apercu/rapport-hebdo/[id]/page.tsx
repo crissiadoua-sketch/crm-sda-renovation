@@ -35,13 +35,8 @@ export default async function ApercuRapportHebdoPage({
           <div className="flex items-start justify-between border-b-[3px] border-[#1E2F6E] pb-5 mb-5">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#29ABE2] to-[#1B3F94] shadow-md">
-                  <span className="text-2xl font-black text-white">S</span>
-                </div>
-                <div>
-                  <p className="text-xl font-black text-[#1E2F6E]">SDA RÉNOVATION</p>
-                  <p className="text-xs font-semibold text-[#F7941E] uppercase tracking-wide">{COMPANY.activite}</p>
-                </div>
+                <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain" />
+                <p className="text-xs font-semibold text-[#F7941E] uppercase tracking-wide">{COMPANY.activite}</p>
               </div>
               <div className="text-xs text-slate-500 space-y-0.5 ml-1">
                 <p>{COMPANY.adresse} — {COMPANY.codePostal} {COMPANY.ville}</p>

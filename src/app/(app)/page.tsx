@@ -118,7 +118,9 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-2xl bg-gradient-to-r from-brand-blue to-brand-blue-dark p-6 text-white shadow-sm">
-        <h2 className="text-xl font-bold">Bonjour, {user.name.split(" ")[0]} 👋</h2>
+        <h2 className="text-xl font-bold">
+          Bonjour, {user.name.replace(/^(M\.?|Mr|Mme|Mlle|Monsieur|Madame)\s+/i, "").split(" ")[0]} 👋
+        </h2>
         <p className="mt-1 text-sm text-white/80">
           Voici un aperçu de l&apos;activité de SDA Rénovation.
         </p>

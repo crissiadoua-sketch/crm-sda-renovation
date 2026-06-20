@@ -496,17 +496,13 @@ export default async function PPSPSDetailPage({
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
-                          <form action={deleteRisque.bind(null, risque.id, id)}>
-                            <button
-                              type="submit"
-                              className="text-xs text-red-500 hover:underline"
-                              onClick={(e) => {
-                                if (!confirm("Supprimer ce risque ?")) e.preventDefault();
-                              }}
-                            >
-                              Supprimer
-                            </button>
-                          </form>
+                          <DeleteButton
+                            action={deleteRisque.bind(null, risque.id, id)}
+                            confirmMessage="Supprimer ce risque ?"
+                            className="text-xs text-red-500 hover:underline"
+                          >
+                            Supprimer
+                          </DeleteButton>
                         </td>
                       </tr>
                     );
@@ -660,17 +656,13 @@ export default async function PPSPSDetailPage({
                     <Badge tone={secoursTypeTones[s.type] ?? "gray"}>
                       {secoursTypeLabels[s.type] ?? s.type}
                     </Badge>
-                    <form action={deleteSecours.bind(null, s.id, id)}>
-                      <button
-                        type="submit"
-                        className="text-xs text-red-400 hover:text-red-600 hover:underline transition"
-                        onClick={(e) => {
-                          if (!confirm("Supprimer ce contact ?")) e.preventDefault();
-                        }}
-                      >
-                        Supprimer
-                      </button>
-                    </form>
+                    <DeleteButton
+                      action={deleteSecours.bind(null, s.id, id)}
+                      confirmMessage="Supprimer ce contact ?"
+                      className="text-xs text-red-400 hover:text-red-600 hover:underline transition"
+                    >
+                      Supprimer
+                    </DeleteButton>
                   </div>
                   {s.nom && <p className="mb-1 font-semibold text-brand-navy">{s.nom}</p>}
                   <p className="text-2xl font-bold text-brand-orange">{s.telephone}</p>

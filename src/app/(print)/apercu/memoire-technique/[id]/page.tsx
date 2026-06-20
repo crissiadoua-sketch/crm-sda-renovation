@@ -179,13 +179,7 @@ export default async function ApercuMemoireTechniquePage({
             {/* Logo zone */}
             <div className="flex items-start justify-between mb-12">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span style={{ background: "linear-gradient(135deg,#F7941E,#E6471D)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
-                    className="text-4xl font-black">S</span>
-                  <span style={{ background: "linear-gradient(135deg,#29ABE2,#1B3F94)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
-                    className="text-4xl font-black">DA</span>
-                </div>
-                <p className="text-[10px] font-bold tracking-[0.3em] text-[#1E2F6E] uppercase">Rénovation</p>
+                <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain mb-1" />
                 <p className="text-[9px] text-slate-500 mt-1">{COMPANY.adresse} · {COMPANY.codePostal} {COMPANY.ville}</p>
               </div>
 
@@ -452,11 +446,7 @@ function PageHeader({ reference, titre }: { reference: string; titre: string }) 
   return (
     <div className="flex items-center justify-between mb-6 pb-2 border-b border-slate-200">
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          <span style={{ color: "#F7941E" }} className="font-black text-sm">S</span>
-          <span style={{ color: "#29ABE2" }} className="font-black text-sm">DA</span>
-        </div>
-        <span className="text-[9px] text-slate-400 uppercase tracking-widest">Rénovation</span>
+        <img src="/logo.png" alt="SDA Rénovation" className="h-5 w-auto object-contain" />
       </div>
       <div className="text-right">
         <p className="font-mono text-[10px] font-bold text-[#1E2F6E]">{reference}</p>

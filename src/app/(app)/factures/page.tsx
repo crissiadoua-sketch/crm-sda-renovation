@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { LinkButton } from "@/components/ui/button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { inputClasses } from "@/components/ui/fields";
+import { AutoSubmitSelect } from "@/components/ui/auto-submit-select";
 import { formatEuros, formatDate, clientDisplayName } from "@/lib/format";
 
 const statutTones: Record<string, BadgeTone> = {
@@ -199,23 +200,22 @@ export default async function FacturesPage({
               className={`${inputClasses} pl-9 w-56`}
             />
             {statut && <input type="hidden" name="statut" value={statut} />}
-            {type && <input type="hidden" name="type" value={type} />}
           </form>
-          <select
-            name="type"
-            defaultValue={type ?? ""}
-            onChange={(e) => {
-              // handled client-side — this is a server component, use link instead
-            }}
-            className={`${inputClasses} w-44`}
-            suppressHydrationWarning
-          >
-            {TYPES.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <form>
+            {q && <input type="hidden" name="q" value={q} />}
+            {statut && <input type="hidden" name="statut" value={statut} />}
+            <AutoSubmitSelect
+              name="type"
+              defaultValue={type ?? ""}
+              className={`${inputClasses} w-44`}
+            >
+              {TYPES.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </AutoSubmitSelect>
+          </form>
         </div>
         <LinkButton href="/factures/nouveau">
           <Plus className="h-4 w-4" />

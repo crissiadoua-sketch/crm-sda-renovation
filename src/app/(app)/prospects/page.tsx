@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
+import { AutoSubmitSelect } from "@/components/ui/auto-submit-select";
 import { formatDate } from "@/lib/format";
 import { creerProspect, convertirEnClient, changerStatutProspect } from "@/lib/actions/prospects";
 
@@ -146,11 +147,10 @@ export default async function ProspectsPage({
                     <td className="px-4 py-3 text-slate-500 text-xs">{SOURCE_LABELS[p.source] ?? p.source}</td>
                     <td className="px-4 py-3">
                       <form action={changerStatutProspect.bind(null, p.id)}>
-                        <select name="statut" defaultValue={p.statut}
-                          onChange={e => (e.target.form as HTMLFormElement)?.requestSubmit()}
+                        <AutoSubmitSelect name="statut" defaultValue={p.statut}
                           className="rounded-lg border border-slate-200 px-2 py-1 text-xs">
                           {Object.entries(STATUT_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                        </select>
+                        </AutoSubmitSelect>
                       </form>
                     </td>
                     <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">{formatDate(p.createdAt)}</td>

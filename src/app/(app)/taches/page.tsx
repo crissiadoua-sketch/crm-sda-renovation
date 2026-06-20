@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/dal";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
+import { AutoSubmitSelect } from "@/components/ui/auto-submit-select";
 import { formatDate } from "@/lib/format";
 import { updateTacheStatut } from "@/lib/actions/taches";
 import { TachesStats } from "@/components/charts/taches-stats";
@@ -236,20 +237,16 @@ export default async function TachesPage({
             <input type="hidden" name="periode" value={periode} />
             {statut && <input type="hidden" name="statut" value={statut} />}
             {moi && <input type="hidden" name="moi" value={moi} />}
-            <select
+            <AutoSubmitSelect
               name="service"
               defaultValue={service ?? ""}
-              onChange={(e) => {
-                const f = e.currentTarget.form;
-                if (f) f.submit();
-              }}
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 focus:border-brand-blue focus:outline-none"
             >
               <option value="">Tous services</option>
               {Object.entries(SERVICE_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
-            </select>
+            </AutoSubmitSelect>
           </form>
 
           {/* Filtre mes tâches */}

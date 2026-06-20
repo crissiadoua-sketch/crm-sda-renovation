@@ -16,15 +16,18 @@ export default async function ApercuFacturePage({
 }) {
   const { id } = await params;
 
-  const facture = await prisma.facture.findUnique({
-    where: { id },
-    include: {
-      chantier: true,
-      client: true,
-      lignes: { orderBy: { ordre: "asc" } },
-      paiements: { orderBy: { date: "asc" } },
-    },
-  });
+  const [facture, parametres] = await Promise.all([
+    prisma.facture.findUnique({
+      where: { id },
+      include: {
+        chantier: true,
+        client: true,
+        lignes: { orderBy: { ordre: "asc" } },
+        paiements: { orderBy: { date: "asc" } },
+      },
+    }),
+    prisma.parametres.findUnique({ where: { id: "default" } }),
+  ]);
 
   if (!facture) notFound();
 
@@ -185,6 +188,18 @@ export default async function ApercuFacturePage({
           </div>
         </div>
       </div>
+
+      {/* Annexe — Conditions de règlement */}
+      {parametres?.conditionsFacture && (
+        <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none print:break-before-page">
+          <div className="px-12 py-10 print:px-10 print:py-8">
+            <p className="mb-4 text-lg font-black text-[#1E2F6E]">ANNEXE — CONDITIONS DE RÈGLEMENT</p>
+            <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-slate-700">
+              {parametres.conditionsFacture}
+            </p>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media print { @page { size: A4; margin: 0; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }

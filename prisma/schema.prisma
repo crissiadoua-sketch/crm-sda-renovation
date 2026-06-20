@@ -79,6 +79,7 @@ model Fournisseur {
   id         String   @id @default(cuid())
   reference  String?  @unique // FOU-0001
   nom        String
+  corpsMetier String? // code CORPS_ETAT_CODES, ou "TOUS" pour un grossiste / négoce généraliste (Point P, Chausson Matériaux…)
   contact    String?
   email      String?
   telephone  String?
@@ -218,6 +219,9 @@ model ContratSousTraitance {
   penalitesRetard   String?
   assuranceRC       String?
   notes             String?
+
+  // Clauses juridiques : si renseigné, remplace les articles standards générés automatiquement dans le PDF
+  clausesPersonnalisees String?
 
   // Signature électronique simple
   signatureToken    String?   @unique

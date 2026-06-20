@@ -19,13 +19,14 @@ export default async function SousTraitantsPage({
     where: q
       ? {
           OR: [
+            { reference: { contains: q } },
             { nom: { contains: q } },
             { specialite: { contains: q } },
             { contact: { contains: q } },
           ],
         }
       : undefined,
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ specialite: "asc" }, { nom: "asc" }],
   });
 
   return (
@@ -51,6 +52,7 @@ export default async function SousTraitantsPage({
         <table className="min-w-full divide-y divide-slate-100 text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
             <tr>
+              <th className="px-4 py-3">Code</th>
               <th className="px-4 py-3">Nom</th>
               <th className="px-4 py-3">Spécialité</th>
               <th className="px-4 py-3">Contact</th>
@@ -61,6 +63,9 @@ export default async function SousTraitantsPage({
           <tbody className="divide-y divide-slate-100">
             {sousTraitants.map((st) => (
               <tr key={st.id} className="hover:bg-slate-50">
+                <td className="px-4 py-3 font-mono text-xs font-semibold text-brand-blue">
+                  {st.reference ?? "—"}
+                </td>
                 <td className="px-4 py-3">
                   <Link href={`/sous-traitants/${st.id}`} className="font-medium text-brand-navy hover:underline">
                     {st.nom}

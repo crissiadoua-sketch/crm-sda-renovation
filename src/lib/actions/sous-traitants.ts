@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { nextTiersRef } from "@/lib/reference";
+import { nextClientRef, calcInitiales } from "@/lib/reference";
 
 const sousTraitantSchema = z.object({
   nom: z.string().min(1, "Le nom est requis."),
@@ -45,7 +45,8 @@ export async function createSousTraitant(
     where: { reference: { startsWith: "ST-" } },
     select: { reference: true },
   });
-  const reference = nextTiersRef("ST", existing.map((r) => r.reference ?? ""));
+  const initiales = calcInitiales({ raisonSociale: data.nom });
+  const reference = nextClientRef("ST", existing.map((r) => r.reference ?? ""), initiales);
 
   const sousTraitant = await prisma.sousTraitant.create({
     data: {

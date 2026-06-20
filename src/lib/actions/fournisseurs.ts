@@ -4,10 +4,11 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { nextTiersRef } from "@/lib/reference";
+import { nextClientRef, calcInitiales } from "@/lib/reference";
 
 const fournisseurSchema = z.object({
   nom: z.string().min(1, "Le nom est requis."),
+  corpsMetier: z.string().optional(),
   contact: z.string().optional(),
   email: z.union([z.string().email("E-mail invalide."), z.literal("")]).optional(),
   telephone: z.string().optional(),
@@ -42,12 +43,14 @@ export async function createFournisseur(
     where: { reference: { startsWith: "FOU-" } },
     select: { reference: true },
   });
-  const reference = nextTiersRef("FOU", existing.map((r) => r.reference ?? ""));
+  const initiales = calcInitiales({ raisonSociale: data.nom });
+  const reference = nextClientRef("FOU", existing.map((r) => r.reference ?? ""), initiales);
 
   const fournisseur = await prisma.fournisseur.create({
     data: {
       reference,
       nom: data.nom,
+      corpsMetier: emptyToNull(data.corpsMetier),
       contact: emptyToNull(data.contact),
       email: emptyToNull(data.email),
       telephone: emptyToNull(data.telephone),
@@ -80,6 +83,7 @@ export async function updateFournisseur(
     where: { id },
     data: {
       nom: data.nom,
+      corpsMetier: emptyToNull(data.corpsMetier),
       contact: emptyToNull(data.contact),
       email: emptyToNull(data.email),
       telephone: emptyToNull(data.telephone),

@@ -5,6 +5,7 @@ import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { FournisseurState } from "@/lib/actions/fournisseurs";
 import type { Fournisseur } from "@/generated/prisma/client";
+import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS } from "@/lib/corps-etat";
 
 type Action = (prevState: FournisseurState, formData: FormData) => Promise<FournisseurState>;
 
@@ -28,6 +29,16 @@ export function FournisseurForm({
           <input id="contact" name="contact" defaultValue={fournisseur?.contact ?? ""} className={inputClasses} />
         </Field>
       </div>
+
+      <Field label="Corps de métier" htmlFor="corpsMetier" error={errors.corpsMetier}>
+        <select id="corpsMetier" name="corpsMetier" defaultValue={fournisseur?.corpsMetier ?? ""} className={inputClasses}>
+          <option value="">— Non renseigné —</option>
+          <option value="TOUS">Tous corps d&apos;état (grossiste / négoce généraliste)</option>
+          {CORPS_ETAT_CODES.map((code) => (
+            <option key={code} value={code}>{CORPS_ETAT_LABELS[code]}</option>
+          ))}
+        </select>
+      </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="E-mail" htmlFor="email" error={errors.email}>

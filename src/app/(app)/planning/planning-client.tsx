@@ -47,6 +47,19 @@ function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
+// Convertit un instant UTC stocké en base vers la valeur locale attendue par <input type="datetime-local">
+function toLocalInputValue(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const offsetMs = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+// Convertit la valeur locale saisie dans le formulaire vers un ISO UTC non ambigu
+function fromLocalInputValue(local: string) {
+  return new Date(local).toISOString();
+}
+
 // ---------------------------------------------------------------------------
 // Modal Événement
 // ---------------------------------------------------------------------------
@@ -67,8 +80,8 @@ function EvenementModal({
   const [isPending, startTransition] = useTransition();
   const [titre,       setTitre]       = useState(ev?.titre ?? "");
   const [description, setDescription] = useState(ev?.description ?? "");
-  const [dateDebut,   setDateDebut]   = useState(ev?.dateDebut?.slice(0, 16) ?? `${dateInitiale ?? ""}T08:00`);
-  const [dateFin,     setDateFin]     = useState(ev?.dateFin?.slice(0, 16) ?? "");
+  const [dateDebut,   setDateDebut]   = useState(ev ? toLocalInputValue(ev.dateDebut) : `${dateInitiale ?? ""}T08:00`);
+  const [dateFin,     setDateFin]     = useState(ev ? toLocalInputValue(ev.dateFin) : "");
   const [type,        setType]        = useState(ev?.type ?? "AUTRE");
   const [lieu,        setLieu]        = useState(ev?.lieu ?? "");
   const [chantierId,  setChantierId]  = useState(ev?.chantierId ?? "");
@@ -79,7 +92,13 @@ function EvenementModal({
     if (!dateDebut) { setError("La date de début est requise."); return; }
     setError("");
     startTransition(async () => {
-      const data = { titre, description: description || undefined, dateDebut, dateFin: dateFin || undefined, type, lieu: lieu || undefined, chantierId: chantierId || undefined };
+      const data = {
+        titre,
+        description: description || undefined,
+        dateDebut: fromLocalInputValue(dateDebut),
+        dateFin: dateFin ? fromLocalInputValue(dateFin) : undefined,
+        type, lieu: lieu || undefined, chantierId: chantierId || undefined,
+      };
       if (ev) await modifierEvenement(ev.id, data);
       else     await creerEvenement(data);
       onSaved();

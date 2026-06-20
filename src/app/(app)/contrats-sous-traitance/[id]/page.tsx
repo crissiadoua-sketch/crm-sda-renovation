@@ -53,10 +53,19 @@ export default async function ContratDetailPage({ params }: { params: Promise<{ 
             {contrat.sousTraitant.nom} · {contrat.chantier.nom}
           </p>
         </div>
-        <DeleteButton
-          action={supprimerContrat.bind(null, id)}
-          confirmMessage={`Supprimer le contrat ${contrat.numero} ?`}
-        />
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/apercu/contrat-sous-traitance/${id}`}
+            target="_blank"
+            className="rounded-lg border border-brand-navy px-4 py-2 text-sm font-medium text-brand-navy hover:bg-brand-navy hover:text-white transition-colors"
+          >
+            Aperçu PDF
+          </Link>
+          <DeleteButton
+            action={supprimerContrat.bind(null, id)}
+            confirmMessage={`Supprimer le contrat ${contrat.numero} ?`}
+          />
+        </div>
       </div>
 
       {/* Récapitulatif financier */}
@@ -143,6 +152,19 @@ export default async function ContratDetailPage({ params }: { params: Promise<{ 
             <textarea name="notes" defaultValue={contrat.notes ?? ""} rows={2}
               className={`${inputClasses} resize-y`} />
           </Field>
+        </div>
+
+        <div className="mt-4">
+          <Field label="Clauses juridiques personnalisées (optionnel)">
+            <textarea name="clausesPersonnalisees" defaultValue={contrat.clausesPersonnalisees ?? ""} rows={8}
+              className={`${inputClasses} resize-y font-mono text-xs`}
+              placeholder="Laissez vide pour générer automatiquement les articles standards (Objet, Délai, Prix, Pénalités, Assurances, Résiliation, Litiges…). Collez ici votre propre texte juridique (vos articles, rédigés par vous ou votre avocat) pour qu'il soit utilisé à la place, mot pour mot, dans le PDF du contrat." />
+          </Field>
+          <p className="mt-1 text-xs text-slate-400">
+            {contrat.clausesPersonnalisees
+              ? "✓ Le PDF utilisera ce texte personnalisé à la place des articles standards."
+              : "Le PDF utilisera les articles standards générés automatiquement."}
+          </p>
         </div>
 
         <div className="mt-4 flex justify-end">

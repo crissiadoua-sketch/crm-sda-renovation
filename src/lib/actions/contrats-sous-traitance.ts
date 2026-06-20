@@ -42,6 +42,7 @@ export async function mettreAJourContrat(id: string, formData: FormData): Promis
   const penalitesRetard   = (formData.get("penalitesRetard") as string) || null;
   const assuranceRC       = (formData.get("assuranceRC") as string) || null;
   const notes             = (formData.get("notes") as string) || null;
+  const clausesPersonnalisees = (formData.get("clausesPersonnalisees") as string) || null;
   const statut            = formData.get("statut") as string;
   const dateDebutStr      = (formData.get("dateDebut") as string) || null;
   const dateFinStr        = (formData.get("dateFin") as string) || null;
@@ -51,7 +52,7 @@ export async function mettreAJourContrat(id: string, formData: FormData): Promis
     data: {
       objet, lot, montantHT, tauxTVA, retenueGarantie,
       delaiExecution, modaliteReglement, penalitesRetard, assuranceRC,
-      notes, statut,
+      notes, clausesPersonnalisees, statut,
       dateDebut: dateDebutStr ? new Date(dateDebutStr) : null,
       dateFin:   dateFinStr   ? new Date(dateFinStr)   : null,
     },

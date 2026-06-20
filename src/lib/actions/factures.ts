@@ -3,6 +3,93 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getNextNumero } from "@/lib/numbering";
+
+export async function creerFactureLibre(formData: FormData): Promise<void> {
+  const chantierId = formData.get("chantierId") as string;
+  const type = (formData.get("type") as string) || "STANDARD";
+  const dateEcheanceStr = (formData.get("dateEcheance") as string) || null;
+
+  const chantier = await prisma.chantier.findUnique({
+    where: { id: chantierId },
+    select: { clientId: true },
+  });
+  if (!chantier) redirect("/factures");
+
+  const factures = await prisma.facture.findMany({ select: { numero: true } });
+  const numero = getNextNumero("FAC", factures.map((f) => f.numero));
+
+  const facture = await prisma.facture.create({
+    data: {
+      numero,
+      chantierId,
+      clientId: chantier.clientId,
+      statut: "BROUILLON",
+      type,
+      dateEcheance: dateEcheanceStr ? new Date(dateEcheanceStr) : null,
+    },
+  });
+
+  revalidatePath("/factures");
+  redirect(`/factures/${facture.id}`);
+}
+
+type LigneInput = {
+  ordre: number;
+  type: string;
+  codeArticle?: string | null;
+  designation: string;
+  unite?: string | null;
+  quantite?: number | null;
+  prixUnitaireHT?: number | null;
+  remise?: number | null;
+  tauxTVA?: number | null;
+};
+
+export async function sauvegarderLignesFacture(factureId: string, lignes: LigneInput[]): Promise<void> {
+  const lignesAvecTotal = lignes.map((l) => {
+    const qte = l.quantite ?? 0;
+    const pu = l.prixUnitaireHT ?? 0;
+    const remise = l.remise ?? 0;
+    const totalHT = l.type === "LIGNE" ? qte * pu * (1 - remise / 100) : null;
+    return { ...l, totalHT };
+  });
+
+  const totalHT = lignesAvecTotal.reduce((sum, l) => sum + (l.totalHT ?? 0), 0);
+  const totalTVA = lignesAvecTotal.reduce(
+    (sum, l) => sum + (l.totalHT ?? 0) * ((l.tauxTVA ?? 0) / 100),
+    0
+  );
+
+  await prisma.$transaction(async (tx) => {
+    await tx.factureLigne.deleteMany({ where: { factureId } });
+    await tx.facture.update({
+      where: { id: factureId },
+      data: {
+        totalHT,
+        totalTVA,
+        totalTTC: totalHT + totalTVA,
+        lignes: {
+          create: lignesAvecTotal.map((l) => ({
+            ordre: l.ordre,
+            type: l.type,
+            codeArticle: l.codeArticle || null,
+            designation: l.designation,
+            unite: l.unite || null,
+            quantite: l.quantite ?? null,
+            prixUnitaireHT: l.prixUnitaireHT ?? null,
+            remise: l.remise ?? null,
+            tauxTVA: l.tauxTVA ?? null,
+            totalHT: l.totalHT,
+          })),
+        },
+      },
+    });
+  });
+
+  revalidatePath(`/factures/${factureId}`);
+  revalidatePath("/factures");
+}
 
 export async function updateMentionsFacture(id: string, formData: FormData): Promise<void> {
   await prisma.facture.update({

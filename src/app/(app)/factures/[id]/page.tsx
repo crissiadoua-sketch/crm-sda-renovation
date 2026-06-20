@@ -9,6 +9,7 @@ import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { formatEuros, formatDate, clientDisplayName } from "@/lib/format";
 import { PdfPreviewModal } from "@/components/ui/pdf-preview-modal";
 import { BridgePaiement } from "@/components/factures/bridge-paiement";
+import { FactureLignesEditor } from "@/components/factures/facture-lignes-editor";
 
 const statutTones: Record<string, BadgeTone> = {
   BROUILLON: "gray",
@@ -202,81 +203,7 @@ export default async function FactureDetailPage({
       </div>
 
       {/* ── Lignes ── */}
-      {facture.lignes.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
-            <h3 className="font-semibold text-brand-navy">Lignes de facturation</h3>
-          </div>
-          <table className="min-w-full divide-y divide-slate-100 text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-              <tr>
-                <th className="px-4 py-2">Désignation</th>
-                <th className="px-4 py-2">Unité</th>
-                <th className="px-4 py-2 text-right">Qté</th>
-                <th className="px-4 py-2 text-right">PU HT</th>
-                <th className="px-4 py-2 text-right">TVA</th>
-                <th className="px-4 py-2 text-right">Total HT</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {facture.lignes.map((ligne) => {
-                if (ligne.type === "CHAPITRE") {
-                  return (
-                    <tr key={ligne.id} className="bg-slate-50">
-                      <td
-                        colSpan={6}
-                        className="px-4 py-2 font-bold text-brand-navy uppercase text-xs tracking-wide"
-                      >
-                        {ligne.designation}
-                      </td>
-                    </tr>
-                  );
-                }
-                if (ligne.type === "SOUS_CHAPITRE") {
-                  return (
-                    <tr key={ligne.id} className="bg-slate-50/50">
-                      <td
-                        colSpan={6}
-                        className="px-4 py-2 pl-8 font-semibold text-slate-700 text-xs"
-                      >
-                        {ligne.designation}
-                      </td>
-                    </tr>
-                  );
-                }
-                return (
-                  <tr key={ligne.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-2 pl-10 text-slate-700">{ligne.designation}</td>
-                    <td className="px-4 py-2 text-slate-500">{ligne.unite ?? "—"}</td>
-                    <td className="px-4 py-2 text-right text-slate-600">
-                      {ligne.quantite != null ? ligne.quantite : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-right text-slate-600">
-                      {ligne.prixUnitaireHT != null ? formatEuros(ligne.prixUnitaireHT) : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-right text-slate-500">
-                      {ligne.tauxTVA != null ? `${ligne.tauxTVA} %` : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-right font-medium text-slate-700">
-                      {ligne.totalHT != null ? formatEuros(ligne.totalHT) : "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot className="bg-slate-50 font-semibold text-sm">
-              <tr>
-                <td colSpan={5} className="px-4 py-3 text-right text-slate-500">
-                  Total TTC
-                </td>
-                <td className="px-4 py-3 text-right text-brand-navy">
-                  {formatEuros(facture.totalTTC)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
+      <FactureLignesEditor factureId={facture.id} lignesInitiales={facture.lignes} />
 
       {/* ── Paiements ── */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

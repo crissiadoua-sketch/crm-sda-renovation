@@ -462,7 +462,7 @@ export default async function ApercuPlanningGanttPage({
         </div>
       </div>
 
-      <style>{`@media print { @page { size: A4 landscape; margin: 0; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }`}</style>
+      <style>{`@media print { @page { size: 297mm 210mm; margin: 0; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }`}</style>
     </>
   );
 }

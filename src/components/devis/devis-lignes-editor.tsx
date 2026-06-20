@@ -751,7 +751,7 @@ export function DevisLignesEditor({
                         value={row.designation}
                         onChange={(e) => update(row.key, { designation: e.target.value })}
                         onClick={(e) => e.stopPropagation()}
-                        rows={Math.max(1, row.designation.split("\n").length)}
+                        rows={Math.max(row.type === "CLAUSE_RESERVE" ? 3 : 2, row.designation.split("\n").length)}
                         placeholder={
                           row.type === "CHAPITRE"
                             ? "Intitulé du titre"
@@ -763,10 +763,11 @@ export function DevisLignesEditor({
                         }
                         style={{
                           paddingLeft: row.type === "LIGNE" ? "1.25rem" : row.type === "SOUS_CHAPITRE" ? "0.625rem" : "0",
-                          resize: "none",
+                          resize: "vertical",
+                          minHeight: "2.5rem",
                           ...inputCSS,
                         }}
-                        className={`w-full rounded-md border px-2 py-1 text-sm focus:outline-none focus:ring-1 ${
+                        className={`w-full min-w-[260px] rounded-md border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 ${
                           row.type === "CLAUSE_RESERVE"
                             ? "border-red-200 italic text-red-700 placeholder:text-red-300 focus:border-red-400 focus:ring-red-300"
                             : "border-slate-200 focus:border-brand-blue focus:ring-brand-blue/30"

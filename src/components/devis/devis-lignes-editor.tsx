@@ -60,6 +60,12 @@ type Action = (prevState: DevisLignesState, formData: FormData) => Promise<Devis
 let keyCounter = 0;
 function newKey() { keyCounter += 1; return `new-${keyCounter}`; }
 
+function autoGrow(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 function parseStyle(s: string): StyleTexte {
   try { return JSON.parse(s) as StyleTexte; } catch { return {}; }
 }
@@ -748,10 +754,11 @@ export function DevisLignesEditor({
                     )}
                     <td className="px-3 py-2 align-top">
                       <textarea
+                        ref={autoGrow}
                         value={row.designation}
                         onChange={(e) => update(row.key, { designation: e.target.value })}
                         onClick={(e) => e.stopPropagation()}
-                        rows={Math.max(row.type === "CLAUSE_RESERVE" ? 3 : 2, row.designation.split("\n").length)}
+                        rows={row.type === "CLAUSE_RESERVE" ? 3 : 2}
                         placeholder={
                           row.type === "CHAPITRE"
                             ? "Intitulé du titre"
@@ -763,8 +770,8 @@ export function DevisLignesEditor({
                         }
                         style={{
                           paddingLeft: row.type === "LIGNE" ? "1.25rem" : row.type === "SOUS_CHAPITRE" ? "0.625rem" : "0",
-                          resize: "vertical",
-                          minHeight: "2.5rem",
+                          resize: "none",
+                          overflow: "hidden",
                           ...inputCSS,
                         }}
                         className={`w-full min-w-[260px] rounded-md border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 ${

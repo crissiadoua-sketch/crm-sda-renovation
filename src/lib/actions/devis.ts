@@ -172,7 +172,7 @@ export async function deleteDevis(id: string) {
 // ---------------------------------------------------------------------------
 
 const ligneInputSchema = z.object({
-  type: z.enum(["CHAPITRE", "SOUS_CHAPITRE", "LIGNE"]),
+  type: z.enum(["CHAPITRE", "SOUS_CHAPITRE", "LIGNE", "CLAUSE_RESERVE"]),
   codeArticle: z.string().nullable().optional(),
   designation: z.string(),
   unite: z.string().nullable().optional(),

@@ -358,7 +358,7 @@ model Devis {
 model DevisLigne {
   id             String  @id @default(cuid())
   devisId        String
-  type           String  @default("LIGNE") // CHAPITRE | SOUS_CHAPITRE | LIGNE
+  type           String  @default("LIGNE") // CHAPITRE | SOUS_CHAPITRE | LIGNE | CLAUSE_RESERVE
   ordre          Int
   codeArticle    String?
   designation    String

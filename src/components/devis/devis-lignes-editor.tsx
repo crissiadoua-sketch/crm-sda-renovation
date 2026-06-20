@@ -12,7 +12,7 @@ import { saveOuvrageFromDevis } from "@/lib/actions/ouvrages";
 import type { DevisLignesState } from "@/lib/actions/devis";
 import type { DevisLigne } from "@/generated/prisma/client";
 
-type LigneType = "CHAPITRE" | "SOUS_CHAPITRE" | "LIGNE";
+type LigneType = "CHAPITRE" | "SOUS_CHAPITRE" | "LIGNE" | "CLAUSE_RESERVE";
 
 type StyleTexte = {
   bold?: boolean;
@@ -146,13 +146,14 @@ function computeNumbering(rows: LigneRow[]) {
   return rows.map((row) => {
     if (row.type === "CHAPITRE") { chapitre++; sousChapitre = 0; ligne = 0; return `${chapitre}`; }
     if (row.type === "SOUS_CHAPITRE") { sousChapitre++; ligne = 0; return `${chapitre || 1}.${sousChapitre}`; }
+    if (row.type === "CLAUSE_RESERVE") return "";
     ligne++;
     return sousChapitre > 0 ? `${chapitre || 1}.${sousChapitre}.${ligne}` : `${chapitre || 1}.${ligne}`;
   });
 }
 
 const typeLabels: Record<LigneType, string> = {
-  CHAPITRE: "Titre", SOUS_CHAPITRE: "Sous-titre", LIGNE: "Ligne",
+  CHAPITRE: "Titre", SOUS_CHAPITRE: "Sous-titre", LIGNE: "Ligne", CLAUSE_RESERVE: "Clause et réserve",
 };
 
 // ─── Barre d'outils police ────────────────────────────────────────────────────
@@ -715,6 +716,7 @@ export function DevisLignesEditor({
                       "cursor-pointer transition-colors",
                       row.type === "CHAPITRE" ? "bg-brand-navy/5 font-semibold text-brand-navy" : "",
                       row.type === "SOUS_CHAPITRE" ? "bg-slate-50 font-medium text-slate-700" : "",
+                      row.type === "CLAUSE_RESERVE" ? "bg-red-50/60 font-medium text-red-700" : "",
                       isSelected ? "ring-2 ring-inset ring-brand-blue/40" : "hover:bg-blue-50/30",
                     ].filter(Boolean).join(" ")}
                   >
@@ -745,22 +747,30 @@ export function DevisLignesEditor({
                       <td className="px-3 py-2 align-top"></td>
                     )}
                     <td className="px-3 py-2 align-top">
-                      <input
+                      <textarea
                         value={row.designation}
                         onChange={(e) => update(row.key, { designation: e.target.value })}
                         onClick={(e) => e.stopPropagation()}
+                        rows={Math.max(1, row.designation.split("\n").length)}
                         placeholder={
                           row.type === "CHAPITRE"
                             ? "Intitulé du titre"
                             : row.type === "SOUS_CHAPITRE"
                               ? "Intitulé du sous-titre"
-                              : "Désignation / descriptif de l'ouvrage"
+                              : row.type === "CLAUSE_RESERVE"
+                                ? "Saisir la clause ou réserve…"
+                                : "Désignation / descriptif de l'ouvrage"
                         }
                         style={{
                           paddingLeft: row.type === "LIGNE" ? "1.25rem" : row.type === "SOUS_CHAPITRE" ? "0.625rem" : "0",
+                          resize: "none",
                           ...inputCSS,
                         }}
-                        className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue/30"
+                        className={`w-full rounded-md border px-2 py-1 text-sm focus:outline-none focus:ring-1 ${
+                          row.type === "CLAUSE_RESERVE"
+                            ? "border-red-200 italic text-red-700 placeholder:text-red-300 focus:border-red-400 focus:ring-red-300"
+                            : "border-slate-200 focus:border-brand-blue focus:ring-brand-blue/30"
+                        }`}
                       />
                     </td>
                     {row.type === "LIGNE" ? (
@@ -954,6 +964,13 @@ export function DevisLignesEditor({
             className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
             <Plus className="h-3.5 w-3.5" /> Ligne de détail
+          </button>
+          <button
+            type="button"
+            onClick={() => addRow("CLAUSE_RESERVE")}
+            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100"
+          >
+            <Plus className="h-3.5 w-3.5" /> Clause et réserve
           </button>
           {ouvrages.length > 0 && (
             <button

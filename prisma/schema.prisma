@@ -454,7 +454,8 @@ model Paiement {
   reference String?
   notes     String?
 
-  facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+  facture     Facture                @relation(fields: [factureId], references: [id], onDelete: Cascade)
+  ligneReleve LigneReleveBancaire?
 }
 
 // ---------------------------------------------------------------------------
@@ -899,6 +900,42 @@ model Depense {
 
   chantier    Chantier?    @relation(fields: [chantierId], references: [id], onDelete: SetNull)
   fournisseur Fournisseur? @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
+  ligneReleve LigneReleveBancaire?
+}
+
+// ---------------------------------------------------------------------------
+// Rapprochement bancaire
+// ---------------------------------------------------------------------------
+
+model ReleveBancaire {
+  id         String   @id @default(cuid())
+  nom        String // ex. "Société Générale — Juin 2026"
+  banque     String?
+  dateImport DateTime @default(now())
+  soldeDebut Float?
+  soldeFin   Float?
+  createdAt  DateTime @default(now())
+
+  lignes LigneReleveBancaire[]
+}
+
+model LigneReleveBancaire {
+  id        String   @id @default(cuid())
+  releveId  String
+  date      DateTime
+  libelle   String
+  montant   Float // positif = crédit (encaissement) ; négatif = débit (décaissement)
+  reference String?
+  statut    String   @default("NON_RAPPROCHE") // NON_RAPPROCHE | RAPPROCHE | IGNORE
+  notes     String?
+  createdAt DateTime @default(now())
+
+  paiementId String?   @unique
+  depenseId  String?   @unique
+
+  releve   ReleveBancaire @relation(fields: [releveId], references: [id], onDelete: Cascade)
+  paiement Paiement?      @relation(fields: [paiementId], references: [id], onDelete: SetNull)
+  depense  Depense?       @relation(fields: [depenseId], references: [id], onDelete: SetNull)
 }
 
 // ---------------------------------------------------------------------------

@@ -14,6 +14,7 @@ const sousTraitantSchema = z.object({
   telephone: z.string().optional(),
   adresse: z.string().optional(),
   tauxHoraire: z.string().optional(),
+  couleur: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -58,6 +59,7 @@ export async function createSousTraitant(
       telephone: emptyToNull(data.telephone),
       adresse: emptyToNull(data.adresse),
       tauxHoraire: emptyToNullNumber(data.tauxHoraire),
+      couleur: emptyToNull(data.couleur),
       notes: emptyToNull(data.notes),
     },
   });
@@ -89,6 +91,7 @@ export async function updateSousTraitant(
       telephone: emptyToNull(data.telephone),
       adresse: emptyToNull(data.adresse),
       tauxHoraire: emptyToNullNumber(data.tauxHoraire),
+      couleur: emptyToNull(data.couleur),
       notes: emptyToNull(data.notes),
     },
   });

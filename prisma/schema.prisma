@@ -114,6 +114,7 @@ model SousTraitant {
   telephone   String?
   adresse     String?
   tauxHoraire Float?
+  couleur     String?  // code hexa — identification visuelle dans le planning Gantt
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -160,6 +161,7 @@ model Chantier {
   contrats          ContratSousTraitance[]
   ordresMission     OrdreMission[]
   taches             Tache[]
+  tachesGantt        TacheGantt[]
   mouvementsStock    MouvementStock[]
   checklistDocuments ChecklistDocumentChantier[]
   heuresInterimaires SuiviHeureInterimaire[]
@@ -978,6 +980,7 @@ model Salarie {
   telephone      String?
   numeroCIBTP    String?   // matricule caisse congés payés BTP
   statutRH       String    @default("ACTIF") // ACTIF | CONGE | RUPTURE | INACTIF
+  couleur        String?   // code hexa — identification visuelle dans le planning Gantt
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -1034,6 +1037,46 @@ model Tache {
   assigneA    User?     @relation("TachesAssignees", fields: [assigneAId], references: [id], onDelete: SetNull)
   creePar     User?     @relation("TachesCrees", fields: [creeParId], references: [id], onDelete: SetNull)
   chantier    Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Planning prévisionnel d'exécution (Gantt) par chantier
+// ---------------------------------------------------------------------------
+
+model TacheGantt {
+  id          String   @id @default(cuid())
+  chantierId  String
+  nom         String
+  ordre       Int
+  duree       Int                  // jours calendaires, >= 1
+  dateDebut   DateTime             // calculée par le moteur (racines : ancrée par l'utilisateur/drag)
+  dateFin     DateTime             // = dateDebut + duree - 1, calculée
+  avancement  Int      @default(0) // 0-100
+  statut      String   @default("A_FAIRE") // A_FAIRE | EN_COURS | TERMINEE
+  priorite    String   @default("NORMALE") // FAIBLE | NORMALE | HAUTE | URGENTE
+  corpsEtat   String?  // code CORPS_ETAT_CODES — corps de métier qui réalise la tâche
+  ressource   String?  // équipe / personne / sous-traitant assigné (texte libre, complément)
+  intervenantType String? // SOUS_TRAITANT | SALARIE | INTERIMAIRE — référence souple (pas de FK, cf. couleur dans le planning)
+  intervenantId   String? // id du SousTraitant / Salarie / Interimaire selon intervenantType
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chantier   Chantier               @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  precedePar TacheGanttDependance[] @relation("DependanceSuccesseur")   // mes prédécesseurs
+  precedeQue TacheGanttDependance[] @relation("DependancePredecesseur") // tâches qui m'attendent
+}
+
+model TacheGanttDependance {
+  id             String @id @default(cuid())
+  predecesseurId String
+  successeurId   String
+  lagJours       Int    @default(0) // réservé, non exposé en v1
+
+  predecesseur TacheGantt @relation("DependancePredecesseur", fields: [predecesseurId], references: [id], onDelete: Cascade)
+  successeur   TacheGantt @relation("DependanceSuccesseur", fields: [successeurId], references: [id], onDelete: Cascade)
+
+  @@unique([predecesseurId, successeurId])
 }
 
 // ---------------------------------------------------------------------------
@@ -1278,6 +1321,7 @@ model Interimaire {
   tauxAgenceHT  Float    @default(0)
   telephone     String?
   notes         String?
+  couleur       String?  // code hexa — identification visuelle dans le planning Gantt
   actif         Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

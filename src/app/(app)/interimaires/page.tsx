@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS, CORPS_ETAT_BADGE_TONES, type CorpsEtatCode } from "@/lib/corps-etat";
 import { formatEuros } from "@/lib/format";
+import { couleurParDefaut } from "@/lib/intervenant-couleur";
 
 const QUALIFICATION_LABELS: Record<string, string> = {
   MANOEUVRE: "Manœuvre",
@@ -180,8 +181,12 @@ export default async function InterimairesPage({
                     <td className="px-4 py-3">
                       <Link
                         href={`/interimaires/${i.id}`}
-                        className="font-medium text-brand-navy hover:text-brand-blue hover:underline"
+                        className="flex items-center gap-2 font-medium text-brand-navy hover:text-brand-blue hover:underline"
                       >
+                        <span
+                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: i.couleur ?? couleurParDefaut(i.id) }}
+                        />
                         {i.nom} {i.prenom}
                       </Link>
                       <p className="text-xs text-slate-400 font-mono">{i.reference}</p>

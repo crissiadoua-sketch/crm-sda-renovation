@@ -25,6 +25,7 @@ export async function createInterimaire(formData: FormData): Promise<void> {
       tauxAgenceHT: parseFloat(formData.get("tauxAgenceHT") as string) || 0,
       telephone: (formData.get("telephone") as string) || null,
       notes: (formData.get("notes") as string) || null,
+      couleur: (formData.get("couleur") as string) || null,
       actif: formData.get("actif") === "on",
     },
   });
@@ -44,6 +45,7 @@ export async function updateInterimaire(id: string, formData: FormData): Promise
       tauxAgenceHT: parseFloat(formData.get("tauxAgenceHT") as string) || 0,
       telephone: (formData.get("telephone") as string) || null,
       notes: (formData.get("notes") as string) || null,
+      couleur: (formData.get("couleur") as string) || null,
       actif: formData.get("actif") === "on",
     },
   });

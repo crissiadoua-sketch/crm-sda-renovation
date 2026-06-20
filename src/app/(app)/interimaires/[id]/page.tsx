@@ -7,6 +7,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { Badge } from "@/components/ui/badge";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS, CORPS_ETAT_BADGE_TONES, type CorpsEtatCode } from "@/lib/corps-etat";
 import { formatEuros, formatDate } from "@/lib/format";
+import { couleurParDefaut } from "@/lib/intervenant-couleur";
 import {
   updateInterimaire,
   deleteInterimaire,
@@ -144,6 +145,14 @@ export default async function InterimaireDetailPage({
                 />
               </Field>
             </div>
+            <Field label="Couleur d'identification (planning Gantt)">
+              <input
+                name="couleur"
+                type="color"
+                defaultValue={interimaire.couleur ?? couleurParDefaut(interimaire.id)}
+                className="h-10 w-20 cursor-pointer rounded-md border border-slate-200"
+              />
+            </Field>
             <Field label="Notes">
               <textarea name="notes" rows={2} defaultValue={interimaire.notes ?? ""} className={inputClasses} />
             </Field>

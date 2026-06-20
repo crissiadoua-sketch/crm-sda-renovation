@@ -37,6 +37,7 @@ const salarieSchema = z.object({
   telephone: z.string().optional(),
   numeroCIBTP: z.string().optional(),
   statutRH: z.string().default("ACTIF"),
+  couleur: z.string().optional(),
 });
 
 export type SalarieState = { errors?: Record<string, string[]> } | undefined;
@@ -76,6 +77,7 @@ export async function createSalarie(_prev: SalarieState, formData: FormData): Pr
       telephone: data.telephone ?? null,
       numeroCIBTP: data.numeroCIBTP ?? null,
       statutRH: data.statutRH,
+      couleur: data.couleur ?? null,
     },
   });
 
@@ -111,6 +113,7 @@ export async function updateSalarie(id: string, _prev: SalarieState, formData: F
       telephone: data.telephone ?? null,
       numeroCIBTP: data.numeroCIBTP ?? null,
       statutRH: data.statutRH,
+      couleur: data.couleur ?? null,
     },
   });
 

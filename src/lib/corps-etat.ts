@@ -65,6 +65,30 @@ export const CORPS_ETAT_BADGE_TONES: Record<
   SER: "red",
 };
 
+// Ordre logique indicatif d'enchaînement des corps d'état sur un chantier de rénovation/construction
+// (gros œuvre → clos-couvert → second œuvre → finitions), conforme à l'enchaînement usuel décrit par
+// les DTU. Sert uniquement à des alertes de cohérence non bloquantes dans le planning Gantt — un
+// chantier réel comporte des recouvrements/exceptions légitimes, ceci n'est pas une règle absolue.
+export const CORPS_ETAT_ORDRE_LOGIQUE: Record<CorpsEtatCode, number> = {
+  TER: 1,
+  MAC: 2,
+  DAL: 3,
+  COV: 4,
+  ZIN: 5,
+  MEN: 6, // menuiseries extérieures (mise hors d'eau/hors d'air) — les menuiseries intérieures se posent en réalité plus tard
+  ITE: 7,
+  RAV: 8,
+  PLO: 9,  // gros + réseaux avant fermeture des cloisons
+  ELE: 10,
+  PLA: 11,
+  AGE: 12,
+  RMU: 13,
+  RSD: 14,
+  RSS: 15,
+  PEI: 16,
+  SER: 17,
+};
+
 export const UNITES_COURANTES = [
   "m²",
   "ml",

@@ -4,6 +4,7 @@ import { formatDate, formatEuros } from "@/lib/format";
 import { LinkButton } from "@/components/ui/button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { CCN_LABELS } from "@/lib/ccn-batiment";
+import { couleurParDefaut } from "@/lib/intervenant-couleur";
 
 const statutTones: Record<string, BadgeTone> = {
   ACTIF: "green",
@@ -85,7 +86,11 @@ export default async function RHPage() {
                 <tr key={s.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-mono text-xs text-slate-500">{s.matricule}</td>
                   <td className="px-4 py-3">
-                    <Link href={`/rh/${s.id}`} className="font-medium text-brand-blue hover:underline">
+                    <Link href={`/rh/${s.id}`} className="flex items-center gap-2 font-medium text-brand-blue hover:underline">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: s.couleur ?? couleurParDefaut(s.id) }}
+                      />
                       {s.prenom} {s.nom}
                     </Link>
                   </td>

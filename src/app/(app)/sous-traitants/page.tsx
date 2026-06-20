@@ -3,6 +3,7 @@ import { Plus, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { LinkButton } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/fields";
+import { couleurParDefaut } from "@/lib/intervenant-couleur";
 
 function formatEuros(value: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value);
@@ -67,7 +68,11 @@ export default async function SousTraitantsPage({
                   {st.reference ?? "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/sous-traitants/${st.id}`} className="font-medium text-brand-navy hover:underline">
+                  <Link href={`/sous-traitants/${st.id}`} className="flex items-center gap-2 font-medium text-brand-navy hover:underline">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: st.couleur ?? couleurParDefaut(st.id) }}
+                    />
                     {st.nom}
                   </Link>
                 </td>

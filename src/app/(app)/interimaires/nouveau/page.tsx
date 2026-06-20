@@ -101,6 +101,15 @@ export default async function NouvelInterimaireePage() {
             </Field>
           </div>
 
+          <Field label="Couleur d'identification (planning Gantt)">
+            <input
+              name="couleur"
+              type="color"
+              defaultValue="#2563eb"
+              className="h-10 w-20 cursor-pointer rounded-md border border-slate-200"
+            />
+          </Field>
+
           <Field label="Notes">
             <textarea name="notes" rows={3} className={inputClasses} placeholder="Informations complémentaires…" />
           </Field>

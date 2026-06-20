@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { toDateInputValue } from "@/lib/format";
+import { couleurParDefaut } from "@/lib/intervenant-couleur";
 import {
   COEFFICIENTS_OUVRIERS,
   POSITIONS_ETAM,
@@ -218,6 +219,16 @@ export function SalarieForm({ salarie, action }: { salarie?: Salarie; action: Ac
           defaultValue={salarie?.numeroCIBTP ?? ""}
           placeholder="Matricule caisse CIBTP Occitanie"
           className={inputClasses}
+        />
+      </Field>
+
+      <Field label="Couleur d'identification (planning Gantt)" htmlFor="couleur" error={errors.couleur}>
+        <input
+          id="couleur"
+          name="couleur"
+          type="color"
+          defaultValue={salarie?.couleur ?? couleurParDefaut(salarie?.id ?? `${salarie?.nom ?? ""}${salarie?.prenom ?? ""}`)}
+          className="h-10 w-20 cursor-pointer rounded-md border border-slate-200"
         />
       </Field>
 

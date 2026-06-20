@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { couleurParDefaut } from "@/lib/intervenant-couleur";
 import type { SousTraitantState } from "@/lib/actions/sous-traitants";
 import type { SousTraitant } from "@/generated/prisma/client";
 
@@ -63,6 +64,16 @@ export function SousTraitantForm({
           />
         </Field>
       </div>
+
+      <Field label="Couleur d'identification (planning Gantt)" htmlFor="couleur" error={errors.couleur}>
+        <input
+          id="couleur"
+          name="couleur"
+          type="color"
+          defaultValue={sousTraitant?.couleur ?? couleurParDefaut(sousTraitant?.id ?? sousTraitant?.nom ?? "nouveau")}
+          className="h-10 w-20 cursor-pointer rounded-md border border-slate-200"
+        />
+      </Field>
 
       <Field label="Notes" htmlFor="notes" error={errors.notes}>
         <textarea id="notes" name="notes" rows={3} defaultValue={sousTraitant?.notes ?? ""} className={inputClasses} />

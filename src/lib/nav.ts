@@ -43,6 +43,7 @@ import {
   Cloud,
   MessageSquare,
   FileCheck,
+  GanttChart,
   type LucideIcon,
 } from "lucide-react";
 import { canAccess } from "@/lib/permissions";
@@ -81,6 +82,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { href: "/chantiers", label: "Chantiers", icon: Building2 },
       { href: "/planning", label: "Planning", icon: Calendar },
+      { href: "/planning-gantt", label: "Planning Gantt", icon: GanttChart },
       { href: "/conception", label: "Conception & Plans", icon: Compass },
       { href: "/conception/3d", label: "Design 3D BIM", icon: Box },
     ],

@@ -206,6 +206,7 @@ export function GanttClient({
     tachesInitiales.length > 0 ? tachesInitiales.map(toRow) : [emptyRow()],
   );
   const [notesOpen, setNotesOpen] = useState<Set<string>>(new Set());
+  const [predOpenKey, setPredOpenKey] = useState<string | null>(null);
   const [vue, setVue] = useState<VueGantt>("SEMAINE");
   const pixelsPerDay = VUE_PIXELS_PER_DAY[vue];
   const [reperesVisibles, setReperesVisibles] = useState<Set<TypeRepere>>(
@@ -622,32 +623,51 @@ export function GanttClient({
                         className="w-full resize-none overflow-y-auto rounded-md border border-slate-200 px-2 py-1 text-xs"
                         style={{ maxHeight: ROW_HEIGHT - 12 }}
                       />
-                      <div className="flex flex-wrap gap-1">
-                        {rows.filter((r) => r.key !== row.key).map((other) => {
-                          const checked = row.predecesseurKeys.includes(other.key);
-                          const invalid = !checked && wouldCreateCycle(
-                            rows.map((r) => ({ id: r.key, duree: 1, dateDebut: new Date(), predecesseurs: r.predecesseurKeys })),
-                            { predecesseurId: other.key, successeurId: row.key },
-                          );
-                          return (
-                            <button
-                              key={other.key}
-                              type="button"
-                              disabled={invalid}
-                              title={invalid ? "Créerait une dépendance circulaire" : `Dépend de "${other.nom || "(sans nom)"}"`}
-                              onClick={() => togglePredecesseur(row.key, other.key)}
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${
-                                checked
-                                  ? "bg-brand-navy text-white"
-                                  : invalid
-                                    ? "bg-slate-50 text-slate-300 cursor-not-allowed"
-                                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                              }`}
-                            >
-                              {other.nom || "(sans nom)"}
-                            </button>
-                          );
-                        })}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setPredOpenKey((cur) => (cur === row.key ? null : row.key))}
+                          className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-200"
+                        >
+                          🔗 {row.predecesseurKeys.length > 0
+                            ? `${row.predecesseurKeys.length} préd.`
+                            : "Prédécesseurs"}
+                        </button>
+                        {predOpenKey === row.key && (
+                          <div className="absolute left-0 top-full z-20 mt-1 max-h-48 w-56 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+                            <div className="mb-1 flex items-center justify-between">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Dépend de…</span>
+                              <button type="button" onClick={() => setPredOpenKey(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {rows.filter((r) => r.key !== row.key).map((other) => {
+                                const checked = row.predecesseurKeys.includes(other.key);
+                                const invalid = !checked && wouldCreateCycle(
+                                  rows.map((r) => ({ id: r.key, duree: 1, dateDebut: new Date(), predecesseurs: r.predecesseurKeys })),
+                                  { predecesseurId: other.key, successeurId: row.key },
+                                );
+                                return (
+                                  <button
+                                    key={other.key}
+                                    type="button"
+                                    disabled={invalid}
+                                    title={invalid ? "Créerait une dépendance circulaire" : `Dépend de "${other.nom || "(sans nom)"}"`}
+                                    onClick={() => togglePredecesseur(row.key, other.key)}
+                                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${
+                                      checked
+                                        ? "bg-brand-navy text-white"
+                                        : invalid
+                                          ? "bg-slate-50 text-slate-300 cursor-not-allowed"
+                                          : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                    }`}
+                                  >
+                                    {other.nom || "(sans nom)"}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center justify-end gap-1">

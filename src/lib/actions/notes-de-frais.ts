@@ -3,24 +3,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { writeFile, unlink, mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import { prisma } from "@/lib/prisma";
-
-const UPLOAD_DIR = join(process.cwd(), "public", "uploads", "notes-de-frais");
-
-async function ensureDir() {
-  await mkdir(UPLOAD_DIR, { recursive: true });
-}
-
-async function saveFile(file: File): Promise<string> {
-  await ensureDir();
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(join(UPLOAD_DIR, filename), buffer);
-  return `/uploads/notes-de-frais/${filename}`;
-}
+import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
 
 const noteSchema = z.object({
   date: z.string().min(1, "La date est requise."),
@@ -48,7 +32,7 @@ export async function createNote(_prevState: NoteState, formData: FormData): Pro
   let justificatif: string | null = null;
   const file = formData.get("justificatif");
   if (file instanceof File && file.size > 0) {
-    justificatif = await saveFile(file);
+    justificatif = (await stockerFichier(file, "notes-de-frais")).url;
   }
 
   const note = await prisma.noteDeFrais.create({
@@ -81,10 +65,8 @@ export async function updateNote(id: string, _prevState: NoteState, formData: Fo
 
   const file = formData.get("justificatif");
   if (file instanceof File && file.size > 0) {
-    if (existing?.justificatif) {
-      await unlink(join(process.cwd(), "public", existing.justificatif)).catch(() => {});
-    }
-    justificatif = await saveFile(file);
+    await supprimerFichierStocke(existing?.justificatif);
+    justificatif = (await stockerFichier(file, "notes-de-frais")).url;
   }
 
   await prisma.noteDeFrais.update({
@@ -109,9 +91,7 @@ export async function updateNote(id: string, _prevState: NoteState, formData: Fo
 
 export async function deleteNote(id: string) {
   const note = await prisma.noteDeFrais.findUnique({ where: { id } });
-  if (note?.justificatif) {
-    await unlink(join(process.cwd(), "public", note.justificatif)).catch(() => {});
-  }
+  await supprimerFichierStocke(note?.justificatif);
   await prisma.noteDeFrais.delete({ where: { id } });
   revalidatePath("/notes-de-frais");
   redirect("/notes-de-frais");

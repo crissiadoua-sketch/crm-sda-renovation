@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir, unlink } from "fs/promises";
-import path from "path";
+import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
 
 // ──────────────────────────────────────────────────────────
 // Catalogue de matériaux & équipements
@@ -18,7 +17,7 @@ export async function createElementCatalogue(formData: FormData): Promise<void> 
   let imagePath: string | undefined;
   const imageFile = formData.get("image") as File | null;
   if (imageFile && imageFile.size > 0) {
-    imagePath = await saveUpload(imageFile, "conception/elements");
+    imagePath = (await stockerFichier(imageFile, "conception/elements")).url;
   }
 
   await prisma.elementCatalogue.create({
@@ -48,8 +47,8 @@ export async function updateElementCatalogue(id: string, formData: FormData): Pr
   let imagePath: string | undefined | null = existing?.image;
   const imageFile = formData.get("image") as File | null;
   if (imageFile && imageFile.size > 0) {
-    if (existing?.image) await tryDelete(existing.image);
-    imagePath = await saveUpload(imageFile, "conception/elements");
+    await supprimerFichierStocke(existing?.image);
+    imagePath = (await stockerFichier(imageFile, "conception/elements")).url;
   }
 
   await prisma.elementCatalogue.update({
@@ -77,7 +76,7 @@ export async function updateElementCatalogue(id: string, formData: FormData): Pr
 
 export async function deleteElementCatalogue(id: string): Promise<void> {
   const el = await prisma.elementCatalogue.findUnique({ where: { id }, select: { image: true } });
-  if (el?.image) await tryDelete(el.image);
+  await supprimerFichierStocke(el?.image);
   await prisma.elementCatalogue.delete({ where: { id } });
   redirect("/conception");
 }
@@ -93,7 +92,7 @@ export async function uploadPlanConception(formData: FormData): Promise<void> {
   const fichier = formData.get("fichier") as File | null;
   if (!fichier || fichier.size === 0) throw new Error("Fichier requis");
 
-  const filePath = await saveUpload(fichier, "conception/plans");
+  const { url } = await stockerFichier(fichier, "conception/plans");
 
   await prisma.planConception.create({
     data: {
@@ -101,7 +100,7 @@ export async function uploadPlanConception(formData: FormData): Promise<void> {
       description: (formData.get("description") as string) || null,
       type: (formData.get("type") as string) || "PLAN",
       source: (formData.get("source") as string) || null,
-      fichier: filePath,
+      fichier: url,
       taille: fichier.size,
       chantierId: (formData.get("chantierId") as string) || null,
     },
@@ -111,7 +110,7 @@ export async function uploadPlanConception(formData: FormData): Promise<void> {
 
 export async function deletePlanConception(id: string): Promise<void> {
   const plan = await prisma.planConception.findUnique({ where: { id }, select: { fichier: true } });
-  if (plan?.fichier) await tryDelete(plan.fichier);
+  await supprimerFichierStocke(plan?.fichier);
   await prisma.planConception.delete({ where: { id } });
   redirect("/conception/plans");
 }
@@ -128,29 +127,6 @@ export async function seedCatalogue(): Promise<{ created: number }> {
   await prisma.elementCatalogue.createMany({ data: items });
   revalidatePath("/conception");
   return { created: items.length };
-}
-
-// ──────────────────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────────────────
-
-async function saveUpload(file: File, subfolder: string): Promise<string> {
-  const uploadDir = path.join(process.cwd(), "storage", "uploads", subfolder);
-  await mkdir(uploadDir, { recursive: true });
-  const ext = path.extname(file.name) || "";
-  const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadDir, filename), buffer);
-  return `/uploads/${subfolder}/${filename}`;
-}
-
-async function tryDelete(filePath: string): Promise<void> {
-  try {
-    const full = path.join(process.cwd(), "storage", filePath.replace(/^\//, ""));
-    await unlink(full);
-  } catch {
-    // ignore if file not found
-  }
 }
 
 // ──────────────────────────────────────────────────────────

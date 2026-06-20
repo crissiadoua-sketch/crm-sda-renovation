@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { decrypt } from "@/lib/session";
-import { writeFile } from "fs/promises";
-import { join } from "path";
-import { randomUUID } from "crypto";
+import { stockerFichier } from "@/lib/blob-storage";
 
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
@@ -20,17 +18,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fichier trop volumineux (max 20 Mo)" }, { status: 413 });
   }
 
-  const ext = file.name.split(".").pop() ?? "bin";
-  const filename = `${randomUUID()}.${ext}`;
-  const uploadDir = join(process.cwd(), "public", "uploads", "messagerie");
-  const filepath = join(uploadDir, filename);
-
-  const bytes = await file.arrayBuffer();
-  await writeFile(filepath, Buffer.from(bytes));
+  const { url } = await stockerFichier(file, "messagerie");
 
   return NextResponse.json({
     nom: file.name,
-    url: `/uploads/messagerie/${filename}`,
+    url,
     type: file.type || "application/octet-stream",
     taille: file.size,
   });

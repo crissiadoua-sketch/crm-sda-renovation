@@ -356,7 +356,7 @@ export function EditeurMemoire({
                           <p className="text-[10px] text-slate-400">{Math.round(a.taille / 1024)} Ko</p>
                         )}
                       </div>
-                      <a href={`/storage/uploads/${a.fichier}`} download className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <a href={a.fichier} download className="opacity-0 group-hover:opacity-100 transition-opacity">
                         <Download className="h-3 w-3 text-slate-400 hover:text-brand-blue" />
                       </a>
                       <button onClick={() => handleSupprimerAnnexe(a.id)} className="opacity-0 group-hover:opacity-100 transition-opacity">

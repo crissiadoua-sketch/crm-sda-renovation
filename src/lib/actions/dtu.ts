@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir, unlink } from "fs/promises";
-import path from "path";
+import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -118,30 +117,14 @@ export async function uploadDtuPdf(id: string, formData: FormData): Promise<void
 
   // Delete old PDF if one exists
   const existing = await prisma.dTU.findUnique({ where: { id }, select: { fichierPdf: true } });
-  if (existing?.fichierPdf) {
-    const oldPath = path.join(process.cwd(), "public", existing.fichierPdf);
-    try {
-      await unlink(oldPath);
-    } catch {
-      /* fichier déjà absent */
-    }
-  }
+  await supprimerFichierStocke(existing?.fichierPdf);
 
   // Save new file
-  const dir = path.join(process.cwd(), "public", "uploads", "dtu");
-  await mkdir(dir, { recursive: true });
-
-  const ext = path.extname(file.name) || ".pdf";
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filename = `${id}_${safeName}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(dir, filename), buffer);
-
-  const filePath = `/uploads/dtu/${filename}`;
+  const { url } = await stockerFichier(file, "dtu");
 
   await prisma.dTU.update({
     where: { id },
-    data: { fichierPdf: filePath },
+    data: { fichierPdf: url },
   });
 
   revalidatePath("/dtu");
@@ -193,15 +176,7 @@ export async function updateDtu(id: string, formData: FormData): Promise<void> {
 
 export async function deleteDtu(id: string): Promise<void> {
   const dtu = await prisma.dTU.findUnique({ where: { id }, select: { fichierPdf: true } });
-
-  if (dtu?.fichierPdf) {
-    const filePath = path.join(process.cwd(), "public", dtu.fichierPdf);
-    try {
-      await unlink(filePath);
-    } catch {
-      /* fichier déjà absent */
-    }
-  }
+  await supprimerFichierStocke(dtu?.fichierPdf);
 
   await prisma.dTU.delete({ where: { id } });
 

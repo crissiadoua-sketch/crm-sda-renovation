@@ -3,10 +3,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { randomBytes } from "node:crypto";
-import { writeFile, unlink, mkdir } from "node:fs/promises";
-import path from "node:path";
 import { prisma } from "@/lib/prisma";
+import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
 
 // ─── Dossiers ────────────────────────────────────────────────────────────────
 
@@ -62,10 +60,7 @@ export async function deleteDossier(id: string): Promise<void> {
 async function deleteDocumentsInDossier(dossierId: string): Promise<void> {
   const docs = await prisma.document.findMany({ where: { dossierId }, select: { chemin: true } });
   for (const doc of docs) {
-    if (doc.chemin) {
-      const filePath = path.join(process.cwd(), "public", doc.chemin);
-      try { await unlink(filePath); } catch { /* fichier déjà absent */ }
-    }
+    await supprimerFichierStocke(doc.chemin);
   }
   await prisma.document.deleteMany({ where: { dossierId } });
 
@@ -76,21 +71,6 @@ async function deleteDocumentsInDossier(dossierId: string): Promise<void> {
 }
 
 // ─── Documents / Fichiers ─────────────────────────────────────────────────────
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "documents");
-
-async function saveFile(file: File): Promise<{ chemin: string; nomFichier: string; taille: number }> {
-  await mkdir(UPLOAD_DIR, { recursive: true });
-  const ext = path.extname(file.name);
-  const nomFichier = `${randomBytes(8).toString("hex")}${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(UPLOAD_DIR, nomFichier), buffer);
-  return {
-    chemin: `/uploads/documents/${nomFichier}`,
-    nomFichier,
-    taille: buffer.length,
-  };
-}
 
 export type DocumentState = { errors?: Record<string, string[]>; message?: string } | undefined;
 
@@ -103,7 +83,7 @@ export async function uploadDocument(
     return { errors: { fichier: ["Aucun fichier sélectionné."] } };
   }
 
-  const { chemin, nomFichier, taille } = await saveFile(fichier);
+  const { url: chemin, nomFichier, taille } = await stockerFichier(fichier, "documents");
   const dossierId = formData.get("dossierId") as string | null;
   const description = (formData.get("description") as string) || undefined;
 
@@ -137,10 +117,7 @@ export async function moveDocument(id: string, dossierId: string | null): Promis
 export async function deleteDocument(id: string): Promise<void> {
   const doc = await prisma.document.findUnique({ where: { id }, select: { chemin: true } });
   if (!doc) return;
-  if (doc.chemin) {
-    const filePath = path.join(process.cwd(), "public", doc.chemin);
-    try { await unlink(filePath); } catch { /* déjà absent */ }
-  }
+  await supprimerFichierStocke(doc.chemin);
   await prisma.document.delete({ where: { id } });
   revalidatePath("/documents");
 }

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { FontToolbar, parseStyle, styleToCSS, type StyleTexte } from "@/components/ui/font-toolbar";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS, UNITES_COURANTES } from "@/lib/corps-etat";
 import type { OuvrageState } from "@/lib/actions/ouvrages";
 
@@ -153,6 +154,7 @@ type OuvrageFormProps = {
     unite?:            string;
     tauxTVA?:          number;
     description?:      string;
+    styleTexte?:       string;
     actif?:            boolean;
     // Offre éco
     ecoTempsPose?:       number;
@@ -172,6 +174,8 @@ type OuvrageFormProps = {
 
 export function OuvrageForm({ action, defaultValues, isEdit }: OuvrageFormProps) {
   const [state, formAction] = useActionState(action, undefined);
+
+  const [styleTexte, setStyleTexte] = useState<StyleTexte>(() => parseStyle(defaultValues?.styleTexte ?? "{}"));
 
   const [offres, setOffres] = useState<Record<OffreKey, OffreValues>>({
     eco: {
@@ -235,12 +239,15 @@ export function OuvrageForm({ action, defaultValues, isEdit }: OuvrageFormProps)
 
         <div className="mt-3">
           <Field label="Désignation *" error={err?.designation?.[0]}>
+            <input type="hidden" name="styleTexte" value={JSON.stringify(styleTexte)} />
+            <FontToolbar style={styleTexte} onChange={(patch) => setStyleTexte((s) => ({ ...s, ...patch }))} />
             <textarea
               ref={autoGrow}
               name="designation"
               defaultValue={defaultValues?.designation}
               onInput={(e) => autoGrow(e.currentTarget)}
               rows={2}
+              style={styleToCSS(styleTexte)}
               className={`${inputClasses} resize-none overflow-hidden`}
               placeholder="ex. Fourniture et pose de carrelage grès cérame 60×60"
               required

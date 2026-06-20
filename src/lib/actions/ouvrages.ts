@@ -21,6 +21,7 @@ const ouvrageSchema = z.object({
   unite:       z.string().min(1, "L'unité est requise."),
   tauxTVA:     numFloat,
   description: z.string().optional(),
+  styleTexte:  z.string().optional(),
   actif:       z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean()),
 
   // Offre Économique
@@ -75,6 +76,7 @@ export async function createOuvrage(
       unite:             d.unite,
       tauxTVA:           d.tauxTVA,
       description:       d.description,
+      styleTexte:        d.styleTexte ?? "{}",
       actif:             true,
       // Offre Éco
       ecoTempsPose:      d.ecoTempsPose,
@@ -131,6 +133,7 @@ export async function updateOuvrage(
       unite:             d.unite,
       tauxTVA:           d.tauxTVA,
       description:       d.description,
+      styleTexte:        d.styleTexte ?? "{}",
       actif:             d.actif,
       // Offre Éco
       ecoTempsPose:      d.ecoTempsPose,
@@ -181,6 +184,7 @@ export async function saveOuvrageFromDevis(data: {
   prixUnitaire:   number;
   tauxTVA:        number;
   description?:   string;
+  styleTexte?:    string;
 }): Promise<{ id: string; code: string }> {
   const existing = await prisma.ouvrage.findMany({
     where: { corpsEtat: data.corpsEtat },
@@ -191,6 +195,7 @@ export async function saveOuvrageFromDevis(data: {
   const ouvrage = await prisma.ouvrage.create({
     data: {
       ...data,
+      styleTexte: data.styleTexte ?? "{}",
       code,
       actif: true,
       // Mettre les valeurs dans les 3 offres de façon identique

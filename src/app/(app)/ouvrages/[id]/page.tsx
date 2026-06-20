@@ -9,6 +9,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { prisma } from "@/lib/prisma";
 import { formatEuros } from "@/lib/format";
 import { CORPS_ETAT_LABELS, CORPS_ETAT_BADGE_TONES, type CorpsEtatCode } from "@/lib/corps-etat";
+import { parseStyle, styleToCSS } from "@/components/ui/font-toolbar";
 import {
   upsertSousDetail,
   addLigneSDP,
@@ -65,7 +66,7 @@ export default async function OuvrageDetailPage({
             ← Retour à la bibliothèque
           </Link>
           <div className="mt-1 flex flex-wrap items-center gap-3">
-            <h2 className="text-xl font-bold text-brand-navy">{ouvrage.designation}</h2>
+            <h2 className="text-xl font-bold text-brand-navy" style={styleToCSS(parseStyle(ouvrage.styleTexte))}>{ouvrage.designation}</h2>
             <Badge tone={CORPS_ETAT_BADGE_TONES[ouvrage.corpsEtat as CorpsEtatCode] ?? "gray"}>
               {ouvrage.code}
             </Badge>
@@ -93,6 +94,7 @@ export default async function OuvrageDetailPage({
             unite:             ouvrage.unite,
             tauxTVA:           ouvrage.tauxTVA,
             description:       ouvrage.description ?? undefined,
+            styleTexte:        ouvrage.styleTexte,
             actif:             ouvrage.actif,
             // Offre Éco
             ecoTempsPose:      ouvrage.ecoTempsPose,

@@ -1151,6 +1151,7 @@ model Ouvrage {
   tauxTVA     Float   @default(10) // taux TVA applicable (%)
   description String? // détail technique optionnel
   actif       Boolean @default(true)
+  styleTexte  String  @default("{}") // JSON: { bold, italic, underline, fontSize, color, align } — mise en forme de la désignation
 
   // ── OFFRE ÉCONOMIQUE ────────────────────────────────────────────────────
   ecoTempsPose       Float @default(0) // h/unité

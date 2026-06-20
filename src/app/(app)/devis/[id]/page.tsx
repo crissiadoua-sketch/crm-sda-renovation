@@ -66,7 +66,7 @@ export default async function DevisDetailPage({
       orderBy: [{ corpsEtat: "asc" }, { code: "asc" }],
       select: {
         id: true, code: true, corpsEtat: true, designation: true,
-        unite: true, tauxTVA: true, description: true,
+        unite: true, tauxTVA: true, description: true, styleTexte: true,
         prixUnitaire: true, prixFourniture: true, prixPose: true,
         ecoPrixTotal: true, optPrixTotal: true, premPrixTotal: true,
       },

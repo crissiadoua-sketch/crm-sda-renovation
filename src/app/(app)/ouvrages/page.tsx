@@ -9,6 +9,7 @@ import {
   type CorpsEtatCode,
 } from "@/lib/corps-etat";
 import { formatEuros } from "@/lib/format";
+import { parseStyle, styleToCSS } from "@/components/ui/font-toolbar";
 
 // ---------------------------------------------------------------------------
 // Colonnes par offre
@@ -208,6 +209,7 @@ export default async function OuvragesPage({
                             <Link
                               href={`/ouvrages/${o.id}`}
                               className="font-semibold text-brand-navy hover:text-brand-blue hover:underline"
+                              style={styleToCSS(parseStyle(o.styleTexte))}
                             >
                               {o.designation}
                             </Link>

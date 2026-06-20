@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Plus, Search, AlertTriangle, Package, TrendingUp, BarChart2 } from "lucide-react";
+import { Plus, Search, AlertTriangle, Package, TrendingUp, BarChart2, Truck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { LinkButton } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/fields";
 import { formatEuros } from "@/lib/format";
+import { estDelaiLivraisonEleve } from "@/lib/delai-livraison";
 
 export const CORPS_ETAT: Record<string, string> = {
   GO: "Gros Œuvre / Maçonnerie",
@@ -273,6 +274,11 @@ export default async function StockPage({
                         </Link>
                         {a.refFournisseur && (
                           <p className="text-xs text-slate-400">Réf. four. : {a.refFournisseur}</p>
+                        )}
+                        {estDelaiLivraisonEleve(a.delaiLivraisonJours) && (
+                          <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-orange-600" title="Délai de livraison habituellement élevé — à commander en avance">
+                            <Truck className="h-3 w-3" /> Délai {a.delaiLivraisonJours} j.
+                          </p>
                         )}
                       </td>
                       <td className="px-4 py-2.5">

@@ -14,6 +14,7 @@ import {
   type TaskNode,
 } from "@/lib/gantt-scheduler";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS, CORPS_ETAT_ORDRE_LOGIQUE } from "@/lib/corps-etat";
+import { MODELE_TACHES_PAR_CORPS_ETAT } from "@/lib/gantt-modele-taches";
 import type { TachesGanttState } from "@/lib/actions/gantt";
 
 type Statut = "A_FAIRE" | "EN_COURS" | "TERMINEE";
@@ -34,6 +35,8 @@ type TaskRow = {
   ressource: string;
   intervenantType: IntervenantType | "";
   intervenantId: string;
+  dateDebutReelle: string; // yyyy-MM-dd ou "" — saisie manuelle, sert au suivi réel vs théorique
+  dateFinReelle: string;
   notes: string;
   predecesseurKeys: string[];
 };
@@ -50,16 +53,48 @@ type TacheInitiale = {
   ressource: string | null;
   intervenantType: string | null;
   intervenantId: string | null;
+  dateDebutReelle: string | null;
+  dateFinReelle: string | null;
   notes: string | null;
   predecesseurIds: string[];
 };
 
-type Livraison = {
+type TypeRepere = "LIVRAISON" | "BON_COMMANDE" | "BON_COMMANDE_BETON" | "APPROVISIONNEMENT" | "LOCATION" | "MOUVEMENT_STOCK";
+
+type Repere = {
   id: string;
-  numero: string;
-  statut: string;
-  dateLivraison: string;
-  fournisseur: string;
+  type: TypeRepere;
+  label: string;
+  date: string; // point de départ (ou date unique)
+  dateFin?: string | null; // pour LOCATION — fin de période de location (barre de durée)
+  delaiEleve?: boolean; // sortie de stock dont l'article a un délai de livraison habituellement élevé
+};
+
+const REPERE_LABELS: Record<TypeRepere, string> = {
+  LIVRAISON: "Livraisons (BL)",
+  BON_COMMANDE: "Bons de commande",
+  BON_COMMANDE_BETON: "Bons de commande béton",
+  APPROVISIONNEMENT: "Approvisionnements",
+  LOCATION: "Locations de matériel",
+  MOUVEMENT_STOCK: "Sorties de stock vers chantier",
+};
+
+const REPERE_COLORS: Record<TypeRepere, string> = {
+  LIVRAISON: "#F7941E",
+  BON_COMMANDE: "#0891b2",
+  BON_COMMANDE_BETON: "#64748b",
+  APPROVISIONNEMENT: "#7c3aed",
+  LOCATION: "#0d9488",
+  MOUVEMENT_STOCK: "#16a34a",
+};
+
+const REPERE_ICONS: Record<TypeRepere, string> = {
+  LIVRAISON: "🚚",
+  BON_COMMANDE: "🛒",
+  BON_COMMANDE_BETON: "🧱",
+  APPROVISIONNEMENT: "📦",
+  LOCATION: "🔧",
+  MOUVEMENT_STOCK: "📤",
 };
 
 type Action = (prevState: TachesGanttState, formData: FormData) => Promise<TachesGanttState>;
@@ -94,6 +129,8 @@ function toRow(t: TacheInitiale): TaskRow {
     ressource: t.ressource ?? "",
     intervenantType: (t.intervenantType as IntervenantType) ?? "",
     intervenantId: t.intervenantId ?? "",
+    dateDebutReelle: t.dateDebutReelle?.slice(0, 10) ?? "",
+    dateFinReelle: t.dateFinReelle?.slice(0, 10) ?? "",
     notes: t.notes ?? "",
     predecesseurKeys: t.predecesseurIds,
   };
@@ -112,21 +149,44 @@ function emptyRow(): TaskRow {
     ressource: "",
     intervenantType: "",
     intervenantId: "",
+    dateDebutReelle: "",
+    dateFinReelle: "",
     notes: "",
     predecesseurKeys: [],
   };
 }
 
-const PIXELS_PER_DAY = 28;
 const ROW_HEIGHT = 44;
 const TABLE_WIDTH = 1010;
 const TABLE_GRID_COLUMNS = "1.5fr 0.6fr 0.5fr 0.9fr 0.8fr 1.1fr 1.1fr 1.3fr 0.5fr";
+
+type VueGantt = "SEMAINE" | "MOIS" | "TROIS_MOIS" | "SIX_MOIS" | "NEUF_MOIS" | "DOUZE_MOIS";
+
+const VUE_LABELS: Record<VueGantt, string> = {
+  SEMAINE: "Semaine",
+  MOIS: "Mois",
+  TROIS_MOIS: "3 mois",
+  SIX_MOIS: "6 mois",
+  NEUF_MOIS: "9 mois",
+  DOUZE_MOIS: "12 mois",
+};
+
+// Pixels par jour selon le niveau de zoom choisi — plus la période visée est longue, plus on compresse
+// la timeline pour qu'elle reste lisible dans la largeur de l'écran.
+const VUE_PIXELS_PER_DAY: Record<VueGantt, number> = {
+  SEMAINE: 28,
+  MOIS: 12,
+  TROIS_MOIS: 6,
+  SIX_MOIS: 3.5,
+  NEUF_MOIS: 2.5,
+  DOUZE_MOIS: 2,
+};
 
 export function GanttClient({
   chantierId,
   chantierDateDebut,
   tachesInitiales,
-  livraisons,
+  reperes,
   sousTraitants,
   salaries,
   interimaires,
@@ -135,7 +195,7 @@ export function GanttClient({
   chantierId: string;
   chantierDateDebut: string | null;
   tachesInitiales: TacheInitiale[];
-  livraisons: Livraison[];
+  reperes: Repere[];
   sousTraitants: IntervenantOption[];
   salaries: IntervenantOption[];
   interimaires: IntervenantOption[];
@@ -146,6 +206,20 @@ export function GanttClient({
     tachesInitiales.length > 0 ? tachesInitiales.map(toRow) : [emptyRow()],
   );
   const [notesOpen, setNotesOpen] = useState<Set<string>>(new Set());
+  const [vue, setVue] = useState<VueGantt>("SEMAINE");
+  const pixelsPerDay = VUE_PIXELS_PER_DAY[vue];
+  const [reperesVisibles, setReperesVisibles] = useState<Set<TypeRepere>>(
+    () => new Set(Object.keys(REPERE_LABELS) as TypeRepere[]),
+  );
+  const reperesAffiches = useMemo(() => reperes.filter((r) => reperesVisibles.has(r.type)), [reperes, reperesVisibles]);
+
+  function toggleRepereType(type: TypeRepere) {
+    setReperesVisibles((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type); else next.add(type);
+      return next;
+    });
+  }
 
   const intervenantByKey = useMemo(() => {
     const m = new Map<string, IntervenantOption>();
@@ -204,21 +278,52 @@ export function GanttClient({
     return m;
   }, [rows, scheduled]);
 
-  // Plage de dates visible : du plus tôt au plus tard parmi tâches + livraisons, avec un peu de marge
+  // Écart réel vs théorique (jours) : positif = retard, négatif = avance. Figé si dateFinReelle saisie,
+  // sinon estimation provisoire pour les tâches en retard non terminées (par rapport à aujourd'hui).
+  function getEcartJours(row: TaskRow): { jours: number; provisoire: boolean } | null {
+    const sched = scheduleByKey.get(row.key);
+    if (!sched) return null;
+    if (row.dateFinReelle) {
+      return { jours: differenceInCalendarDays(parseISO(row.dateFinReelle), sched.dateFin), provisoire: false };
+    }
+    if (row.statut !== "TERMINEE") {
+      const aujourdHui = new Date();
+      if (aujourdHui > sched.dateFin) {
+        return { jours: differenceInCalendarDays(aujourdHui, sched.dateFin), provisoire: true };
+      }
+    }
+    return null;
+  }
+
+  const ecartTypeGlobal = useMemo(() => {
+    const ecarts = rows
+      .map((r) => (r.dateFinReelle ? getEcartJours(r) : null))
+      .filter((e): e is { jours: number; provisoire: boolean } => e != null)
+      .map((e) => e.jours);
+    if (ecarts.length === 0) return null;
+    const moyenne = ecarts.reduce((s, v) => s + v, 0) / ecarts.length;
+    const variance = ecarts.reduce((s, v) => s + (v - moyenne) ** 2, 0) / ecarts.length;
+    return { moyenne, ecartType: Math.sqrt(variance), nbTachesTerminees: ecarts.length };
+  }, [rows, scheduleByKey]);
+
+  // Plage de dates visible : du plus tôt au plus tard parmi tâches + repères chantier, avec un peu de marge
   const { rangeStart, totalDays } = useMemo(() => {
     const dates: Date[] = [];
     scheduled?.forEach((s) => { dates.push(s.dateDebut); dates.push(s.dateFin); });
-    livraisons.forEach((l) => dates.push(parseISO(l.dateLivraison)));
+    reperes.forEach((r) => {
+      dates.push(parseISO(r.date));
+      if (r.dateFin) dates.push(parseISO(r.dateFin));
+    });
     if (dates.length === 0) dates.push(anchorDate);
     const min = new Date(Math.min(...dates.map((d) => d.getTime())));
     const max = new Date(Math.max(...dates.map((d) => d.getTime())));
     const start = addDays(min, -2);
     const days = differenceInCalendarDays(addDays(max, 3), start);
     return { rangeStart: start, totalDays: Math.max(14, days) };
-  }, [scheduled, livraisons, anchorDate]);
+  }, [scheduled, reperes, anchorDate]);
 
   function dateToX(date: Date) {
-    return differenceInCalendarDays(date, rangeStart) * PIXELS_PER_DAY;
+    return differenceInCalendarDays(date, rangeStart) * pixelsPerDay;
   }
 
   function update(key: string, patch: Partial<TaskRow>) {
@@ -226,6 +331,26 @@ export function GanttClient({
   }
 
   function addRow() { setRows((cur) => [...cur, emptyRow()]); }
+
+  function insererModeleType() {
+    setRows((cur) => {
+      const estVide = cur.length === 1 && !cur[0].nom && !cur[0].corpsEtat && cur[0].predecesseurKeys.length === 0;
+      const base = estVide ? [] : cur;
+      let precedente: string | null = null;
+      const nouvelles: TaskRow[] = MODELE_TACHES_PAR_CORPS_ETAT.map((m) => {
+        const row: TaskRow = {
+          ...emptyRow(),
+          nom: m.nom,
+          duree: String(m.dureeJours),
+          corpsEtat: m.corpsEtat,
+          predecesseurKeys: precedente ? [precedente] : [],
+        };
+        precedente = row.key;
+        return row;
+      });
+      return [...base, ...nouvelles];
+    });
+  }
 
   function removeRow(key: string) {
     setRows((cur) =>
@@ -270,7 +395,7 @@ export function GanttClient({
       const startDuree = Math.max(1, parseInt(row.duree, 10) || 1);
 
       function onMove(ev: PointerEvent) {
-        const deltaDays = Math.round((ev.clientX - startX) / PIXELS_PER_DAY);
+        const deltaDays = Math.round((ev.clientX - startX) / pixelsPerDay);
         if (mode === "move") {
           update(rowKey, { dateDebut: format(addDays(startDateDebut, deltaDays), "yyyy-MM-dd") });
         } else {
@@ -299,13 +424,16 @@ export function GanttClient({
       ressource: r.ressource || null,
       intervenantType: r.intervenantType || null,
       intervenantId: r.intervenantId || null,
+      dateDebutReelle: r.dateDebutReelle || null,
+      dateFinReelle: r.dateFinReelle || null,
       notes: r.notes || null,
       predecesseurClientIds: r.predecesseurKeys,
     })),
   );
 
-  const timelineWidth = totalDays * PIXELS_PER_DAY;
+  const timelineWidth = totalDays * pixelsPerDay;
   const dayHeaders = Array.from({ length: totalDays }, (_, i) => addDays(rangeStart, i));
+  const labelStepDays = Math.max(1, Math.ceil(34 / pixelsPerDay));
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -315,6 +443,49 @@ export function GanttClient({
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           {cycleError ?? state?.error}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold text-slate-500">Vue :</span>
+        <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
+          {(Object.keys(VUE_LABELS) as VueGantt[]).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setVue(v)}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                vue === v ? "bg-brand-navy text-white" : "text-slate-500 hover:bg-slate-100"
+              }`}
+            >
+              {VUE_LABELS[v]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex items-center gap-1 text-xs font-semibold text-slate-500"><Truck className="h-3.5 w-3.5" /> Repères :</span>
+        {(Object.keys(REPERE_LABELS) as TypeRepere[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => toggleRepereType(t)}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
+              reperesVisibles.has(t) ? "border-transparent text-white" : "border-slate-200 bg-white text-slate-400"
+            }`}
+            style={reperesVisibles.has(t) ? { backgroundColor: REPERE_COLORS[t] } : undefined}
+          >
+            {REPERE_ICONS[t]} {REPERE_LABELS[t]}
+          </button>
+        ))}
+      </div>
+
+      {ecartTypeGlobal && (
+        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-xs text-slate-600">
+          <span className="font-semibold text-brand-navy">Suivi réel vs théorique ({ecartTypeGlobal.nbTachesTerminees} tâche(s) clôturée(s))</span>
+          <span>Écart moyen : <strong className={ecartTypeGlobal.moyenne > 0 ? "text-red-600" : "text-green-600"}>{ecartTypeGlobal.moyenne > 0 ? "+" : ""}{ecartTypeGlobal.moyenne.toFixed(1)} j.</strong></span>
+          <span>Écart type : <strong>{ecartTypeGlobal.ecartType.toFixed(1)} j.</strong></span>
         </div>
       )}
 
@@ -493,8 +664,14 @@ export function GanttClient({
                       <button
                         type="button"
                         onClick={() => toggleNotes(row.key)}
-                        title="Notes"
-                        className="rounded p-1 text-slate-400 hover:bg-slate-100"
+                        title={(() => {
+                          const ecart = getEcartJours(row);
+                          return ecart && ecart.jours > 0 ? `Notes / suivi réel — retard de ${ecart.jours} j.` : "Notes / suivi réel";
+                        })()}
+                        className={`rounded p-1 hover:bg-slate-100 ${(() => {
+                          const ecart = getEcartJours(row);
+                          return ecart && ecart.jours > 0 ? "text-red-500" : "text-slate-400";
+                        })()}`}
                       >
                         📝
                       </button>
@@ -519,9 +696,40 @@ export function GanttClient({
                       />
                       {sched && (
                         <p className="mt-1 text-[10px] text-slate-400">
-                          {format(sched.dateDebut, "d MMM yyyy", { locale: fr })} → {format(sched.dateFin, "d MMM yyyy", { locale: fr })}
+                          Théorique : {format(sched.dateDebut, "d MMM yyyy", { locale: fr })} → {format(sched.dateFin, "d MMM yyyy", { locale: fr })}
                         </p>
                       )}
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                          Début réel
+                          <input
+                            type="date"
+                            value={row.dateDebutReelle}
+                            onChange={(e) => update(row.key, { dateDebutReelle: e.target.value })}
+                            className="rounded-md border border-slate-200 px-2 py-1 text-xs"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                          Fin réelle
+                          <input
+                            type="date"
+                            value={row.dateFinReelle}
+                            onChange={(e) => update(row.key, { dateFinReelle: e.target.value })}
+                            className="rounded-md border border-slate-200 px-2 py-1 text-xs"
+                          />
+                        </label>
+                      </div>
+                      {(() => {
+                        const ecart = getEcartJours(row);
+                        if (!ecart) return null;
+                        const pourcentage = Math.round((ecart.jours / Math.max(1, parseInt(row.duree, 10) || 1)) * 100);
+                        return (
+                          <p className={`mt-1.5 text-[10px] font-semibold ${ecart.jours > 0 ? "text-red-600" : ecart.jours < 0 ? "text-green-600" : "text-slate-400"}`}>
+                            {ecart.jours > 0 ? `Retard de ${ecart.jours} j. (${pourcentage}%)` : ecart.jours < 0 ? `Avance de ${Math.abs(ecart.jours)} j.` : "Dans les temps"}
+                            {ecart.provisoire ? " — estimation provisoire (tâche non terminée)" : ""}
+                          </p>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -534,28 +742,30 @@ export function GanttClient({
             {/* En-tête jours */}
             <div className="relative border-b border-slate-100 bg-slate-50" style={{ height: ROW_HEIGHT }}>
               {dayHeaders.map((d, i) => (
-                <div
-                  key={i}
-                  className={`absolute top-0 flex h-full flex-col items-center justify-center border-r text-[10px] ${
-                    d.getDay() === 0 || d.getDay() === 6 ? "bg-slate-100 text-slate-400 border-slate-200" : "text-slate-500 border-slate-100"
-                  }`}
-                  style={{ left: i * PIXELS_PER_DAY, width: PIXELS_PER_DAY }}
-                >
-                  <span>{format(d, "EEEEE", { locale: fr })}</span>
-                  <span className="font-semibold">{format(d, "d/MM")}</span>
-                </div>
+                i % labelStepDays === 0 && (
+                  <div
+                    key={i}
+                    className={`absolute top-0 flex h-full flex-col items-center justify-center border-r text-[10px] ${
+                      d.getDay() === 0 || d.getDay() === 6 ? "bg-slate-100 text-slate-400 border-slate-200" : "text-slate-500 border-slate-100"
+                    }`}
+                    style={{ left: i * pixelsPerDay, width: labelStepDays * pixelsPerDay }}
+                  >
+                    {pixelsPerDay >= 18 && <span>{format(d, "EEEEE", { locale: fr })}</span>}
+                    <span className="font-semibold">{pixelsPerDay >= 12 ? format(d, "d/MM") : format(d, "d MMM", { locale: fr })}</span>
+                  </div>
+                )
               ))}
             </div>
 
             {/* Lignes de fond + barres */}
             <div className="relative" style={{ height: rows.length * ROW_HEIGHT }}>
               {/* week-end shading */}
-              {dayHeaders.map((d, i) => (
+              {pixelsPerDay >= 8 && dayHeaders.map((d, i) => (
                 (d.getDay() === 0 || d.getDay() === 6) && (
                   <div
                     key={i}
                     className="absolute top-0 bottom-0 bg-slate-50"
-                    style={{ left: i * PIXELS_PER_DAY, width: PIXELS_PER_DAY }}
+                    style={{ left: i * pixelsPerDay, width: pixelsPerDay }}
                   />
                 )
               ))}
@@ -580,7 +790,7 @@ export function GanttClient({
                     const predSched = scheduleByKey.get(predKey);
                     const rowSched = scheduleByKey.get(row.key);
                     if (predIdx === -1 || !predSched || !rowSched) return null;
-                    const x1 = dateToX(predSched.dateFin) + PIXELS_PER_DAY;
+                    const x1 = dateToX(predSched.dateFin) + pixelsPerDay;
                     const y1 = predIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
                     const x2 = dateToX(rowSched.dateDebut);
                     const y2 = rowIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
@@ -612,17 +822,33 @@ export function GanttClient({
                 )}
               </svg>
 
-              {/* Marqueurs livraisons */}
-              {livraisons.map((l) => {
-                const x = dateToX(parseISO(l.dateLivraison));
+              {/* Repères chantier : livraisons, commandes, béton, approvisionnement, location, sorties de stock */}
+              {reperesAffiches.map((r) => {
+                const x = dateToX(parseISO(r.date));
+                const couleur = REPERE_COLORS[r.type];
+                const titre = `${REPERE_LABELS[r.type]} — ${r.label}${r.delaiEleve ? " ⚠ délai de livraison habituellement élevé" : ""}`;
+                if (r.dateFin) {
+                  const xFin = dateToX(parseISO(r.dateFin));
+                  return (
+                    <div key={r.id} className="absolute z-10" style={{ left: x, top: 1, width: Math.max(2, xFin - x), height: 5 }} title={titre}>
+                      <div className="h-1.5 rounded-full opacity-70" style={{ backgroundColor: couleur }} />
+                      <div className="absolute top-0 left-0 h-2.5 w-0.5" style={{ backgroundColor: couleur }} />
+                      <div className="absolute top-0 right-0 h-2.5 w-0.5" style={{ backgroundColor: couleur }} />
+                    </div>
+                  );
+                }
                 return (
                   <div
-                    key={l.id}
-                    className="absolute top-0 bottom-0 z-10 border-l-2 border-dashed border-brand-orange"
-                    style={{ left: x }}
-                    title={`Livraison ${l.numero} — ${l.fournisseur} (${l.statut}) — ${format(parseISO(l.dateLivraison), "d MMM yyyy", { locale: fr })}`}
+                    key={r.id}
+                    className="absolute top-0 bottom-0 z-10 border-l-2 border-dashed"
+                    style={{ left: x, borderColor: couleur }}
+                    title={titre}
                   >
-                    <Truck className="h-3.5 w-3.5 -translate-x-1/2 text-brand-orange-dark bg-white rounded-full" />
+                    <span
+                      className={`-translate-x-1/2 rounded-full bg-white text-[10px] leading-none ${r.delaiEleve ? "ring-1 ring-red-500" : ""}`}
+                    >
+                      {REPERE_ICONS[r.type]}
+                    </span>
                   </div>
                 );
               })}
@@ -632,7 +858,7 @@ export function GanttClient({
                 const sched = scheduleByKey.get(row.key);
                 if (!sched) return null;
                 const x = dateToX(sched.dateDebut);
-                const width = Math.max(PIXELS_PER_DAY, differenceInCalendarDays(sched.dateFin, sched.dateDebut) * PIXELS_PER_DAY + PIXELS_PER_DAY);
+                const width = Math.max(pixelsPerDay, differenceInCalendarDays(sched.dateFin, sched.dateDebut) * pixelsPerDay + pixelsPerDay);
                 const isRoot = row.predecesseurKeys.length === 0;
                 const estCritique = criticalKeys.has(row.key);
                 const intervenant = getIntervenant(row);
@@ -678,13 +904,25 @@ export function GanttClient({
       </div>
 
       <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={addRow}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          <Plus className="h-3.5 w-3.5" /> Ajouter une tâche
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={addRow}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            <Plus className="h-3.5 w-3.5" /> Ajouter une tâche
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (rows.some((r) => r.nom || r.corpsEtat) && !window.confirm("Ajouter les 17 tâches du modèle type SDA (une par corps de métier) à la suite du planning actuel ?")) return;
+              insererModeleType();
+            }}
+            className="inline-flex items-center gap-1 rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-semibold text-brand-navy hover:bg-brand-blue/10"
+          >
+            <Plus className="h-3.5 w-3.5" /> Modèle type SDA (corps de métier)
+          </button>
+        </div>
         <SubmitButton pendingLabel="Enregistrement…">Enregistrer le planning</SubmitButton>
       </div>
     </form>

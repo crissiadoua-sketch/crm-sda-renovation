@@ -11,11 +11,27 @@ import {
 } from "@/lib/gantt-scheduler";
 import { CORPS_ETAT_LABELS, CORPS_ETAT_ORDRE_LOGIQUE, type CorpsEtatCode } from "@/lib/corps-etat";
 import { couleurParDefaut } from "@/lib/intervenant-couleur";
+import { estDelaiLivraisonEleve } from "@/lib/delai-livraison";
 import { PrintToolbar } from "./print-toolbar";
 
 const STATUT_LABELS: Record<string, string> = { A_FAIRE: "À faire", EN_COURS: "En cours", TERMINEE: "Terminée" };
 const STATUT_COLORS: Record<string, string> = { A_FAIRE: "#94a3b8", EN_COURS: "#29ABE2", TERMINEE: "#16a34a" };
 const PRIORITE_LABELS: Record<string, string> = { FAIBLE: "Faible", NORMALE: "Normale", HAUTE: "Haute", URGENTE: "Urgente" };
+
+type TypeRepere = "LIVRAISON" | "BON_COMMANDE" | "BON_COMMANDE_BETON" | "APPROVISIONNEMENT" | "LOCATION" | "MOUVEMENT_STOCK";
+type Repere = { id: string; type: TypeRepere; label: string; date: Date; dateFin?: Date | null; delaiEleve?: boolean };
+
+const REPERE_COLORS: Record<TypeRepere, string> = {
+  LIVRAISON: "#F7941E",
+  BON_COMMANDE: "#0891b2",
+  BON_COMMANDE_BETON: "#64748b",
+  APPROVISIONNEMENT: "#7c3aed",
+  LOCATION: "#0d9488",
+  MOUVEMENT_STOCK: "#16a34a",
+};
+const REPERE_ICONS: Record<TypeRepere, string> = {
+  LIVRAISON: "🚚", BON_COMMANDE: "🛒", BON_COMMANDE_BETON: "🧱", APPROVISIONNEMENT: "📦", LOCATION: "🔧", MOUVEMENT_STOCK: "📤",
+};
 
 const TIMELINE_BUDGET = 760;
 
@@ -26,7 +42,7 @@ export default async function ApercuPlanningGanttPage({
 }) {
   const { id } = await params;
 
-  const [chantier, sousTraitants, salaries, interimaires] = await Promise.all([
+  const [chantier, sousTraitants, salaries, interimaires, bonsCommande, bonsCommandeBeton, approvisionements, locations, mouvementsStock] = await Promise.all([
     prisma.chantier.findUnique({
       where: { id },
       select: {
@@ -54,9 +70,62 @@ export default async function ApercuPlanningGanttPage({
     prisma.sousTraitant.findMany({ select: { id: true, nom: true, couleur: true } }),
     prisma.salarie.findMany({ select: { id: true, nom: true, prenom: true, couleur: true } }),
     prisma.interimaire.findMany({ select: { id: true, nom: true, prenom: true, couleur: true } }),
+    prisma.bonCommande.findMany({
+      where: { chantierId: id },
+      select: { id: true, numero: true, statut: true, dateCreation: true, fournisseur: { select: { nom: true } } },
+    }),
+    prisma.bonCommandeBeton.findMany({
+      where: { chantierId: id },
+      select: { id: true, numero: true, dateLivraison: true, createdAt: true, qteTotale: true, fournisseur: { select: { nom: true } } },
+    }),
+    prisma.approvisionementChantier.findMany({
+      where: { chantierId: id },
+      select: { id: true, numero: true, titre: true, date: true },
+    }),
+    prisma.fraisChantierLigne.findMany({
+      where: { categorie: "LOCATION", date: { not: null }, frais: { chantierId: id } },
+      select: { id: true, designation: true, fournisseur: true, date: true, dateFin: true },
+    }),
+    prisma.mouvementStock.findMany({
+      where: { chantierId: id, type: "SORTIE" },
+      select: {
+        id: true,
+        date: true,
+        quantite: true,
+        article: { select: { designation: true, unite: true, emplacement: true, delaiLivraisonJours: true } },
+      },
+    }),
   ]);
 
   if (!chantier) notFound();
+
+  const reperes: Repere[] = [
+    ...chantier.bonsLivraison.map((b) => ({
+      id: `LIV-${b.id}`, type: "LIVRAISON" as const,
+      label: `BL ${b.numero} — ${b.fournisseur.nom} (${b.statut})`, date: b.dateLivraison!,
+    })),
+    ...bonsCommande.map((b) => ({
+      id: `BC-${b.id}`, type: "BON_COMMANDE" as const,
+      label: `BC ${b.numero} — ${b.fournisseur.nom} (${b.statut})`, date: b.dateCreation,
+    })),
+    ...bonsCommandeBeton.map((b) => ({
+      id: `BCB-${b.id}`, type: "BON_COMMANDE_BETON" as const,
+      label: `BCB ${b.numero} — ${b.fournisseur.nom} (${b.qteTotale} m³)`, date: b.dateLivraison ?? b.createdAt,
+    })),
+    ...approvisionements.map((a) => ({
+      id: `APP-${a.id}`, type: "APPROVISIONNEMENT" as const,
+      label: `Appro ${a.numero}${a.titre ? ` — ${a.titre}` : ""}`, date: a.date,
+    })),
+    ...locations.map((l) => ({
+      id: `LOC-${l.id}`, type: "LOCATION" as const,
+      label: `${l.designation}${l.fournisseur ? ` — ${l.fournisseur}` : ""}`, date: l.date!, dateFin: l.dateFin,
+    })),
+    ...mouvementsStock.map((m) => ({
+      id: `STK-${m.id}`, type: "MOUVEMENT_STOCK" as const,
+      label: `${m.article.designation} → chantier (${m.quantite} ${m.article.unite}, depuis ${m.article.emplacement})`,
+      date: m.date, delaiEleve: estDelaiLivraisonEleve(m.article.delaiLivraisonJours),
+    })),
+  ];
 
   const intervenantLabel = new Map<string, { nom: string; couleur: string }>();
   sousTraitants.forEach((s) => intervenantLabel.set(`SOUS_TRAITANT:${s.id}`, { nom: s.nom, couleur: s.couleur ?? couleurParDefaut(s.id) }));
@@ -98,8 +167,8 @@ export default async function ApercuPlanningGanttPage({
   const dureeProjetJours = differenceInCalendarDays(projectEnd, projectStart) + 1;
 
   // Échelle de la timeline : on vise une largeur imprimable fixe, quelle que soit la durée du chantier
-  const livraisonDates = chantier.bonsLivraison.map((b) => b.dateLivraison!);
-  const allDates = [...scheduled.flatMap((s) => [s.dateDebut, s.dateFin]), ...livraisonDates, anchorDate];
+  const repereDates = reperes.flatMap((r) => (r.dateFin ? [r.date, r.dateFin] : [r.date]));
+  const allDates = [...scheduled.flatMap((s) => [s.dateDebut, s.dateFin]), ...repereDates, anchorDate];
   const rangeStart = addDays(new Date(Math.min(...allDates.map((d) => d.getTime()))), -1);
   const rangeEnd = new Date(Math.max(...allDates.map((d) => d.getTime())));
   const totalDays = Math.max(7, differenceInCalendarDays(rangeEnd, rangeStart) + 2);
@@ -114,6 +183,18 @@ export default async function ApercuPlanningGanttPage({
 
   const dayHeaders = Array.from({ length: totalDays }, (_, i) => addDays(rangeStart, i));
   const taches = chantier.tachesGantt;
+
+  function getEcartJours(t: (typeof taches)[number]): { jours: number; provisoire: boolean } | null {
+    const sched = scheduleById.get(t.id);
+    if (!sched) return null;
+    if (t.dateFinReelle) {
+      return { jours: differenceInCalendarDays(t.dateFinReelle, sched.dateFin), provisoire: false };
+    }
+    if (t.statut !== "TERMINEE" && new Date() > sched.dateFin) {
+      return { jours: differenceInCalendarDays(new Date(), sched.dateFin), provisoire: true };
+    }
+    return null;
+  }
 
   return (
     <>
@@ -173,7 +254,10 @@ export default async function ApercuPlanningGanttPage({
             <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-3 bg-[#dc2626]" /> Liaison critique inter-corps de métier</span>
             <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-orange-400" /> Enchaînement à vérifier (DTU)</span>
             <span className="flex items-center gap-1"><span className="inline-block h-2 w-1 bg-slate-400" /> Liseré = intervenant</span>
-            <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 border-l-2 border-dashed border-orange-500" /> Livraison</span>
+            {(Object.keys(REPERE_ICONS) as TypeRepere[]).map((t) => (
+              <span key={t} className="flex items-center gap-1">{REPERE_ICONS[t]} {t === "BON_COMMANDE_BETON" ? "BC béton" : t === "MOUVEMENT_STOCK" ? "Sortie stock" : t.charAt(0) + t.slice(1).toLowerCase().replace(/_/g, " ")}</span>
+            ))}
+            <span className="flex items-center gap-1"><span className="text-red-500">⚠</span> Délai de livraison fournisseur élevé</span>
           </div>
 
           {taches.length === 0 ? (
@@ -185,7 +269,7 @@ export default async function ApercuPlanningGanttPage({
                 <div className="shrink-0 border-r border-slate-200" style={{ width: 560 }}>
                   <div
                     className="grid items-center gap-1 border-b border-slate-200 bg-[#1E2F6E] px-2 text-[8px] font-semibold uppercase tracking-wide text-white"
-                    style={{ height: rowHeight, gridTemplateColumns: "1.6fr 0.7fr 1fr 0.6fr 0.6fr 0.5fr" }}
+                    style={{ height: rowHeight, gridTemplateColumns: "1.4fr 0.6fr 0.9fr 0.55fr 0.55fr 0.45fr 0.55fr" }}
                   >
                     <span>Tâche</span>
                     <span>Corps d'état</span>
@@ -193,6 +277,7 @@ export default async function ApercuPlanningGanttPage({
                     <span>Début → Fin</span>
                     <span>Statut</span>
                     <span className="text-right">Av. %</span>
+                    <span className="text-right">Écart</span>
                   </div>
                   {taches.map((t, i) => {
                     const sched = scheduleById.get(t.id);
@@ -201,11 +286,12 @@ export default async function ApercuPlanningGanttPage({
                       ? intervenantLabel.get(`${t.intervenantType}:${t.intervenantId}`)
                       : undefined;
                     const alerteRow = alertesById.get(t.id);
+                    const ecart = getEcartJours(t);
                     return (
                       <div
                         key={t.id}
                         className={`grid items-center gap-1 border-b border-slate-100 px-2 text-[8px] ${i % 2 === 0 ? "bg-white" : "bg-slate-50/60"} ${estCritique ? "border-l-2 border-l-red-500" : ""}`}
-                        style={{ height: rowHeight, gridTemplateColumns: "1.6fr 0.7fr 1fr 0.6fr 0.6fr 0.5fr" }}
+                        style={{ height: rowHeight, gridTemplateColumns: "1.4fr 0.6fr 0.9fr 0.55fr 0.55fr 0.45fr 0.55fr" }}
                       >
                         <span className="truncate font-medium text-slate-700">
                           {estCritique && <span className="text-red-500">⚡ </span>}
@@ -222,6 +308,9 @@ export default async function ApercuPlanningGanttPage({
                         </span>
                         <span className="truncate text-slate-500">{STATUT_LABELS[t.statut] ?? t.statut}</span>
                         <span className="text-right font-semibold text-slate-600">{t.avancement}%</span>
+                        <span className={`text-right font-semibold ${ecart ? (ecart.jours > 0 ? "text-red-600" : "text-green-600") : "text-slate-300"}`}>
+                          {ecart ? `${ecart.jours > 0 ? "+" : ""}${ecart.jours}j${ecart.provisoire ? "?" : ""}` : "—"}
+                        </span>
                       </div>
                     );
                   })}
@@ -292,13 +381,24 @@ export default async function ApercuPlanningGanttPage({
                       )}
                     </svg>
 
-                    {chantier.bonsLivraison.map((l) => (
-                      <div
-                        key={l.id}
-                        className="absolute top-0 bottom-0 border-l border-dashed border-orange-500"
-                        style={{ left: dateToX(l.dateLivraison!) }}
-                      />
-                    ))}
+                    {reperes.map((r) => {
+                      const x = dateToX(r.date);
+                      const couleur = REPERE_COLORS[r.type];
+                      if (r.dateFin) {
+                        const xFin = dateToX(r.dateFin);
+                        return (
+                          <div key={r.id} className="absolute z-10 h-1 rounded-full opacity-70" style={{ left: x, top: 1, width: Math.max(2, xFin - x), backgroundColor: couleur }} />
+                        );
+                      }
+                      return (
+                        <div
+                          key={r.id}
+                          className="absolute top-0 bottom-0 border-l border-dashed"
+                          style={{ left: x, borderColor: couleur }}
+                          title={r.label}
+                        />
+                      );
+                    })}
 
                     {taches.map((t, idx) => {
                       const sched = scheduleById.get(t.id);

@@ -7,7 +7,8 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { formatEuros } from "@/lib/format";
 import { CORPS_ETAT, CATEGORIE_LABELS, EMPLACEMENT_LABELS } from "../page";
-import { TrendingUp, TrendingDown, Package, History } from "lucide-react";
+import { TrendingUp, TrendingDown, Package, History, Truck } from "lucide-react";
+import { estDelaiLivraisonEleve } from "@/lib/delai-livraison";
 
 const INDEX_MATIERES = [
   { value: "", label: "— Aucun —" },
@@ -115,6 +116,11 @@ export default async function ArticleStockDetailPage({
       {!enRupture && enAlerte && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-700">
           ⚠ Stock en alerte — {article.stockActuel} {article.unite} restant (seuil min. : {article.stockMinimum} {article.unite})
+        </div>
+      )}
+      {estDelaiLivraisonEleve(article.delaiLivraisonJours) && (
+        <div className="flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-5 py-3 text-sm font-semibold text-orange-700">
+          <Truck className="h-4 w-4" /> Délai de livraison habituellement élevé — {article.delaiLivraisonJours} jours. Anticipez la commande.
         </div>
       )}
 
@@ -361,6 +367,22 @@ export default async function ArticleStockDetailPage({
               <input id="refFournisseur" name="refFournisseur" defaultValue={article.refFournisseur ?? ""} className={inputClasses} />
             </Field>
           </div>
+
+          <Field label="Délai de livraison habituel (jours)" htmlFor="delaiLivraisonJours" className="sm:max-w-xs">
+            <input
+              id="delaiLivraisonJours"
+              name="delaiLivraisonJours"
+              type="number"
+              step="1"
+              min="0"
+              defaultValue={article.delaiLivraisonJours ?? ""}
+              placeholder="Ex : 21"
+              className={inputClasses}
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              Au-delà de 15 jours, une alerte s&apos;affiche pour anticiper la commande.
+            </p>
+          </Field>
 
           <Field label="Index matière première" htmlFor="indexMatiere">
             <select id="indexMatiere" name="indexMatiere" defaultValue={article.indexMatiere ?? ""} className={`${inputClasses} sm:max-w-xs`}>

@@ -17,6 +17,8 @@ const tacheInputSchema = z.object({
   ressource: z.string().nullable().optional(),
   intervenantType: z.enum(["SOUS_TRAITANT", "SALARIE", "INTERIMAIRE"]).nullable().optional(),
   intervenantId: z.string().nullable().optional(),
+  dateDebutReelle: z.string().nullable().optional(),
+  dateFinReelle: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   predecesseurClientIds: z.array(z.string()),
 });
@@ -101,6 +103,8 @@ export async function updateTachesGantt(
           ressource: row.ressource || null,
           intervenantType: row.intervenantType || null,
           intervenantId: row.intervenantId || null,
+          dateDebutReelle: row.dateDebutReelle ? new Date(row.dateDebutReelle) : null,
+          dateFinReelle: row.dateFinReelle ? new Date(row.dateFinReelle) : null,
           notes: row.notes || null,
         },
       });

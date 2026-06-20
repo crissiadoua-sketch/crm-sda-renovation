@@ -43,6 +43,9 @@ export async function createArticleStock(formData: FormData) {
       stockMaximum: formData.get("stockMaximum")
         ? parseFloat(formData.get("stockMaximum") as string) || null
         : null,
+      delaiLivraisonJours: formData.get("delaiLivraisonJours")
+        ? parseInt(formData.get("delaiLivraisonJours") as string, 10) || null
+        : null,
       notes: (formData.get("notes") as string | null)?.trim() || null,
     },
   });
@@ -74,6 +77,9 @@ export async function updateArticleStock(id: string, formData: FormData) {
       stockMinimum: parseFloat((formData.get("stockMinimum") as string | null) ?? "0") || 0,
       stockMaximum: formData.get("stockMaximum")
         ? parseFloat(formData.get("stockMaximum") as string) || null
+        : null,
+      delaiLivraisonJours: formData.get("delaiLivraisonJours")
+        ? parseInt(formData.get("delaiLivraisonJours") as string, 10) || null
         : null,
       notes: (formData.get("notes") as string | null)?.trim() || null,
     },

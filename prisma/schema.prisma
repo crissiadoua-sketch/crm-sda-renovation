@@ -1051,6 +1051,8 @@ model TacheGantt {
   duree       Int                  // jours calendaires, >= 1
   dateDebut   DateTime             // calculée par le moteur (racines : ancrée par l'utilisateur/drag)
   dateFin     DateTime             // = dateDebut + duree - 1, calculée
+  dateDebutReelle DateTime? // saisie manuelle — date réelle de démarrage constatée sur site
+  dateFinReelle   DateTime? // saisie manuelle — date réelle de fin constatée sur site (sert au calcul d'écart)
   avancement  Int      @default(0) // 0-100
   statut      String   @default("A_FAIRE") // A_FAIRE | EN_COURS | TERMINEE
   priorite    String   @default("NORMALE") // FAIBLE | NORMALE | HAUTE | URGENTE
@@ -1100,6 +1102,7 @@ model ArticleStock {
   stockActuel          Float    @default(0)
   stockMinimum         Float    @default(0)  // seuil d'alerte de réapprovisionnement
   stockMaximum         Float?
+  delaiLivraisonJours  Int?     // délai habituel de livraison fournisseur — alerte visuelle si élevé
   notes                String?
   actif                Boolean  @default(true)
   createdAt            DateTime @default(now())
@@ -2348,6 +2351,7 @@ model FraisChantierLigne {
   designation String
   fournisseur String?
   date        DateTime?
+  dateFin     DateTime? // fin de période de location — uniquement pertinent pour categorie = LOCATION
   montantHT   Float     @default(0)
   tauxTVA     Float     @default(20)
   montantTTC  Float     @default(0)

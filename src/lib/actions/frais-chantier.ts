@@ -38,6 +38,7 @@ export async function sauvegarderFraisChantier(
       designation: string;
       fournisseur?: string;
       date?: string | null;
+      dateFin?: string | null;
       montantHT: number;
       tauxTVA: number;
       montantTTC: number;
@@ -73,6 +74,7 @@ export async function sauvegarderFraisChantier(
           fraisId: id,
           ...l,
           date: l.date ? new Date(l.date) : null,
+          dateFin: l.dateFin ? new Date(l.dateFin) : null,
         },
       }),
     ),

@@ -157,6 +157,21 @@ export default async function NouvelArticleStockPage() {
                   className={inputClasses}
                 />
               </Field>
+
+              <Field label="Délai de livraison habituel (jours)" htmlFor="delaiLivraisonJours">
+                <input
+                  id="delaiLivraisonJours"
+                  name="delaiLivraisonJours"
+                  type="number"
+                  step="1"
+                  min="0"
+                  placeholder="Ex : 21"
+                  className={inputClasses}
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  Au-delà de 15 jours, une alerte s&apos;affiche pour anticiper la commande.
+                </p>
+              </Field>
             </div>
 
             <div className="mt-4">

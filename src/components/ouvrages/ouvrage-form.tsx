@@ -45,6 +45,12 @@ const OFFRES: { key: OffreKey; label: string; color: string; bg: string; border:
   },
 ];
 
+function autoGrow(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 // ---------------------------------------------------------------------------
 // Composant panneau d'une offre
 // ---------------------------------------------------------------------------
@@ -229,11 +235,13 @@ export function OuvrageForm({ action, defaultValues, isEdit }: OuvrageFormProps)
 
         <div className="mt-3">
           <Field label="Désignation *" error={err?.designation?.[0]}>
-            <input
+            <textarea
+              ref={autoGrow}
               name="designation"
-              type="text"
               defaultValue={defaultValues?.designation}
-              className={inputClasses}
+              onInput={(e) => autoGrow(e.currentTarget)}
+              rows={2}
+              className={`${inputClasses} resize-none overflow-hidden`}
               placeholder="ex. Fourniture et pose de carrelage grès cérame 60×60"
               required
             />

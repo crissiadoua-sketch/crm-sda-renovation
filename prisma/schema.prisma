@@ -184,6 +184,7 @@ model Chantier {
   plansAssuranceQualite PlanAssuranceQualite[] @relation("PAQChantier")
   fichesAutocontrole    FicheAutocontrole[]    @relation("FACChantier")
   daacts                DAACT[]                @relation("DAACTChantier")
+  preDimensionnements   PreDimensionnement[]   @relation("PDIMChantier")
 }
 
 model ChantierSousTraitant {
@@ -2487,4 +2488,61 @@ model DAACT {
 
   chantier Chantier? @relation("DAACTChantier", fields: [chantierId], references: [id], onDelete: SetNull)
   client   Client?   @relation("DAACTClient",   fields: [clientId],   references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Calcul structurel — Pré-dimensionnement (PDIM-YYYY-XXXX)
+// Estimation rapide de sections (poutre/dalle/poteau) par ratios forfaitaires.
+// Ce n'est PAS un calcul réglementaire détaillé : statut toujours "BROUILLON"
+// jusqu'à contre-signature d'un ingénieur structure indépendant (hors outil).
+// ---------------------------------------------------------------------------
+
+model PreDimensionnement {
+  id            String    @id @default(cuid())
+  numero        String    @unique
+  titre         String?
+  statut        String    @default("BROUILLON") // BROUILLON uniquement en v1 (pas de workflow de validation)
+
+  typeElement   String    // POUTRE | DALLE | POTEAU
+  materiau      String    // BETON | ACIER | BOIS
+
+  // Poutre / dalle
+  portee        Float?    // m
+  condition     String?   // ISOSTATIQUE | CONTINUE | CONSOLE | PORTEE_1_SENS | PORTEE_2_SENS
+  niveauCharge  String?   // LEGERE | NORMALE | LOURDE
+  usagePreset   String?   // libellé du préset de pré-remplissage utilisé, le cas échéant
+
+  // Poteau
+  effortNormal  Float?    // kN
+  hauteurLibre  Float?    // m
+
+  resistance    Float?    // MPa (fck béton / fy acier / fc0 bois) utilisée pour le calcul
+
+  // Résultat
+  resultatValeurCm  Float?
+  resultatLargeurCm Float?
+  resultatLabel     String?
+  formule           String?
+  hypotheses        String?   // texte multi-lignes, hypothèses tracées
+
+  chantierId    String?
+  responsable   String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  chantier  Chantier? @relation("PDIMChantier", fields: [chantierId], references: [id], onDelete: SetNull)
+  documents PreDimensionnementDocument[]
+}
+
+model PreDimensionnementDocument {
+  id                   String   @id @default(cuid())
+  preDimensionnementId String
+  type                 String   // GEOTECHNIQUE_G2PRO | PLAN_NIVEAU | PLAN_COUPE | AUTRE
+  nom                  String
+  url                  String
+  taille               Int
+  createdAt            DateTime @default(now())
+
+  preDimensionnement PreDimensionnement @relation(fields: [preDimensionnementId], references: [id], onDelete: Cascade)
 }

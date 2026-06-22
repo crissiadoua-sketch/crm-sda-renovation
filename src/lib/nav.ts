@@ -44,6 +44,7 @@ import {
   MessageSquare,
   FileCheck,
   GanttChart,
+  Ruler,
   type LucideIcon,
 } from "lucide-react";
 import { canAccess } from "@/lib/permissions";
@@ -130,6 +131,7 @@ export const navGroups: NavGroup[] = [
       { href: "/etude-prix/cout-materiaux",     label: "Coût matériaux rendus chantier", icon: TrendingDown },
       { href: "/etude-prix/approvisionement",   label: "Approvisionnement chantier", icon: PackageCheck },
       { href: "/etude-prix/agrement-produits",  label: "Fiches d'agrément produit", icon: ShieldCheck },
+      { href: "/etude-prix/pre-dimensionnement", label: "Pré-dimensionnement structurel", icon: Ruler },
     ],
   },
   {

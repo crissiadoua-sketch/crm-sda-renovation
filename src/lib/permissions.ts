@@ -90,6 +90,7 @@ export const ALL_PERMISSIONS = [
   "/etude-prix/agrement-produits",
   "/etude-prix/cout-materiaux",
   "/etude-prix/approvisionement",
+  "/etude-prix/pre-dimensionnement",
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];
@@ -136,6 +137,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   "/etude-prix/agrement-produits": "Fiches d'agrément produit",
   "/etude-prix/cout-materiaux": "Coût matériaux rendus chantier",
   "/etude-prix/approvisionement": "Approvisionnement chantier",
+  "/etude-prix/pre-dimensionnement": "Pré-dimensionnement structurel",
 };
 
 // Groupes de permissions pour l'interface d'édition
@@ -176,6 +178,7 @@ export const PERMISSION_GROUPS: { label: string; routes: string[] }[] = [
       "/etude-prix/agrement-produits",
       "/etude-prix/cout-materiaux",
       "/etude-prix/approvisionement",
+      "/etude-prix/pre-dimensionnement",
     ],
   },
 ];
@@ -200,6 +203,7 @@ export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "/etude-prix/agrement-produits",
     "/etude-prix/cout-materiaux",
     "/etude-prix/approvisionement",
+    "/etude-prix/pre-dimensionnement",
   ],
   COMMERCIAL: ["/", "/clients", "/devis", "/ouvrages", "/prospects", "/documents"],
   COMPTABLE: [

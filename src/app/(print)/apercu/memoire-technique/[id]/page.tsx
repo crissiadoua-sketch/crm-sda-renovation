@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
-import { formatDate } from "@/lib/format";
+import { formatDate, urlFichier } from "@/lib/format";
 import { PrintToolbar } from "./print-toolbar";
 import { TYPE_LABELS, MODELE_LABELS } from "@/lib/memoire-technique";
 import type { TypeMemoire, ModeleMemoire } from "@/lib/memoire-technique";
@@ -365,7 +365,7 @@ export default async function ApercuMemoireTechniquePage({
                       )}
                     </div>
                     <a
-                      href={`/storage/uploads/${a.fichier}`}
+                      href={urlFichier(a.fichier)}
                       target="_blank"
                       className="text-[10px] text-[#29ABE2] font-semibold print:hidden"
                     >

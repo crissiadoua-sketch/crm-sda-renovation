@@ -4,7 +4,7 @@ import { useActionState, useState, useRef } from "react";
 import { Camera, FileUp, X, FileText, ScanLine } from "lucide-react";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { toDateInputValue } from "@/lib/format";
+import { toDateInputValue, urlFichier } from "@/lib/format";
 import type { NoteState } from "@/lib/actions/notes-de-frais";
 import type { NoteDeFrais, Chantier } from "@/generated/prisma/client";
 
@@ -182,7 +182,7 @@ export function NoteForm({
                     <p className="text-sm font-medium text-slate-700">Document PDF</p>
                     {note?.justificatif && (
                       <a
-                        href={note.justificatif}
+                        href={urlFichier(note.justificatif)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-brand-blue hover:underline"

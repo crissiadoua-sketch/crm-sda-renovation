@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { urlFichier } from "@/lib/format";
 
 const TYPE_LABELS: Record<string, string> = {
   PLAN: "Plan",
@@ -155,7 +156,7 @@ export default async function PlansPage() {
                           {isImage(plan.fichier) ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={plan.fichier}
+                              src={urlFichier(plan.fichier)}
                               alt={plan.titre}
                               className="h-full w-full object-cover"
                             />
@@ -209,7 +210,7 @@ export default async function PlansPage() {
                               })}
                             </time>
                             <a
-                              href={plan.fichier}
+                              href={urlFichier(plan.fichier)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"

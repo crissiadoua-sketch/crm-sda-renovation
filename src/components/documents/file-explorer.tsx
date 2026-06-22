@@ -28,7 +28,7 @@ import {
   deleteDossier,
   renameDossier,
 } from "@/lib/actions/documents";
-import { formatDate } from "@/lib/format";
+import { formatDate, urlFichier } from "@/lib/format";
 import type { DossierState, DocumentState } from "@/lib/actions/documents";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -397,7 +397,7 @@ export function FileExplorer({
                     <td className="px-5 py-2">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
                         <a
-                          href={doc.chemin}
+                          href={urlFichier(doc.chemin)}
                           download={doc.nom}
                           className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-blue"
                           title="Télécharger"

@@ -6,6 +6,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { buttonClasses } from "@/components/ui/button";
+import { urlFichier } from "@/lib/format";
 
 const DOMAINE_OPTIONS = [
   { value: "TERRASSEMENT", label: "Terrassement & Fondations" },
@@ -181,7 +182,7 @@ export default async function DTUDetailPage({
                 <p className="text-xs text-emerald-600 font-mono">{dtu.fichierPdf}</p>
               </div>
               <a
-                href={dtu.fichierPdf}
+                href={urlFichier(dtu.fichierPdf)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={buttonClasses("secondary")}

@@ -12,6 +12,12 @@ export function toDateInputValue(date: Date | string | null | undefined) {
   return new Date(date).toISOString().slice(0, 10);
 }
 
+export function urlFichier(url: string | null | undefined): string {
+  if (!url) return "#";
+  if (!url.startsWith("http")) return url;
+  return `/api/fichiers?url=${encodeURIComponent(url)}`;
+}
+
 export function clientDisplayName(client: {
   type: string;
   civilite?: string | null;

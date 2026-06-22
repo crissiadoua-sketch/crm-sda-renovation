@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { formatEuros, formatDate } from "@/lib/format";
+import { formatEuros, formatDate, urlFichier } from "@/lib/format";
 import { LinkButton } from "@/components/ui/button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 
@@ -128,7 +128,7 @@ export default async function NotesDeFraisPage() {
                   <td className="px-4 py-3">
                     {note.justificatif ? (
                       <a
-                        href={note.justificatif}
+                        href={urlFichier(note.justificatif)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-brand-blue hover:underline"

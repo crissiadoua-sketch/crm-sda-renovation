@@ -8,6 +8,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { urlFichier } from "@/lib/format";
 
 const CATEGORIES = [
   { value: "PRODUIT", label: "Produit" },
@@ -65,7 +66,7 @@ export default async function FicheTechniqueDetailPage({
         <div className="flex items-center gap-3">
           {fiche.fichierPdf && (
             <a
-              href={fiche.fichierPdf}
+              href={urlFichier(fiche.fichierPdf)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-brand-blue hover:bg-slate-50 transition"
@@ -193,7 +194,7 @@ export default async function FicheTechniqueDetailPage({
               <div className="mb-2 flex items-center gap-2 text-sm text-slate-600">
                 <FileText className="h-4 w-4 text-brand-blue" />
                 <a
-                  href={fiche.fichierPdf}
+                  href={urlFichier(fiche.fichierPdf)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-brand-blue hover:underline"

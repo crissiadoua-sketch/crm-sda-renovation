@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { updateElementCatalogue, deleteElementCatalogue } from "@/lib/actions/conception";
 import { notFound } from "next/navigation";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { urlFichier } from "@/lib/format";
 
 const CATEGORIES = [
   { value: "MENUISERIE_INT", label: "Menuiserie intérieure" },
@@ -274,7 +275,7 @@ export default async function EditElementPage({
                 <div className="flex items-start gap-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={element.image}
+                    src={urlFichier(element.image)}
                     alt={element.designation}
                     className="h-24 w-24 rounded-lg border border-slate-200 object-cover"
                   />

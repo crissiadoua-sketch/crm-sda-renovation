@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { LinkButton } from "@/components/ui/button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { inputClasses } from "@/components/ui/fields";
+import { urlFichier } from "@/lib/format";
 import {
   CORPS_ETAT_CODES,
   CORPS_ETAT_LABELS,
@@ -260,7 +261,7 @@ export default async function FichesTechniquesPage({
                 <div className="mt-auto flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
                   {fiche.fichierPdf && (
                     <a
-                      href={fiche.fichierPdf}
+                      href={urlFichier(fiche.fichierPdf)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-sm text-brand-blue hover:underline"

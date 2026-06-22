@@ -6,6 +6,7 @@ import {
   Download, Trash2, RefreshCw, Settings, Check,
 } from "lucide-react";
 import { sendMessage, updateSuppressionAuto, deleteConversation } from "@/lib/actions/messagerie";
+import { urlFichier } from "@/lib/format";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -65,10 +66,10 @@ function PieceJointeView({ pj }: { pj: PJ }) {
 
   if (isImage) {
     return (
-      <a href={pj.url} target="_blank" rel="noopener noreferrer" className="block">
+      <a href={urlFichier(pj.url)} target="_blank" rel="noopener noreferrer" className="block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={pj.url}
+          src={urlFichier(pj.url)}
           alt={pj.nom}
           className="max-h-56 max-w-xs rounded-lg border border-slate-200 object-cover shadow-sm"
         />
@@ -78,7 +79,7 @@ function PieceJointeView({ pj }: { pj: PJ }) {
 
   return (
     <a
-      href={pj.url}
+      href={urlFichier(pj.url)}
       download={pj.nom}
       className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm hover:border-brand-blue/40 hover:bg-brand-blue/5 max-w-xs"
     >

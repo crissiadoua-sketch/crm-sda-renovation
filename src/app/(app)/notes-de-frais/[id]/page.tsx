@@ -5,7 +5,7 @@ import { updateNote, deleteNote } from "@/lib/actions/notes-de-frais";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
-import { formatEuros, formatDate } from "@/lib/format";
+import { formatEuros, formatDate, urlFichier } from "@/lib/format";
 
 const statutTones: Record<string, BadgeTone> = {
   EN_ATTENTE: "gray",
@@ -79,7 +79,7 @@ export default async function NoteDeFraisDetailPage({
           <h3 className="mb-3 font-semibold text-brand-navy">Justificatif</h3>
           {note.justificatif.endsWith(".pdf") ? (
             <a
-              href={note.justificatif}
+              href={urlFichier(note.justificatif)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-brand-blue hover:bg-slate-100"
@@ -87,9 +87,9 @@ export default async function NoteDeFraisDetailPage({
               📄 Ouvrir le PDF
             </a>
           ) : (
-            <a href={note.justificatif} target="_blank" rel="noopener noreferrer">
+            <a href={urlFichier(note.justificatif)} target="_blank" rel="noopener noreferrer">
               <img
-                src={note.justificatif}
+                src={urlFichier(note.justificatif)}
                 alt="Justificatif"
                 className="max-h-96 rounded-lg border border-slate-200 object-contain"
               />

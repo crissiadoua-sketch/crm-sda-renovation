@@ -99,6 +99,32 @@ function arrondirSup(valeur: number, pas: number, min = 0): number {
   return Math.max(arrondi, min);
 }
 
+// ─── Armatures béton armé (ratio + type d'acier) ───────────────────────────
+// Utilitaires partagés par poutre, dalle et poteau béton armé.
+
+const DIAMETRES_HA_MM = [6, 8, 10, 12, 14, 16, 20, 25, 32, 40];
+
+function sectionBarreHA_cm2(diametreMm: number): number {
+  const d = diametreMm / 10; // cm
+  return (Math.PI / 4) * d * d;
+}
+
+function determinerDiametreHA(asParBarreCm2: number): number {
+  return DIAMETRES_HA_MM.find((d) => sectionBarreHA_cm2(d) >= asParBarreCm2) ?? DIAMETRES_HA_MM[DIAMETRES_HA_MM.length - 1];
+}
+
+const NUANCES_ACIER: { fy: number; nom: string }[] = [
+  { fy: 235, nom: "S235" },
+  { fy: 275, nom: "S275" },
+  { fy: 355, nom: "S355" },
+  { fy: 460, nom: "S460" },
+];
+
+function determinerNuanceAcier(fy: number): string {
+  const match = NUANCES_ACIER.find((n) => n.fy === fy);
+  return match ? match.nom : `nuance non standard (fy = ${fy} MPa, à préciser)`;
+}
+
 // ─── Poutre ──────────────────────────────────────────────────────────────────
 
 const RATIO_POUTRE_BETON: Record<ConditionPoutre, Record<NiveauCharge, number>> = {
@@ -121,6 +147,9 @@ const RATIO_POUTRE_BOIS: Record<ConditionPoutre, Record<NiveauCharge, number>> =
 
 const PROFILES_IPE_CM = [8, 10, 12, 14, 16, 18, 20, 22, 24, 27, 30, 33, 36, 40, 45, 50, 55, 60];
 
+// Taux d'armature longitudinale tendue forfaitaire (%) selon niveau de charge.
+const RATIO_ARMATURE_POUTRE: Record<NiveauCharge, number> = { LEGERE: 0.8, NORMALE: 1.0, LOURDE: 1.3 };
+
 export function calculerPoutre(params: {
   materiau: Materiau;
   portee: number;
@@ -139,6 +168,13 @@ export function calculerPoutre(params: {
     const ratio = RATIO_POUTRE_BETON[condition][niveauCharge];
     const hCm = arrondirSup((portee * 100) / ratio, 5, 20);
     const bCm = arrondirSup(hCm / 2.5, 5, 20);
+    const tauxArmature = RATIO_ARMATURE_POUTRE[niveauCharge];
+    const asCm2 = (tauxArmature / 100) * bCm * hCm;
+    const nombreBarres = 4;
+    const diametreHA = determinerDiametreHA(asCm2 / nombreBarres);
+    hypotheses.push(
+      `Armature longitudinale tendue estimée : ρ ≈ ${tauxArmature} % (As ≈ ${asCm2.toFixed(1)} cm²) — soit environ ${nombreBarres} HA${diametreHA} en travée (acier Fe E500), cadres HA6 ou HA8 — quantités et espacements à confirmer en calcul détaillé (EC2).`,
+    );
     return {
       valeurCm: hCm,
       largeurCm: bCm,
@@ -152,6 +188,7 @@ export function calculerPoutre(params: {
     const ratio = RATIO_POUTRE_ACIER[condition][niveauCharge];
     const hCmTheorique = (portee * 100) / ratio;
     const profile = PROFILES_IPE_CM.find((p) => p >= hCmTheorique) ?? PROFILES_IPE_CM[PROFILES_IPE_CM.length - 1];
+    hypotheses.push(`Nuance d'acier par défaut : ${determinerNuanceAcier(235)} — à ajuster selon le profilé et la nuance réellement retenus.`);
     return {
       valeurCm: profile,
       label: `IPE ${profile * 10} (h ≈ ${profile} cm)`,
@@ -195,6 +232,7 @@ export function calculerDalle(params: {
   const { portee, condition, niveauCharge } = params;
   const ratio = RATIO_DALLE[condition][niveauCharge];
   const eCm = arrondirSup((portee * 100) / ratio, 1, EPAISSEUR_MIN_DALLE_CM[condition]);
+  const treillis = determinerTreillisSoude(eCm, niveauCharge);
   return {
     valeurCm: eCm,
     label: `e ≈ ${eCm} cm`,
@@ -203,6 +241,7 @@ export function calculerDalle(params: {
       `Plus petite portée L = ${portee} m`,
       `Condition : ${CONDITION_DALLE_LABELS[condition]}`,
       `Niveau de charge : ${NIVEAU_CHARGE_LABELS[niveauCharge]}`,
+      `Armature recommandée : treillis soudé nappe ${treillis.nappeHaute}${treillis.nappeBasse ? ` + ${treillis.nappeBasse} (nappe basse)` : ""} ou équivalent en barres HA (acier Fe E500) — position, recouvrements et enrobage à confirmer en calcul détaillé.`,
       "Ratio forfaitaire de pré-dimensionnement (ordre de grandeur, hors calcul détaillé EC2).",
     ],
   };
@@ -442,6 +481,10 @@ export function calculerPoteau(params: {
     const coteTheorique = Math.sqrt(aireCm2);
     const minSection = hauteurLibre && hauteurLibre > 3 ? 25 : 20;
     const cote = SECTIONS_BETON_CM.find((s) => s >= coteTheorique && s >= minSection) ?? SECTIONS_BETON_CM[SECTIONS_BETON_CM.length - 1];
+    const tauxArmaturePoteau = 1; // %, taux usuel (mini réglementaire EC2 0,2 %, plafond 4 %)
+    const asPoteauCm2 = (tauxArmaturePoteau / 100) * cote * cote;
+    const nombreBarresPoteau = 4;
+    const diametreHAPoteau = determinerDiametreHA(asPoteauCm2 / nombreBarresPoteau);
     return {
       valeurCm: cote,
       largeurCm: cote,
@@ -452,6 +495,7 @@ export function calculerPoteau(params: {
         `Résistance béton fck = ${fck} MPa`,
         `Section minimale constructive : ${minSection} × ${minSection} cm`,
         ...elancementInfo,
+        `Armature longitudinale estimée : ρ ≈ ${tauxArmaturePoteau} % (As ≈ ${asPoteauCm2.toFixed(1)} cm²) — soit environ ${nombreBarresPoteau} HA${diametreHAPoteau} verticaux (acier Fe E500), cadres/cerces HA6 ou HA8 (espacement ≤ 15 × diamètre) — à confirmer en calcul détaillé (EC2).`,
         "Calcul de pré-dimensionnement uniquement — vérification du flambement et ferraillage à faire en calcul détaillé (EC2).",
       ],
     };
@@ -468,7 +512,7 @@ export function calculerPoteau(params: {
       formule: `Aire ≈ Nu × 10 / (0,6 × fy), Nu = ${Nu} kN, fy = ${fy} MPa, coefficient de flambement forfaitaire 0,6`,
       hypotheses: [
         `Effort normal Nu = ${Nu} kN`,
-        `Limite d'élasticité fy = ${fy} MPa`,
+        `Limite d'élasticité fy = ${fy} MPa — nuance d'acier : ${determinerNuanceAcier(fy)}`,
         ...elancementInfo,
         "Calcul de pré-dimensionnement uniquement — vérification du flambement (EC3) à faire en calcul détaillé.",
       ],

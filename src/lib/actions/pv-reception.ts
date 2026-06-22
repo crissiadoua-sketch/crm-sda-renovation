@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { envoyerEmail } from "@/lib/email";
 
 async function nextNumeroPvr(): Promise<string> {
   const year = new Date().getFullYear();
@@ -168,6 +169,29 @@ export async function genererLienPartage(id: string): Promise<string> {
 
   revalidatePath(`/pv-reception/${id}`);
   return token;
+}
+
+// ---------------------------------------------------------------------------
+// Envoyer le lien de partage par email depuis le CRM (compte SMTP de l'entreprise)
+// ---------------------------------------------------------------------------
+export async function envoyerLienPvParEmail(
+  id: string,
+  destinataire: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!destinataire) return { ok: false, error: "Adresse email manquante." };
+
+  const pvr = await prisma.pvReception.findUnique({ where: { id } });
+  if (!pvr) return { ok: false, error: "PV de Réception introuvable." };
+  if (!pvr.shareToken) return { ok: false, error: "Générez d'abord le lien de partage." };
+
+  const lien = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/pv-public/${pvr.shareToken}`;
+
+  return envoyerEmail({
+    to: destinataire,
+    subject: `PV de Réception ${pvr.numero}`,
+    text: `Bonjour,\n\nVeuillez trouver ci-dessous le lien vers le PV de Réception ${pvr.numero} :\n\n${lien}\n\nCordialement,\nSDA Rénovation`,
+    html: `<p>Bonjour,</p><p>Veuillez trouver ci-dessous le lien vers le PV de Réception <strong>${pvr.numero}</strong> :</p><p><a href="${lien}">${lien}</a></p><p>Cordialement,<br/>SDA Rénovation</p>`,
+  });
 }
 
 // ---------------------------------------------------------------------------

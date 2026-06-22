@@ -6,6 +6,7 @@ import {
   sauvegarderPvReception,
   finaliserPvReception,
   genererLienPartage,
+  envoyerLienPvParEmail,
   supprimerPvReception,
 } from "@/lib/actions/pv-reception";
 
@@ -88,6 +89,11 @@ export function PvReceptionEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [shareUrl, setShareUrl]         = useState<string | null>(pvr.shareToken ? `/pv-public/${pvr.shareToken}` : null);
   const [copied, setCopied]             = useState(false);
+  const [envoiStatut, setEnvoiStatut]   = useState<Record<"prestataire" | "repMO", "idle" | "envoi" | "ok" | "erreur">>({
+    prestataire: "idle",
+    repMO: "idle",
+  });
+  const [envoiErreur, setEnvoiErreur]   = useState<string | null>(null);
 
   const [form, setForm] = useState({
     statut:          pvr.statut,
@@ -225,6 +231,21 @@ export function PvReceptionEditor({
     startTransition(async () => {
       const token = await genererLienPartage(pvr.id);
       setShareUrl(`/pv-public/${token}`);
+    });
+  };
+
+  const handleEnvoyerEmail = (cible: "prestataire" | "repMO", destinataire: string) => {
+    setEnvoiStatut((s) => ({ ...s, [cible]: "envoi" }));
+    setEnvoiErreur(null);
+    startTransition(async () => {
+      const res = await envoyerLienPvParEmail(pvr.id, destinataire);
+      if (res.ok) {
+        setEnvoiStatut((s) => ({ ...s, [cible]: "ok" }));
+        setTimeout(() => setEnvoiStatut((s) => ({ ...s, [cible]: "idle" })), 4000);
+      } else {
+        setEnvoiStatut((s) => ({ ...s, [cible]: "erreur" }));
+        setEnvoiErreur(res.error ?? "Erreur d'envoi.");
+      }
     });
   };
 
@@ -731,18 +752,35 @@ export function PvReceptionEditor({
                     </div>
                     <div className="flex gap-2">
                       {form.emailPrestataire && (
-                        <a href={`mailto:${form.emailPrestataire}?subject=PV de Réception ${pvr.numero}&body=Bonjour,%0A%0AVeuillez trouver ci-dessous le lien vers le PV de Réception ${pvr.numero} :%0A%0A${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}%0A%0ACordialement,%0ASDA Rénovation`}
-                          className="flex-1 rounded-lg bg-[#29ABE2] py-2 text-center text-xs font-semibold text-white hover:opacity-90 transition">
-                          ✉ Envoyer au prestataire
-                        </a>
+                        <div className="flex flex-1 flex-col gap-1">
+                          <button onClick={() => handleEnvoyerEmail("prestataire", form.emailPrestataire)}
+                            disabled={isPending || envoiStatut.prestataire === "envoi"}
+                            className="flex-1 rounded-lg bg-[#29ABE2] py-2 text-center text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition">
+                            {envoiStatut.prestataire === "envoi" ? "Envoi…" : envoiStatut.prestataire === "ok" ? "Envoyé ✓" : "✉ Envoyer au prestataire"}
+                          </button>
+                          <a href={`mailto:${form.emailPrestataire}?subject=PV de Réception ${pvr.numero}&body=Bonjour,%0A%0AVeuillez trouver ci-dessous le lien vers le PV de Réception ${pvr.numero} :%0A%0A${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}%0A%0ACordialement,%0ASDA Rénovation`}
+                            className="text-center text-[11px] text-slate-400 hover:text-slate-600 underline">
+                            ou via ma messagerie
+                          </a>
+                        </div>
                       )}
                       {form.emailRepMO && (
-                        <a href={`mailto:${form.emailRepMO}?subject=PV de Réception ${pvr.numero}&body=Bonjour,%0A%0AVeuillez trouver le PV de Réception ${pvr.numero} :%0A%0A${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}%0A%0ACordialement`}
-                          className="flex-1 rounded-lg bg-brand-navy py-2 text-center text-xs font-semibold text-white hover:opacity-90 transition">
-                          ✉ Envoyer en interne
-                        </a>
+                        <div className="flex flex-1 flex-col gap-1">
+                          <button onClick={() => handleEnvoyerEmail("repMO", form.emailRepMO)}
+                            disabled={isPending || envoiStatut.repMO === "envoi"}
+                            className="flex-1 rounded-lg bg-brand-navy py-2 text-center text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition">
+                            {envoiStatut.repMO === "envoi" ? "Envoi…" : envoiStatut.repMO === "ok" ? "Envoyé ✓" : "✉ Envoyer en interne"}
+                          </button>
+                          <a href={`mailto:${form.emailRepMO}?subject=PV de Réception ${pvr.numero}&body=Bonjour,%0A%0AVeuillez trouver le PV de Réception ${pvr.numero} :%0A%0A${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}%0A%0ACordialement`}
+                            className="text-center text-[11px] text-slate-400 hover:text-slate-600 underline">
+                            ou via ma messagerie
+                          </a>
+                        </div>
                       )}
                     </div>
+                    {(envoiStatut.prestataire === "erreur" || envoiStatut.repMO === "erreur") && envoiErreur && (
+                      <p className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-600">{envoiErreur}</p>
+                    )}
                     <button onClick={handleGenererLien} disabled={isPending}
                       className="text-xs text-slate-400 hover:text-slate-600 underline text-center">
                       Regénérer le lien

@@ -9,6 +9,8 @@ import {
   DOCUMENT_TYPE_LABELS,
   USAGE_DALLAGE_LABELS,
   PORTANCE_SOL_LABELS,
+  FINITION_BETON_LABELS,
+  MATERIAU_MARGELLE_LABELS,
 } from "@/lib/calcul-structurel/pre-dimensionnement";
 
 export default async function ApercuPreDimensionnementPage({
@@ -78,6 +80,18 @@ export default async function ApercuPreDimensionnementPage({
             )}
             {pdim.surface != null && (
               <p><span className="font-semibold">Surface :</span> {pdim.surface} m²</p>
+            )}
+            {pdim.materiauMargelle && (
+              <p><span className="font-semibold">Matériau margelle :</span> {MATERIAU_MARGELLE_LABELS[pdim.materiauMargelle as keyof typeof MATERIAU_MARGELLE_LABELS] ?? pdim.materiauMargelle}</p>
+            )}
+            {pdim.largeurMargelle != null && (
+              <p><span className="font-semibold">Largeur margelle :</span> {pdim.largeurMargelle} cm</p>
+            )}
+            {pdim.lineaireM != null && (
+              <p><span className="font-semibold">Pourtour du bassin :</span> {pdim.lineaireM} m</p>
+            )}
+            {pdim.finitionBeton && (
+              <p><span className="font-semibold">Finition :</span> {FINITION_BETON_LABELS[pdim.finitionBeton as keyof typeof FINITION_BETON_LABELS] ?? pdim.finitionBeton}</p>
             )}
           </div>
 

@@ -8,6 +8,7 @@ import {
   calculerDalle,
   calculerPoteau,
   calculerDallage,
+  calculerMargellePiscine,
   TYPE_ELEMENT_LABELS,
   MATERIAU_LABELS,
   CONDITION_POUTRE_LABELS,
@@ -15,6 +16,8 @@ import {
   NIVEAU_CHARGE_LABELS,
   USAGE_DALLAGE_LABELS,
   PORTANCE_SOL_LABELS,
+  MATERIAU_MARGELLE_LABELS,
+  FINITION_BETON_LABELS,
   PRESETS_USAGE,
   type TypeElement,
   type Materiau,
@@ -22,7 +25,10 @@ import {
   type ConditionDalle,
   type NiveauCharge,
   type UsageDallage,
+  type UsageDallageSurfacique,
   type PortanceSol,
+  type MateriauMargelle,
+  type FinitionBeton,
 } from "@/lib/calcul-structurel/pre-dimensionnement";
 
 type Props = {
@@ -39,6 +45,11 @@ type Props = {
     usageDallage?: string | null;
     portanceSol?: string | null;
     surface?: number | null;
+    finitionBeton?: string | null;
+    materiauMargelle?: string | null;
+    largeurMargelle?: number | null;
+    debordMargelle?: number | null;
+    lineaireM?: number | null;
     effortNormal?: number | null;
     hauteurLibre?: number | null;
     resistance?: number | null;
@@ -59,6 +70,11 @@ export function PreDimensionnementForm({ action, chantiers, submitLabel, initial
   const [usageDallage, setUsageDallage] = useState<UsageDallage>((initial?.usageDallage as UsageDallage) ?? "INDUSTRIEL");
   const [portanceSol, setPortanceSol] = useState<PortanceSol>((initial?.portanceSol as PortanceSol) ?? "SABLE_GRAVE_COMPACTE");
   const [surface, setSurface] = useState<string>(initial?.surface != null ? String(initial.surface) : "");
+  const [finitionBeton, setFinitionBeton] = useState<string>(initial?.finitionBeton ?? "STANDARD");
+  const [materiauMargelle, setMateriauMargelle] = useState<MateriauMargelle>((initial?.materiauMargelle as MateriauMargelle) ?? "BETON_COULE");
+  const [largeurMargelle, setLargeurMargelle] = useState<string>(initial?.largeurMargelle != null ? String(initial.largeurMargelle) : "35");
+  const [debordMargelle, setDebordMargelle] = useState<string>(initial?.debordMargelle != null ? String(initial.debordMargelle) : "3");
+  const [lineaireM, setLineaireM] = useState<string>(initial?.lineaireM != null ? String(initial.lineaireM) : "");
   const [effortNormal, setEffortNormal] = useState<string>(initial?.effortNormal != null ? String(initial.effortNormal) : "300");
   const [hauteurLibre, setHauteurLibre] = useState<string>(initial?.hauteurLibre != null ? String(initial.hauteurLibre) : "");
   const [resistance, setResistance] = useState<string>(initial?.resistance != null ? String(initial.resistance) : "");
@@ -75,7 +91,13 @@ export function PreDimensionnementForm({ action, chantiers, submitLabel, initial
     if (preset.niveauCharge) setNiveauCharge(preset.niveauCharge);
     if (preset.usageDallage) setUsageDallage(preset.usageDallage);
     if (preset.portanceSol) setPortanceSol(preset.portanceSol);
+    setFinitionBeton(preset.finitionBeton ?? "STANDARD");
+    if (preset.materiauMargelle) setMateriauMargelle(preset.materiauMargelle);
+    if (preset.largeurMargelle != null) setLargeurMargelle(String(preset.largeurMargelle));
+    if (preset.debordMargelle != null) setDebordMargelle(String(preset.debordMargelle));
   }
+
+  const estMargelle = typeElement === "DALLAGE" && usageDallage === "MARGELLE_PISCINE";
 
   const resultat = useMemo(() => {
     try {
@@ -89,12 +111,25 @@ export function PreDimensionnementForm({ action, chantiers, submitLabel, initial
         if (!p || p <= 0) return null;
         return calculerDalle({ materiau, portee: p, condition: condition as ConditionDalle, niveauCharge });
       }
+      if (typeElement === "DALLAGE" && estMargelle) {
+        const l = parseFloat(largeurMargelle);
+        if (!l || l <= 0) return null;
+        return calculerMargellePiscine({
+          materiauMargelle,
+          largeurMargelle: l,
+          debordMargelle: debordMargelle ? parseFloat(debordMargelle) : undefined,
+          lineaireM: lineaireM ? parseFloat(lineaireM) : undefined,
+          finitionBeton: materiauMargelle === "BETON_COULE" ? (finitionBeton as FinitionBeton) : undefined,
+          portanceSol,
+        });
+      }
       if (typeElement === "DALLAGE") {
         return calculerDallage({
-          usageDallage,
+          usageDallage: usageDallage as UsageDallageSurfacique,
           niveauCharge,
           portanceSol,
           surface: surface ? parseFloat(surface) : undefined,
+          finitionBeton: usageDallage === "TERRASSE" ? (finitionBeton as FinitionBeton) : undefined,
         });
       }
       const n = parseFloat(effortNormal);
@@ -108,7 +143,25 @@ export function PreDimensionnementForm({ action, chantiers, submitLabel, initial
     } catch {
       return null;
     }
-  }, [typeElement, materiau, portee, condition, niveauCharge, usageDallage, portanceSol, surface, effortNormal, hauteurLibre, resistance]);
+  }, [
+    typeElement,
+    materiau,
+    portee,
+    condition,
+    niveauCharge,
+    usageDallage,
+    portanceSol,
+    surface,
+    finitionBeton,
+    estMargelle,
+    materiauMargelle,
+    largeurMargelle,
+    debordMargelle,
+    lineaireM,
+    effortNormal,
+    hauteurLibre,
+    resistance,
+  ]);
 
   const presetsFiltres = PRESETS_USAGE.filter((p) => p.typeElement === typeElement);
 
@@ -228,45 +281,148 @@ export function PreDimensionnementForm({ action, chantiers, submitLabel, initial
               ))}
             </select>
           </Field>
-          <Field label="Niveau de charge / trafic" htmlFor="niveauCharge" required>
-            <select
-              id="niveauCharge"
-              name="niveauCharge"
-              value={niveauCharge}
-              onChange={(e) => setNiveauCharge(e.target.value as NiveauCharge)}
-              className={selectClasses}
-            >
-              {Object.entries(NIVEAU_CHARGE_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Type de sol support" htmlFor="portanceSol" required>
-            <select
-              id="portanceSol"
-              name="portanceSol"
-              value={portanceSol}
-              onChange={(e) => setPortanceSol(e.target.value as PortanceSol)}
-              className={selectClasses}
-            >
-              {Object.entries(PORTANCE_SOL_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Surface du dallage (m², optionnel — active le métré)" htmlFor="surface">
-            <input
-              id="surface"
-              name="surface"
-              type="number"
-              step="0.1"
-              min="0"
-              value={surface}
-              onChange={(e) => setSurface(e.target.value)}
-              placeholder="Ex : 500"
-              className={inputClasses}
-            />
-          </Field>
+
+          {!estMargelle && (
+            <>
+              <Field label="Niveau de charge / trafic" htmlFor="niveauCharge" required>
+                <select
+                  id="niveauCharge"
+                  name="niveauCharge"
+                  value={niveauCharge}
+                  onChange={(e) => setNiveauCharge(e.target.value as NiveauCharge)}
+                  className={selectClasses}
+                >
+                  {Object.entries(NIVEAU_CHARGE_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Type de sol support" htmlFor="portanceSol" required>
+                <select
+                  id="portanceSol"
+                  name="portanceSol"
+                  value={portanceSol}
+                  onChange={(e) => setPortanceSol(e.target.value as PortanceSol)}
+                  className={selectClasses}
+                >
+                  {Object.entries(PORTANCE_SOL_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Surface du dallage (m², optionnel — active le métré)" htmlFor="surface">
+                <input
+                  id="surface"
+                  name="surface"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={surface}
+                  onChange={(e) => setSurface(e.target.value)}
+                  placeholder="Ex : 500"
+                  className={inputClasses}
+                />
+              </Field>
+              {usageDallage === "TERRASSE" && (
+                <Field label="Finition béton décoratif" htmlFor="finitionBeton">
+                  <select
+                    id="finitionBeton"
+                    name="finitionBeton"
+                    value={finitionBeton}
+                    onChange={(e) => setFinitionBeton(e.target.value)}
+                    className={selectClasses}
+                  >
+                    {Object.entries(FINITION_BETON_LABELS).map(([v, l]) => (
+                      <option key={v} value={v}>{l}</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+            </>
+          )}
+
+          {estMargelle && (
+            <>
+              <Field label="Matériau de la margelle" htmlFor="materiauMargelle" required>
+                <select
+                  id="materiauMargelle"
+                  name="materiauMargelle"
+                  value={materiauMargelle}
+                  onChange={(e) => setMateriauMargelle(e.target.value as MateriauMargelle)}
+                  className={selectClasses}
+                >
+                  {Object.entries(MATERIAU_MARGELLE_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Largeur de la margelle (cm)" htmlFor="largeurMargelle" required>
+                <input
+                  id="largeurMargelle"
+                  name="largeurMargelle"
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={largeurMargelle}
+                  onChange={(e) => setLargeurMargelle(e.target.value)}
+                  className={inputClasses}
+                />
+              </Field>
+              <Field label="Débord / égouttoir au-dessus du bassin (cm, optionnel)" htmlFor="debordMargelle">
+                <input
+                  id="debordMargelle"
+                  name="debordMargelle"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={debordMargelle}
+                  onChange={(e) => setDebordMargelle(e.target.value)}
+                  className={inputClasses}
+                />
+              </Field>
+              <Field label="Pourtour du bassin (m, optionnel — active le métré)" htmlFor="lineaireM">
+                <input
+                  id="lineaireM"
+                  name="lineaireM"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={lineaireM}
+                  onChange={(e) => setLineaireM(e.target.value)}
+                  placeholder="Ex : 28"
+                  className={inputClasses}
+                />
+              </Field>
+              <Field label="Type de sol support (poutre de redressement)" htmlFor="portanceSol">
+                <select
+                  id="portanceSol"
+                  name="portanceSol"
+                  value={portanceSol}
+                  onChange={(e) => setPortanceSol(e.target.value as PortanceSol)}
+                  className={selectClasses}
+                >
+                  {Object.entries(PORTANCE_SOL_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </Field>
+              {materiauMargelle === "BETON_COULE" && (
+                <Field label="Finition béton décoratif" htmlFor="finitionBeton">
+                  <select
+                    id="finitionBeton"
+                    name="finitionBeton"
+                    value={finitionBeton}
+                    onChange={(e) => setFinitionBeton(e.target.value)}
+                    className={selectClasses}
+                  >
+                    {Object.entries(FINITION_BETON_LABELS).map(([v, l]) => (
+                      <option key={v} value={v}>{l}</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+            </>
+          )}
         </div>
       )}
 

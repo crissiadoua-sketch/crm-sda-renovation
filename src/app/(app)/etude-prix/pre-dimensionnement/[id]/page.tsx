@@ -18,6 +18,8 @@ import {
   DOCUMENT_TYPE_LABELS,
   USAGE_DALLAGE_LABELS,
   PORTANCE_SOL_LABELS,
+  FINITION_BETON_LABELS,
+  MATERIAU_MARGELLE_LABELS,
 } from "@/lib/calcul-structurel/pre-dimensionnement";
 
 export default async function PreDimensionnementDetailPage({
@@ -109,6 +111,36 @@ export default async function PreDimensionnementDetailPage({
               <div>
                 <dt className="text-slate-400">Surface</dt>
                 <dd className="font-medium text-slate-700">{pdim.surface} m²</dd>
+              </div>
+            )}
+            {pdim.materiauMargelle && (
+              <div>
+                <dt className="text-slate-400">Matériau margelle</dt>
+                <dd className="font-medium text-slate-700">{MATERIAU_MARGELLE_LABELS[pdim.materiauMargelle as keyof typeof MATERIAU_MARGELLE_LABELS] ?? pdim.materiauMargelle}</dd>
+              </div>
+            )}
+            {pdim.largeurMargelle != null && (
+              <div>
+                <dt className="text-slate-400">Largeur margelle</dt>
+                <dd className="font-medium text-slate-700">{pdim.largeurMargelle} cm</dd>
+              </div>
+            )}
+            {pdim.debordMargelle != null && (
+              <div>
+                <dt className="text-slate-400">Débord/égouttoir</dt>
+                <dd className="font-medium text-slate-700">{pdim.debordMargelle} cm</dd>
+              </div>
+            )}
+            {pdim.lineaireM != null && (
+              <div>
+                <dt className="text-slate-400">Pourtour du bassin</dt>
+                <dd className="font-medium text-slate-700">{pdim.lineaireM} m</dd>
+              </div>
+            )}
+            {pdim.finitionBeton && (
+              <div>
+                <dt className="text-slate-400">Finition</dt>
+                <dd className="font-medium text-slate-700">{FINITION_BETON_LABELS[pdim.finitionBeton as keyof typeof FINITION_BETON_LABELS] ?? pdim.finitionBeton}</dd>
               </div>
             )}
             {pdim.effortNormal != null && (

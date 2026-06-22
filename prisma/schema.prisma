@@ -2513,9 +2513,16 @@ model PreDimensionnement {
   usagePreset   String?   // libellé du préset de pré-remplissage utilisé, le cas échéant
 
   // Dallage sur terre-plein (industriel / agricole / terrasse)
-  usageDallage  String?   // INDUSTRIEL | AGRICOLE | TERRASSE
+  usageDallage  String?   // INDUSTRIEL | AGRICOLE | TERRASSE | MARGELLE_PISCINE
   portanceSol   String?   // type de sol support (cf. PortanceSol)
   surface       Float?    // m², pour le métré (béton, treillis soudé)
+  finitionBeton String?   // STANDARD | DESACTIVE | IMPRIME | CIRE | BALAYE (terrasse / margelle béton coulé)
+
+  // Margelle de piscine (usageDallage = MARGELLE_PISCINE)
+  materiauMargelle String? // BETON_COULE | PIERRE_RECONSTITUEE | PIERRE_NATURELLE | GRES_CERAME
+  largeurMargelle  Float?  // cm
+  debordMargelle   Float?  // cm, débord/égouttoir au-dessus du bassin
+  lineaireM        Float?  // m, périmètre du bassin — pour le métré
 
   // Poteau
   effortNormal  Float?    // kN

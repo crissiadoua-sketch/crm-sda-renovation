@@ -10,6 +10,7 @@ import {
   calculerDalle,
   calculerPoteau,
   calculerDallage,
+  calculerMargellePiscine,
   type TypeElement,
   type Materiau,
   type ConditionPoutre,
@@ -17,6 +18,8 @@ import {
   type NiveauCharge,
   type UsageDallage,
   type PortanceSol,
+  type FinitionBeton,
+  type MateriauMargelle,
 } from "@/lib/calcul-structurel/pre-dimensionnement";
 
 async function genNumeroPDIM(): Promise<string> {
@@ -47,6 +50,25 @@ function calculerResultat(formData: FormData) {
   }
   if (typeElement === "DALLAGE") {
     const usageDallage = formData.get("usageDallage") as UsageDallage;
+    const finitionRaw = formData.get("finitionBeton") as string;
+    const finitionBeton = finitionRaw ? (finitionRaw as FinitionBeton) : undefined;
+
+    if (usageDallage === "MARGELLE_PISCINE") {
+      const materiauMargelle = formData.get("materiauMargelle") as MateriauMargelle;
+      const largeurMargelle = parseFloat(formData.get("largeurMargelle") as string);
+      const debordRaw = formData.get("debordMargelle") as string;
+      const lineaireRaw = formData.get("lineaireM") as string;
+      const portanceSolRaw = formData.get("portanceSol") as string;
+      return calculerMargellePiscine({
+        materiauMargelle,
+        largeurMargelle,
+        debordMargelle: debordRaw ? parseFloat(debordRaw) : undefined,
+        lineaireM: lineaireRaw ? parseFloat(lineaireRaw) : undefined,
+        finitionBeton,
+        portanceSol: portanceSolRaw ? (portanceSolRaw as PortanceSol) : undefined,
+      });
+    }
+
     const niveauCharge = formData.get("niveauCharge") as NiveauCharge;
     const portanceSol = formData.get("portanceSol") as PortanceSol;
     const surfaceRaw = formData.get("surface") as string;
@@ -55,6 +77,7 @@ function calculerResultat(formData: FormData) {
       niveauCharge,
       portanceSol,
       surface: surfaceRaw ? parseFloat(surfaceRaw) : undefined,
+      finitionBeton,
     });
   }
   const effortNormal = parseFloat(formData.get("effortNormal") as string);
@@ -86,6 +109,11 @@ export async function creerPreDimensionnement(formData: FormData): Promise<void>
       usageDallage: emptyToNull(formData.get("usageDallage")),
       portanceSol: emptyToNull(formData.get("portanceSol")),
       surface: formData.get("surface") ? parseFloat(formData.get("surface") as string) : null,
+      finitionBeton: emptyToNull(formData.get("finitionBeton")),
+      materiauMargelle: emptyToNull(formData.get("materiauMargelle")),
+      largeurMargelle: formData.get("largeurMargelle") ? parseFloat(formData.get("largeurMargelle") as string) : null,
+      debordMargelle: formData.get("debordMargelle") ? parseFloat(formData.get("debordMargelle") as string) : null,
+      lineaireM: formData.get("lineaireM") ? parseFloat(formData.get("lineaireM") as string) : null,
       effortNormal: formData.get("effortNormal") ? parseFloat(formData.get("effortNormal") as string) : null,
       hauteurLibre: formData.get("hauteurLibre") ? parseFloat(formData.get("hauteurLibre") as string) : null,
       resistance: formData.get("resistance") ? parseFloat(formData.get("resistance") as string) : null,
@@ -122,6 +150,11 @@ export async function modifierPreDimensionnement(id: string, formData: FormData)
       usageDallage: emptyToNull(formData.get("usageDallage")),
       portanceSol: emptyToNull(formData.get("portanceSol")),
       surface: formData.get("surface") ? parseFloat(formData.get("surface") as string) : null,
+      finitionBeton: emptyToNull(formData.get("finitionBeton")),
+      materiauMargelle: emptyToNull(formData.get("materiauMargelle")),
+      largeurMargelle: formData.get("largeurMargelle") ? parseFloat(formData.get("largeurMargelle") as string) : null,
+      debordMargelle: formData.get("debordMargelle") ? parseFloat(formData.get("debordMargelle") as string) : null,
+      lineaireM: formData.get("lineaireM") ? parseFloat(formData.get("lineaireM") as string) : null,
       effortNormal: formData.get("effortNormal") ? parseFloat(formData.get("effortNormal") as string) : null,
       hauteurLibre: formData.get("hauteurLibre") ? parseFloat(formData.get("hauteurLibre") as string) : null,
       resistance: formData.get("resistance") ? parseFloat(formData.get("resistance") as string) : null,

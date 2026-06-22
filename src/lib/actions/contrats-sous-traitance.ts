@@ -67,3 +67,36 @@ export async function supprimerContrat(id: string): Promise<void> {
   revalidatePath("/contrats-sous-traitance");
   redirect("/contrats-sous-traitance");
 }
+
+// ---------------------------------------------------------------------------
+// Signature électronique publique (sous-traitant, sans compte)
+// ---------------------------------------------------------------------------
+
+export async function signerContrat(
+  token: string,
+  signataireNom: string,
+  signatureImage: string,
+  signatureIp?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const contrat = await prisma.contratSousTraitance.findUnique({
+    where: { signatureToken: token },
+    select: { id: true, dateSignature: true },
+  });
+
+  if (!contrat) return { ok: false, error: "Lien invalide ou expiré." };
+  if (contrat.dateSignature) return { ok: false, error: "Ce contrat a déjà été signé." };
+
+  await prisma.contratSousTraitance.update({
+    where: { id: contrat.id },
+    data: {
+      statut: "SIGNE",
+      signataireNom,
+      signatureImage,
+      dateSignature: new Date(),
+      signatureIp: signatureIp ?? null,
+    },
+  });
+
+  revalidatePath(`/contrats-sous-traitance/${contrat.id}`);
+  return { ok: true };
+}

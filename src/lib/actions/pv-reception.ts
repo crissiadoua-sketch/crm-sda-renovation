@@ -173,7 +173,7 @@ export async function genererLienPartage(id: string): Promise<string> {
 // ---------------------------------------------------------------------------
 // Finaliser (passe en FINALISE + génère le token si absent)
 // ---------------------------------------------------------------------------
-export async function finaliserPvReception(id: string): Promise<void> {
+export async function finaliserPvReception(id: string): Promise<string> {
   const existing = await prisma.pvReception.findUnique({
     where: { id },
     select: { shareToken: true },
@@ -189,6 +189,7 @@ export async function finaliserPvReception(id: string): Promise<void> {
 
   revalidatePath("/pv-reception");
   revalidatePath(`/pv-reception/${id}`);
+  return token;
 }
 
 // ---------------------------------------------------------------------------

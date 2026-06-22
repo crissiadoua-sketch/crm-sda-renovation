@@ -8,6 +8,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS } from "@/lib/corps-etat";
+import { LienSignatureContrat } from "@/components/contrats-sous-traitance/lien-signature";
 
 const STATUTS = ["BROUILLON", "ENVOYE", "SIGNE", "TERMINE", "RESILIE", "ANNULE"];
 const STATUT_LABELS: Record<string, string> = {
@@ -181,15 +182,7 @@ export default async function ContratDetailPage({ params }: { params: Promise<{ 
             <p className="text-xs text-emerald-600 mt-1">Le {formatDate(contrat.dateSignature)}</p>
           </div>
         ) : contrat.signatureToken ? (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-slate-500">Lien de signature à envoyer au sous-traitant :</p>
-            <div className="flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
-              <span className="flex-1 truncate text-xs font-mono text-brand-blue">
-                /contrats/sign/{contrat.signatureToken}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400">Page de signature publique — le sous-traitant peut signer sans compte.</p>
-          </div>
+          <LienSignatureContrat token={contrat.signatureToken} />
         ) : null}
       </div>
     </div>

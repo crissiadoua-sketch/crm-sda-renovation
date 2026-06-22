@@ -213,9 +213,9 @@ export function PvReceptionEditor({
   const handleFinaliser = () => {
     startTransition(async () => {
       await sauvegarderPvReception(pvr.id, { ...buildPayload(), statut: "FINALISE" });
-      await finaliserPvReception(pvr.id);
+      const token = await finaliserPvReception(pvr.id);
       setForm(f => ({ ...f, statut: "FINALISE" }));
-      setShareUrl(`/pv-public/${pvr.id}`);
+      setShareUrl(`/pv-public/${token}`);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     });
@@ -224,8 +224,7 @@ export function PvReceptionEditor({
   const handleGenererLien = () => {
     startTransition(async () => {
       const token = await genererLienPartage(pvr.id);
-      const url = `${window.location.origin}/pv-public/${token}`;
-      setShareUrl(url);
+      setShareUrl(`/pv-public/${token}`);
     });
   };
 

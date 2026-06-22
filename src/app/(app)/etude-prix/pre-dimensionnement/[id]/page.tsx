@@ -5,16 +5,19 @@ import { LinkButton } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Field, inputClasses, selectClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { formatDate, urlFichier } from "@/lib/format";
+import { formatDate, formatDateTime, urlFichier } from "@/lib/format";
 import {
   supprimerPreDimensionnement,
   ajouterDocumentPreDimensionnement,
   supprimerDocumentPreDimensionnement,
+  analyserPlanIA,
 } from "@/lib/actions/pre-dimensionnement";
 import {
   TYPE_ELEMENT_LABELS,
   MATERIAU_LABELS,
   DOCUMENT_TYPE_LABELS,
+  USAGE_DALLAGE_LABELS,
+  PORTANCE_SOL_LABELS,
 } from "@/lib/calcul-structurel/pre-dimensionnement";
 
 export default async function PreDimensionnementDetailPage({
@@ -90,6 +93,24 @@ export default async function PreDimensionnementDetailPage({
                 <dd className="font-medium text-slate-700">{pdim.portee} m</dd>
               </div>
             )}
+            {pdim.usageDallage && (
+              <div>
+                <dt className="text-slate-400">Usage</dt>
+                <dd className="font-medium text-slate-700">{USAGE_DALLAGE_LABELS[pdim.usageDallage as keyof typeof USAGE_DALLAGE_LABELS] ?? pdim.usageDallage}</dd>
+              </div>
+            )}
+            {pdim.portanceSol && (
+              <div>
+                <dt className="text-slate-400">Sol support</dt>
+                <dd className="font-medium text-slate-700">{PORTANCE_SOL_LABELS[pdim.portanceSol as keyof typeof PORTANCE_SOL_LABELS] ?? pdim.portanceSol}</dd>
+              </div>
+            )}
+            {pdim.surface != null && (
+              <div>
+                <dt className="text-slate-400">Surface</dt>
+                <dd className="font-medium text-slate-700">{pdim.surface} m²</dd>
+              </div>
+            )}
             {pdim.effortNormal != null && (
               <div>
                 <dt className="text-slate-400">Effort normal Nu</dt>
@@ -158,23 +179,40 @@ export default async function PreDimensionnementDetailPage({
         ) : (
           <ul className="divide-y divide-slate-100">
             {pdim.documents.map((doc) => (
-              <li key={doc.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <div>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                    {DOCUMENT_TYPE_LABELS[doc.type] ?? doc.type}
-                  </span>
-                  <a href={urlFichier(doc.url)} target="_blank" rel="noopener noreferrer" download={doc.nom} className="ml-2 text-brand-blue hover:underline">
-                    {doc.nom}
-                  </a>
-                  <span className="ml-2 text-xs text-slate-400">{Math.round(doc.taille / 1024)} Ko</span>
+              <li key={doc.id} className="py-2 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                      {DOCUMENT_TYPE_LABELS[doc.type] ?? doc.type}
+                    </span>
+                    <a href={urlFichier(doc.url)} target="_blank" rel="noopener noreferrer" download={doc.nom} className="ml-2 text-brand-blue hover:underline">
+                      {doc.nom}
+                    </a>
+                    <span className="ml-2 text-xs text-slate-400">{Math.round(doc.taille / 1024)} Ko</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <form action={analyserPlanIA.bind(null, doc.id)}>
+                      <SubmitButton variant="secondary" pendingLabel="Analyse…" className="!px-3 !py-1 !text-xs">
+                        {doc.analyseIA ? "Ré-analyser avec l'IA" : "Analyser avec l'IA"}
+                      </SubmitButton>
+                    </form>
+                    <DeleteButton
+                      action={supprimerDocumentPreDimensionnement.bind(null, doc.id)}
+                      confirmMessage={`Supprimer le document "${doc.nom}" ?`}
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      Supprimer
+                    </DeleteButton>
+                  </div>
                 </div>
-                <DeleteButton
-                  action={supprimerDocumentPreDimensionnement.bind(null, doc.id)}
-                  confirmMessage={`Supprimer le document "${doc.nom}" ?`}
-                  className="text-xs text-red-500 hover:underline"
-                >
-                  Supprimer
-                </DeleteButton>
+                {doc.analyseIA && (
+                  <div className="mt-2 rounded-lg border border-brand-blue/20 bg-brand-blue/5 px-3 py-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-brand-blue">
+                      Lecture automatique par IA{doc.analyseIADate ? ` — ${formatDateTime(doc.analyseIADate)}` : ""}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-xs text-slate-600">{doc.analyseIA}</p>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

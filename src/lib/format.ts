@@ -7,6 +7,11 @@ export function formatDate(date: Date | string | null | undefined) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(date));
 }
 
+export function formatDateTime(date: Date | string | null | undefined) {
+  if (!date) return "—";
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(date));
+}
+
 export function toDateInputValue(date: Date | string | null | undefined) {
   if (!date) return "";
   return new Date(date).toISOString().slice(0, 10);

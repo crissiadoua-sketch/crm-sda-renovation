@@ -10,16 +10,38 @@
 // réutilisables côté formulaire (aperçu en direct) et côté serveur (calcul
 // autoritaire avant écriture en base).
 
-export type TypeElement = "POUTRE" | "DALLE" | "POTEAU";
+export type TypeElement = "POUTRE" | "DALLE" | "POTEAU" | "DALLAGE";
 export type Materiau = "BETON" | "ACIER" | "BOIS";
 export type ConditionPoutre = "ISOSTATIQUE" | "CONTINUE" | "CONSOLE";
 export type ConditionDalle = "PORTEE_1_SENS" | "PORTEE_2_SENS" | "CONSOLE";
 export type NiveauCharge = "LEGERE" | "NORMALE" | "LOURDE";
+export type UsageDallage = "INDUSTRIEL" | "AGRICOLE" | "TERRASSE";
+export type PortanceSol =
+  | "ARGILE_MOLLE"
+  | "LIMON_ARGILE_FERME"
+  | "SABLE_GRAVE_COMPACTE"
+  | "PLATEFORME_TRAITEE"
+  | "ROCHEUX";
 
 export const TYPE_ELEMENT_LABELS: Record<TypeElement, string> = {
   POUTRE: "Poutre",
-  DALLE: "Dalle",
+  DALLE: "Dalle (portée entre appuis)",
   POTEAU: "Poteau",
+  DALLAGE: "Dallage sur terre-plein (industriel / agricole / terrasse)",
+};
+
+export const USAGE_DALLAGE_LABELS: Record<UsageDallage, string> = {
+  INDUSTRIEL: "Industriel (entrepôt, atelier, logistique)",
+  AGRICOLE: "Agricole (bâtiment d'élevage, stockage, hangar)",
+  TERRASSE: "Terrasse extérieure (piéton / véhicule léger)",
+};
+
+export const PORTANCE_SOL_LABELS: Record<PortanceSol, string> = {
+  ARGILE_MOLLE: "Argile molle / remblai non contrôlé / tourbe (portance très faible)",
+  LIMON_ARGILE_FERME: "Limon ou argile ferme (portance faible à moyenne)",
+  SABLE_GRAVE_COMPACTE: "Sable ou grave compacté (portance moyenne à bonne)",
+  PLATEFORME_TRAITEE: "Plateforme traitée / grave-ciment (bonne portance)",
+  ROCHEUX: "Sol rocheux ou assimilé (très bonne portance)",
 };
 
 export const MATERIAU_LABELS: Record<Materiau, string> = {
@@ -168,6 +190,94 @@ export function calculerDalle(params: {
   };
 }
 
+// ─── Dallage sur terre-plein (industriel / agricole / terrasse) ────────────
+
+// Épaisseur de base (cm) selon usage et niveau de charge, avant ajustement sol.
+const EPAISSEUR_BASE_DALLAGE_CM: Record<UsageDallage, Record<NiveauCharge, number>> = {
+  TERRASSE: { LEGERE: 10, NORMALE: 12, LOURDE: 15 },
+  AGRICOLE: { LEGERE: 13, NORMALE: 16, LOURDE: 20 },
+  INDUSTRIEL: { LEGERE: 14, NORMALE: 18, LOURDE: 22 },
+};
+
+const EPAISSEUR_MIN_DALLAGE_CM: Record<UsageDallage, number> = {
+  TERRASSE: 10,
+  AGRICOLE: 12,
+  INDUSTRIEL: 13,
+};
+
+// Ajustement d'épaisseur (cm) selon la portance du sol support.
+const AJUSTEMENT_PORTANCE_CM: Record<PortanceSol, number> = {
+  ARGILE_MOLLE: 6,
+  LIMON_ARGILE_FERME: 3,
+  SABLE_GRAVE_COMPACTE: 0,
+  PLATEFORME_TRAITEE: -2,
+  ROCHEUX: -4,
+};
+
+// Module de réaction de Westergaard (MN/m³), purement indicatif — affiché
+// dans les hypothèses pour traçabilité, non utilisé dans le calcul forfaitaire.
+const MODULE_REACTION_K: Record<PortanceSol, number> = {
+  ARGILE_MOLLE: 15,
+  LIMON_ARGILE_FERME: 30,
+  SABLE_GRAVE_COMPACTE: 50,
+  PLATEFORME_TRAITEE: 80,
+  ROCHEUX: 120,
+};
+
+const SURFACE_PANNEAU_TREILLIS_M2 = 14.4; // panneau standard 2,40 × 6,00 m
+
+function determinerTreillisSoude(eCm: number, niveauCharge: NiveauCharge): { nappeHaute: string; nappeBasse?: string } {
+  if (eCm <= 12) return { nappeHaute: "ST 25" };
+  if (eCm <= 16) return { nappeHaute: "ST 30" };
+  if (eCm <= 20) return niveauCharge === "LOURDE" ? { nappeHaute: "ST 35", nappeBasse: "ST 25" } : { nappeHaute: "ST 35" };
+  if (eCm <= 25) return niveauCharge === "LOURDE" ? { nappeHaute: "ST 40", nappeBasse: "ST 25" } : { nappeHaute: "ST 40" };
+  return niveauCharge === "LOURDE" ? { nappeHaute: "ST 50", nappeBasse: "ST 30" } : { nappeHaute: "ST 50" };
+}
+
+export function calculerDallage(params: {
+  usageDallage: UsageDallage;
+  niveauCharge: NiveauCharge;
+  portanceSol: PortanceSol;
+  surface?: number; // m², optionnel — active le métré estimatif
+}): ResultatPreDimensionnement {
+  const { usageDallage, niveauCharge, portanceSol, surface } = params;
+  const base = EPAISSEUR_BASE_DALLAGE_CM[usageDallage][niveauCharge];
+  const ajustement = AJUSTEMENT_PORTANCE_CM[portanceSol];
+  const eCm = arrondirSup(base + ajustement, 1, EPAISSEUR_MIN_DALLAGE_CM[usageDallage]);
+  const treillis = determinerTreillisSoude(eCm, niveauCharge);
+  const k = MODULE_REACTION_K[portanceSol];
+
+  const hypotheses = [
+    `Usage : ${USAGE_DALLAGE_LABELS[usageDallage]}`,
+    `Niveau de charge : ${NIVEAU_CHARGE_LABELS[niveauCharge]}`,
+    `Sol support : ${PORTANCE_SOL_LABELS[portanceSol]} (module de réaction k ≈ ${k} MN/m³, indicatif)`,
+    `Treillis soudé anti-fissuration recommandé : nappe haute ${treillis.nappeHaute}${treillis.nappeBasse ? `, nappe basse ${treillis.nappeBasse}` : ""} (position, recouvrements et enrobage à valider en calcul détaillé).`,
+    "Prévoir couche de forme/sous-couche drainante, film polyane anti-remontées capillaires et joints de retrait/dilatation selon trame (DTU 13.3).",
+    "Ratio forfaitaire de pré-dimensionnement (ordre de grandeur, hors calcul détaillé selon DTU 13.3 / méthode Westergaard-Meyerhof).",
+  ];
+
+  if (surface && surface > 0) {
+    const volumeBeton = Math.round(surface * (eCm / 100) * 100) / 100;
+    const surfaceTreillisAvecRecouvrement = Math.round(surface * 1.1 * 100) / 100;
+    const nbPanneauxNappeHaute = Math.ceil(surfaceTreillisAvecRecouvrement / SURFACE_PANNEAU_TREILLIS_M2);
+    const nbPanneauxNappeBasse = treillis.nappeBasse
+      ? Math.ceil(surfaceTreillisAvecRecouvrement / SURFACE_PANNEAU_TREILLIS_M2)
+      : 0;
+    hypotheses.push(
+      `Métré estimatif pour ${surface} m² : béton ≈ ${volumeBeton} m³ ; treillis ${treillis.nappeHaute} ≈ ${nbPanneauxNappeHaute} panneau(x) de 2,40 × 6,00 m (recouvrement 10 % inclus)${
+        treillis.nappeBasse ? ` ; treillis ${treillis.nappeBasse} (nappe basse) ≈ ${nbPanneauxNappeBasse} panneau(x)` : ""
+      }.`,
+    );
+  }
+
+  return {
+    valeurCm: eCm,
+    label: `e ≈ ${eCm} cm — ${treillis.nappeHaute}${treillis.nappeBasse ? ` + ${treillis.nappeBasse}` : ""}`,
+    formule: `e = base usage/charge (${base} cm) ${ajustement >= 0 ? "+" : "-"} ajustement sol (${Math.abs(ajustement)} cm), arrondi au cm supérieur, mini ${EPAISSEUR_MIN_DALLAGE_CM[usageDallage]} cm`,
+    hypotheses,
+  };
+}
+
 // ─── Poteau ──────────────────────────────────────────────────────────────────
 
 const SECTIONS_BETON_CM = [20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80];
@@ -265,6 +375,8 @@ export type PresetUsage = {
   portee?: number;
   condition?: ConditionPoutre | ConditionDalle;
   niveauCharge?: NiveauCharge;
+  usageDallage?: UsageDallage;
+  portanceSol?: PortanceSol;
 };
 
 export const PRESETS_USAGE: PresetUsage[] = [
@@ -276,6 +388,9 @@ export const PRESETS_USAGE: PresetUsage[] = [
   { label: "Balcon (dalle console)", typeElement: "DALLE", materiau: "BETON", portee: 1.2, condition: "CONSOLE", niveauCharge: "NORMALE" },
   { label: "Charpente bois (poutre)", typeElement: "POUTRE", materiau: "BOIS", portee: 4, condition: "ISOSTATIQUE", niveauCharge: "NORMALE" },
   { label: "Ossature métallique (poutre)", typeElement: "POUTRE", materiau: "ACIER", portee: 6, condition: "ISOSTATIQUE", niveauCharge: "NORMALE" },
+  { label: "Dallage industriel (entrepôt / logistique)", typeElement: "DALLAGE", materiau: "BETON", usageDallage: "INDUSTRIEL", niveauCharge: "LOURDE", portanceSol: "SABLE_GRAVE_COMPACTE" },
+  { label: "Dallage agricole (hangar / bâtiment d'élevage)", typeElement: "DALLAGE", materiau: "BETON", usageDallage: "AGRICOLE", niveauCharge: "NORMALE", portanceSol: "LIMON_ARGILE_FERME" },
+  { label: "Dalle de terrasse extérieure", typeElement: "DALLAGE", materiau: "BETON", usageDallage: "TERRASSE", niveauCharge: "LEGERE", portanceSol: "SABLE_GRAVE_COMPACTE" },
 ];
 
 export const DOCUMENT_TYPE_LABELS: Record<string, string> = {

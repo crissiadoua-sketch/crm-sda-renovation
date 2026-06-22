@@ -7,17 +7,22 @@ import {
   calculerPoutre,
   calculerDalle,
   calculerPoteau,
+  calculerDallage,
   TYPE_ELEMENT_LABELS,
   MATERIAU_LABELS,
   CONDITION_POUTRE_LABELS,
   CONDITION_DALLE_LABELS,
   NIVEAU_CHARGE_LABELS,
+  USAGE_DALLAGE_LABELS,
+  PORTANCE_SOL_LABELS,
   PRESETS_USAGE,
   type TypeElement,
   type Materiau,
   type ConditionPoutre,
   type ConditionDalle,
   type NiveauCharge,
+  type UsageDallage,
+  type PortanceSol,
 } from "@/lib/calcul-structurel/pre-dimensionnement";
 
 type Props = {
@@ -31,6 +36,9 @@ type Props = {
     portee?: number | null;
     condition?: string | null;
     niveauCharge?: string | null;
+    usageDallage?: string | null;
+    portanceSol?: string | null;
+    surface?: number | null;
     effortNormal?: number | null;
     hauteurLibre?: number | null;
     resistance?: number | null;
@@ -48,6 +56,9 @@ export function PreDimensionnementForm({ action, chantiers, submitLabel, initial
   const [portee, setPortee] = useState<string>(initial?.portee != null ? String(initial.portee) : "5");
   const [condition, setCondition] = useState<string>(initial?.condition ?? "ISOSTATIQUE");
   const [niveauCharge, setNiveauCharge] = useState<NiveauCharge>((initial?.niveauCharge as NiveauCharge) ?? "NORMALE");
+  const [usageDallage, setUsageDallage] = useState<UsageDallage>((initial?.usageDallage as UsageDallage) ?? "INDUSTRIEL");
+  const [portanceSol, setPortanceSol] = useState<PortanceSol>((initial?.portanceSol as PortanceSol) ?? "SABLE_GRAVE_COMPACTE");
+  const [surface, setSurface] = useState<string>(initial?.surface != null ? String(initial.surface) : "");
   const [effortNormal, setEffortNormal] = useState<string>(initial?.effortNormal != null ? String(initial.effortNormal) : "300");
   const [hauteurLibre, setHauteurLibre] = useState<string>(initial?.hauteurLibre != null ? String(initial.hauteurLibre) : "");
   const [resistance, setResistance] = useState<string>(initial?.resistance != null ? String(initial.resistance) : "");
@@ -62,6 +73,8 @@ export function PreDimensionnementForm({ action, chantiers, submitLabel, initial
     if (preset.portee != null) setPortee(String(preset.portee));
     if (preset.condition) setCondition(preset.condition);
     if (preset.niveauCharge) setNiveauCharge(preset.niveauCharge);
+    if (preset.usageDallage) setUsageDallage(preset.usageDallage);
+    if (preset.portanceSol) setPortanceSol(preset.portanceSol);
   }
 
   const resultat = useMemo(() => {
@@ -76,6 +89,14 @@ export function PreDimensionnementForm({ action, chantiers, submitLabel, initial
         if (!p || p <= 0) return null;
         return calculerDalle({ materiau, portee: p, condition: condition as ConditionDalle, niveauCharge });
       }
+      if (typeElement === "DALLAGE") {
+        return calculerDallage({
+          usageDallage,
+          niveauCharge,
+          portanceSol,
+          surface: surface ? parseFloat(surface) : undefined,
+        });
+      }
       const n = parseFloat(effortNormal);
       if (!n || n <= 0) return null;
       return calculerPoteau({
@@ -87,7 +108,7 @@ export function PreDimensionnementForm({ action, chantiers, submitLabel, initial
     } catch {
       return null;
     }
-  }, [typeElement, materiau, portee, condition, niveauCharge, effortNormal, hauteurLibre, resistance]);
+  }, [typeElement, materiau, portee, condition, niveauCharge, usageDallage, portanceSol, surface, effortNormal, hauteurLibre, resistance]);
 
   const presetsFiltres = PRESETS_USAGE.filter((p) => p.typeElement === typeElement);
 
@@ -188,6 +209,63 @@ export function PreDimensionnementForm({ action, chantiers, submitLabel, initial
                 <option key={v} value={v}>{l}</option>
               ))}
             </select>
+          </Field>
+        </div>
+      )}
+
+      {typeElement === "DALLAGE" && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Usage du dallage" htmlFor="usageDallage" required>
+            <select
+              id="usageDallage"
+              name="usageDallage"
+              value={usageDallage}
+              onChange={(e) => setUsageDallage(e.target.value as UsageDallage)}
+              className={selectClasses}
+            >
+              {Object.entries(USAGE_DALLAGE_LABELS).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Niveau de charge / trafic" htmlFor="niveauCharge" required>
+            <select
+              id="niveauCharge"
+              name="niveauCharge"
+              value={niveauCharge}
+              onChange={(e) => setNiveauCharge(e.target.value as NiveauCharge)}
+              className={selectClasses}
+            >
+              {Object.entries(NIVEAU_CHARGE_LABELS).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Type de sol support" htmlFor="portanceSol" required>
+            <select
+              id="portanceSol"
+              name="portanceSol"
+              value={portanceSol}
+              onChange={(e) => setPortanceSol(e.target.value as PortanceSol)}
+              className={selectClasses}
+            >
+              {Object.entries(PORTANCE_SOL_LABELS).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Surface du dallage (m², optionnel — active le métré)" htmlFor="surface">
+            <input
+              id="surface"
+              name="surface"
+              type="number"
+              step="0.1"
+              min="0"
+              value={surface}
+              onChange={(e) => setSurface(e.target.value)}
+              placeholder="Ex : 500"
+              className={inputClasses}
+            />
           </Field>
         </div>
       )}

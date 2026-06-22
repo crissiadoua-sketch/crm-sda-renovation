@@ -37,3 +37,13 @@ export async function recupererFluxFichier(url: string) {
   if (!hostname.endsWith(".blob.vercel-storage.com")) return null;
   return get(url, { access: "private" });
 }
+
+export async function recupererBufferFichier(url: string): Promise<{ buffer: Buffer; contentType: string } | null> {
+  const result = await recupererFluxFichier(url);
+  if (!result || result.statusCode !== 200) return null;
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of result.stream as unknown as AsyncIterable<Uint8Array>) {
+    chunks.push(chunk);
+  }
+  return { buffer: Buffer.concat(chunks), contentType: result.blob.contentType || "application/octet-stream" };
+}

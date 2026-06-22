@@ -3,16 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
+import { stockerFichier, supprimerFichierStocke, recupererBufferFichier } from "@/lib/blob-storage";
+import Anthropic from "@anthropic-ai/sdk";
 import {
   calculerPoutre,
   calculerDalle,
   calculerPoteau,
+  calculerDallage,
   type TypeElement,
   type Materiau,
   type ConditionPoutre,
   type ConditionDalle,
   type NiveauCharge,
+  type UsageDallage,
+  type PortanceSol,
 } from "@/lib/calcul-structurel/pre-dimensionnement";
 
 async function genNumeroPDIM(): Promise<string> {
@@ -41,6 +45,18 @@ function calculerResultat(formData: FormData) {
     const niveauCharge = formData.get("niveauCharge") as NiveauCharge;
     return calculerDalle({ materiau, portee, condition, niveauCharge });
   }
+  if (typeElement === "DALLAGE") {
+    const usageDallage = formData.get("usageDallage") as UsageDallage;
+    const niveauCharge = formData.get("niveauCharge") as NiveauCharge;
+    const portanceSol = formData.get("portanceSol") as PortanceSol;
+    const surfaceRaw = formData.get("surface") as string;
+    return calculerDallage({
+      usageDallage,
+      niveauCharge,
+      portanceSol,
+      surface: surfaceRaw ? parseFloat(surfaceRaw) : undefined,
+    });
+  }
   const effortNormal = parseFloat(formData.get("effortNormal") as string);
   const hauteurLibreRaw = formData.get("hauteurLibre") as string;
   const resistanceRaw = formData.get("resistance") as string;
@@ -67,6 +83,9 @@ export async function creerPreDimensionnement(formData: FormData): Promise<void>
       condition: emptyToNull(formData.get("condition")),
       niveauCharge: emptyToNull(formData.get("niveauCharge")),
       usagePreset: emptyToNull(formData.get("usagePreset")),
+      usageDallage: emptyToNull(formData.get("usageDallage")),
+      portanceSol: emptyToNull(formData.get("portanceSol")),
+      surface: formData.get("surface") ? parseFloat(formData.get("surface") as string) : null,
       effortNormal: formData.get("effortNormal") ? parseFloat(formData.get("effortNormal") as string) : null,
       hauteurLibre: formData.get("hauteurLibre") ? parseFloat(formData.get("hauteurLibre") as string) : null,
       resistance: formData.get("resistance") ? parseFloat(formData.get("resistance") as string) : null,
@@ -100,6 +119,9 @@ export async function modifierPreDimensionnement(id: string, formData: FormData)
       condition: emptyToNull(formData.get("condition")),
       niveauCharge: emptyToNull(formData.get("niveauCharge")),
       usagePreset: emptyToNull(formData.get("usagePreset")),
+      usageDallage: emptyToNull(formData.get("usageDallage")),
+      portanceSol: emptyToNull(formData.get("portanceSol")),
+      surface: formData.get("surface") ? parseFloat(formData.get("surface") as string) : null,
       effortNormal: formData.get("effortNormal") ? parseFloat(formData.get("effortNormal") as string) : null,
       hauteurLibre: formData.get("hauteurLibre") ? parseFloat(formData.get("hauteurLibre") as string) : null,
       resistance: formData.get("resistance") ? parseFloat(formData.get("resistance") as string) : null,
@@ -155,4 +177,76 @@ export async function supprimerDocumentPreDimensionnement(docId: string): Promis
   await supprimerFichierStocke(doc.url);
   await prisma.preDimensionnementDocument.delete({ where: { id: docId } });
   revalidatePath(`/etude-prix/pre-dimensionnement/${doc.preDimensionnementId}`);
+}
+
+const IMAGE_MEDIA_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
+
+async function enregistrerAnalyseIA(docId: string, preDimensionnementId: string, texte: string): Promise<void> {
+  await prisma.preDimensionnementDocument.update({
+    where: { id: docId },
+    data: { analyseIA: texte, analyseIADate: new Date() },
+  });
+  revalidatePath(`/etude-prix/pre-dimensionnement/${preDimensionnementId}`);
+}
+
+export async function analyserPlanIA(docId: string): Promise<void> {
+  const doc = await prisma.preDimensionnementDocument.findUnique({ where: { id: docId } });
+  if (!doc) return;
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    await enregistrerAnalyseIA(
+      docId,
+      doc.preDimensionnementId,
+      "Clé API Anthropic non configurée. Ajoutez ANTHROPIC_API_KEY dans les variables d'environnement pour activer l'analyse automatique.",
+    );
+    return;
+  }
+
+  const fichier = await recupererBufferFichier(doc.url);
+  if (!fichier) {
+    await enregistrerAnalyseIA(docId, doc.preDimensionnementId, "Fichier introuvable — analyse impossible.");
+    return;
+  }
+
+  const isPdf = fichier.contentType === "application/pdf";
+  const mediaTypeImage = (IMAGE_MEDIA_TYPES as readonly string[]).includes(fichier.contentType)
+    ? (fichier.contentType as (typeof IMAGE_MEDIA_TYPES)[number])
+    : "image/jpeg";
+  const data = fichier.buffer.toString("base64");
+
+  const client = new Anthropic({ apiKey });
+  const prompt =
+    "Tu analyses un document technique BTP (plan de niveau, plan de coupe de détail, ou étude géotechnique). " +
+    "Extrais et liste en français, de façon concise et structurée :\n" +
+    "- Les cotes et dimensions visibles (portées, hauteurs, épaisseurs, surfaces), avec leur unité\n" +
+    "- Le type d'ouvrage représenté si identifiable (dalle, poutre, poteau, dallage, fondation…)\n" +
+    "- Toute indication de charge, d'usage ou de nature de sol mentionnée\n" +
+    "Si le document est illisible ou ne contient pas d'information exploitable, dis-le clairement. " +
+    "Rappelle systématiquement que cette lecture automatique doit être vérifiée par un humain avant tout usage.";
+
+  let texte: string;
+  try {
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1500,
+      messages: [
+        {
+          role: "user",
+          content: [
+            isPdf
+              ? { type: "document", source: { type: "base64", media_type: "application/pdf", data } }
+              : { type: "image", source: { type: "base64", media_type: mediaTypeImage, data } },
+            { type: "text", text: prompt },
+          ],
+        },
+      ],
+    });
+    const bloc = response.content.find((b) => b.type === "text");
+    texte = bloc && bloc.type === "text" ? bloc.text : "Aucune réponse exploitable de l'IA.";
+  } catch (err) {
+    texte = `Erreur lors de l'analyse IA : ${err instanceof Error ? err.message : "erreur inconnue"}`;
+  }
+
+  await enregistrerAnalyseIA(docId, doc.preDimensionnementId, texte);
 }

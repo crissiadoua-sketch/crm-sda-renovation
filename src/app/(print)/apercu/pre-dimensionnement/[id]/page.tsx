@@ -7,6 +7,8 @@ import {
   TYPE_ELEMENT_LABELS,
   MATERIAU_LABELS,
   DOCUMENT_TYPE_LABELS,
+  USAGE_DALLAGE_LABELS,
+  PORTANCE_SOL_LABELS,
 } from "@/lib/calcul-structurel/pre-dimensionnement";
 
 export default async function ApercuPreDimensionnementPage({
@@ -68,6 +70,15 @@ export default async function ApercuPreDimensionnementPage({
             <p><span className="font-semibold">Matériau :</span> {MATERIAU_LABELS[pdim.materiau as keyof typeof MATERIAU_LABELS] ?? pdim.materiau}</p>
             <p><span className="font-semibold">Responsable :</span> {pdim.responsable ?? "—"}</p>
             <p><span className="font-semibold">Titre :</span> {pdim.titre ?? "—"}</p>
+            {pdim.usageDallage && (
+              <p><span className="font-semibold">Usage :</span> {USAGE_DALLAGE_LABELS[pdim.usageDallage as keyof typeof USAGE_DALLAGE_LABELS] ?? pdim.usageDallage}</p>
+            )}
+            {pdim.portanceSol && (
+              <p><span className="font-semibold">Sol support :</span> {PORTANCE_SOL_LABELS[pdim.portanceSol as keyof typeof PORTANCE_SOL_LABELS] ?? pdim.portanceSol}</p>
+            )}
+            {pdim.surface != null && (
+              <p><span className="font-semibold">Surface :</span> {pdim.surface} m²</p>
+            )}
           </div>
 
           {/* Résultat */}
@@ -109,6 +120,26 @@ export default async function ApercuPreDimensionnementPage({
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Rapport d'extraction IA */}
+          {pdim.documents.some((doc) => doc.analyseIA) && (
+            <div className="mb-5 print:break-inside-avoid">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#1E2F6E]">
+                Rapport d&apos;extraction automatique par IA (lecture à vérifier)
+              </p>
+              <div className="space-y-3">
+                {pdim.documents.filter((doc) => doc.analyseIA).map((doc) => (
+                  <div key={doc.id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-semibold text-slate-700">
+                      {DOCUMENT_TYPE_LABELS[doc.type] ?? doc.type} — {doc.nom}
+                      {doc.analyseIADate ? ` (analysé le ${formatDate(doc.analyseIADate)})` : ""}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-xs text-slate-600">{doc.analyseIA}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

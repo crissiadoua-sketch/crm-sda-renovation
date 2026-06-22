@@ -2503,7 +2503,7 @@ model PreDimensionnement {
   titre         String?
   statut        String    @default("BROUILLON") // BROUILLON uniquement en v1 (pas de workflow de validation)
 
-  typeElement   String    // POUTRE | DALLE | POTEAU
+  typeElement   String    // POUTRE | DALLE | POTEAU | DALLAGE
   materiau      String    // BETON | ACIER | BOIS
 
   // Poutre / dalle
@@ -2511,6 +2511,11 @@ model PreDimensionnement {
   condition     String?   // ISOSTATIQUE | CONTINUE | CONSOLE | PORTEE_1_SENS | PORTEE_2_SENS
   niveauCharge  String?   // LEGERE | NORMALE | LOURDE
   usagePreset   String?   // libellé du préset de pré-remplissage utilisé, le cas échéant
+
+  // Dallage sur terre-plein (industriel / agricole / terrasse)
+  usageDallage  String?   // INDUSTRIEL | AGRICOLE | TERRASSE
+  portanceSol   String?   // type de sol support (cf. PortanceSol)
+  surface       Float?    // m², pour le métré (béton, treillis soudé)
 
   // Poteau
   effortNormal  Float?    // kN
@@ -2536,13 +2541,15 @@ model PreDimensionnement {
 }
 
 model PreDimensionnementDocument {
-  id                   String   @id @default(cuid())
+  id                   String    @id @default(cuid())
   preDimensionnementId String
-  type                 String   // GEOTECHNIQUE_G2PRO | PLAN_NIVEAU | PLAN_COUPE | AUTRE
+  type                 String    // GEOTECHNIQUE_G2PRO | PLAN_NIVEAU | PLAN_COUPE | AUTRE
   nom                  String
   url                  String
   taille               Int
-  createdAt            DateTime @default(now())
+  analyseIA            String?   // cotes extraites automatiquement par l'IA (lecture à vérifier)
+  analyseIADate        DateTime?
+  createdAt            DateTime  @default(now())
 
   preDimensionnement PreDimensionnement @relation(fields: [preDimensionnementId], references: [id], onDelete: Cascade)
 }

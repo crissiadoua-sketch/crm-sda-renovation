@@ -1,4 +1,5 @@
 import Link from "next/link";
+import React from "react";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
@@ -184,12 +185,12 @@ export default async function OuvragesPage({
                         <th className="px-3 py-2 text-left">Désignation</th>
                         <th className="px-3 py-2 text-center border-r border-slate-200">U</th>
                         {OFFRES.map((offre) => (
-                          <>
-                            <th key={`${offre.key}-t`}  className={`px-2 py-2 text-center ${offre.color} opacity-80`}>Tps (h)</th>
-                            <th key={`${offre.key}-p`}  className={`px-2 py-2 text-right ${offre.color} opacity-80`}>Pose €</th>
-                            <th key={`${offre.key}-f`}  className={`px-2 py-2 text-right ${offre.color} opacity-80`}>Fourn. €</th>
-                            <th key={`${offre.key}-to`} className={`px-2 py-2 text-right border-r border-slate-200 font-black ${offre.color}`}>Total €</th>
-                          </>
+                          <React.Fragment key={offre.key}>
+                            <th className={`px-2 py-2 text-center ${offre.color} opacity-80`}>Tps (h)</th>
+                            <th className={`px-2 py-2 text-right ${offre.color} opacity-80`}>Pose €</th>
+                            <th className={`px-2 py-2 text-right ${offre.color} opacity-80`}>Fourn. €</th>
+                            <th className={`px-2 py-2 text-right border-r border-slate-200 font-black ${offre.color}`}>Total €</th>
+                          </React.Fragment>
                         ))}
                         <th className="px-3 py-2"></th>
                       </tr>
@@ -230,18 +231,17 @@ export default async function OuvragesPage({
                           {OFFRES.map((offre) => {
                             const v = offreValues(o, offre.key);
                             return (
-                              <>
-                                <td key={`${offre.key}-t`}  className="px-2 py-2 text-center text-slate-500 whitespace-nowrap">
+                              <React.Fragment key={offre.key}>
+                                <td className="px-2 py-2 text-center text-slate-500 whitespace-nowrap">
                                   {v.tempsPose > 0 ? v.tempsPose.toFixed(3) : "—"}
                                 </td>
-                                <td key={`${offre.key}-p`}  className="px-2 py-2 text-right text-slate-500 whitespace-nowrap">
+                                <td className="px-2 py-2 text-right text-slate-500 whitespace-nowrap">
                                   {v.prixPose > 0 ? formatEuros(v.prixPose) : "—"}
                                 </td>
-                                <td key={`${offre.key}-f`}  className="px-2 py-2 text-right text-slate-500 whitespace-nowrap">
+                                <td className="px-2 py-2 text-right text-slate-500 whitespace-nowrap">
                                   {v.prixFourniture > 0 ? formatEuros(v.prixFourniture) : "—"}
                                 </td>
                                 <td
-                                  key={`${offre.key}-to`}
                                   className={`px-2 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap ${
                                     v.prixTotal > 0
                                       ? offre.key === "eco"
@@ -254,7 +254,7 @@ export default async function OuvragesPage({
                                 >
                                   {v.prixTotal > 0 ? formatEuros(v.prixTotal) : "—"}
                                 </td>
-                              </>
+                              </React.Fragment>
                             );
                           })}
                           {/* Action */}

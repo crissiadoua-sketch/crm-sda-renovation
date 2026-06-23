@@ -10,10 +10,14 @@ import { CGVAnnexe } from "./cgv-annexe";
 
 export default async function ApercuDevisPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ sansPrix?: string }>;
 }) {
   const { id } = await params;
+  const { sansPrix: sansPrixParam } = await searchParams;
+  const sansPrix = sansPrixParam === "1";
 
   const devis = await prisma.devis.findUnique({
     where: { id },
@@ -29,16 +33,23 @@ export default async function ApercuDevisPage({
   const lignes = devis.lignes;
   const chapitres = lignes.filter(l => l.type === "CHAPITRE");
   const hasTVAReduite = lignes.some(l => l.tauxTVA && l.tauxTVA < 10);
+  const nbCols = sansPrix ? 4 : 6;
 
   return (
     <>
-      <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}`} />
+      <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}${sansPrix ? " · Sans prix" : ""}`} />
 
       <PageDeGarde devis={devis} />
 
       {/* Document A4 */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">
         <div className="px-12 py-10 print:px-10 print:py-8">
+
+          {sansPrix && (
+            <div className="mb-4 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Document sans prix — quantités uniquement</p>
+            </div>
+          )}
 
           {/* En-tête SDA Rénovation */}
           <div className="flex items-start justify-between border-b-2 border-[#1E2F6E] pb-6 mb-6">
@@ -142,8 +153,12 @@ export default async function ApercuDevisPage({
                   <th className="px-3 py-2 text-left font-semibold text-xs">Désignation</th>
                   <th className="px-3 py-2 text-center font-semibold text-xs w-14">Unité</th>
                   <th className="px-3 py-2 text-right font-semibold text-xs w-16">Qté</th>
-                  <th className="px-3 py-2 text-right font-semibold text-xs w-24">P.U. HT</th>
-                  <th className="px-3 py-2 text-right font-semibold text-xs w-24">Total HT</th>
+                  {!sansPrix && (
+                    <>
+                      <th className="px-3 py-2 text-right font-semibold text-xs w-24">P.U. HT</th>
+                      <th className="px-3 py-2 text-right font-semibold text-xs w-24">Total HT</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -156,13 +171,13 @@ export default async function ApercuDevisPage({
                     return (
                       <React.Fragment key={ligne.id}>
                         <tr className="bg-[#29ABE2]/10">
-                          <td colSpan={6} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#29ABE2]/40 whitespace-pre-wrap">
+                          <td colSpan={nbCols} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#29ABE2]/40 whitespace-pre-wrap">
                             {ligne.designation}
                           </td>
                         </tr>
                         {clauses.length > 0 && (
                           <tr className="bg-red-50/30">
-                            <td colSpan={6} className="px-3 py-2 pl-6">
+                            <td colSpan={nbCols} className="px-3 py-2 pl-6">
                               <p className="text-[9px] font-bold uppercase tracking-widest text-red-600 mb-1">Clauses et Réserves :</p>
                               <ul className="space-y-0.5">
                                 {clauses.map((c, ci) => (
@@ -180,7 +195,7 @@ export default async function ApercuDevisPage({
                   if (ligne.type === "CLAUSE_RESERVE") {
                     return (
                       <tr key={ligne.id} className="bg-red-50/60">
-                        <td colSpan={6} className="px-3 py-2 pl-6 border-t border-red-100">
+                        <td colSpan={nbCols} className="px-3 py-2 pl-6 border-t border-red-100">
                           <p className="text-[9px] font-bold uppercase tracking-widest text-red-600 mb-0.5">Clause / réserve</p>
                           <p className="text-xs italic text-red-700 whitespace-pre-wrap">{ligne.designation}</p>
                         </td>
@@ -191,13 +206,13 @@ export default async function ApercuDevisPage({
                     return (
                       <React.Fragment key={ligne.id}>
                         <tr className="bg-slate-50">
-                          <td colSpan={6} className="px-3 py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200 whitespace-pre-wrap">
+                          <td colSpan={nbCols} className="px-3 py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200 whitespace-pre-wrap">
                             {ligne.designation}
                           </td>
                         </tr>
                         {clauses.length > 0 && (
                           <tr className="bg-red-50/30">
-                            <td colSpan={6} className="px-3 py-1.5 pl-8">
+                            <td colSpan={nbCols} className="px-3 py-1.5 pl-8">
                               <p className="text-[9px] font-bold uppercase tracking-widest text-red-600 mb-1">Clauses et Réserves :</p>
                               <ul className="space-y-0.5">
                                 {clauses.map((c, ci) => (
@@ -220,12 +235,16 @@ export default async function ApercuDevisPage({
                         <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap">{ligne.designation}</td>
                         <td className="px-3 py-1.5 text-xs text-center text-slate-500">{ligne.unite ?? "—"}</td>
                         <td className="px-3 py-1.5 text-xs text-right text-slate-700">{ligne.quantite?.toFixed(2) ?? "—"}</td>
-                        <td className="px-3 py-1.5 text-xs text-right text-slate-700">{ligne.prixUnitaireHT != null ? formatEuros(ligne.prixUnitaireHT) : "—"}</td>
-                        <td className="px-3 py-1.5 text-xs text-right font-medium text-slate-700">{ligne.totalHT != null ? formatEuros(ligne.totalHT) : "—"}</td>
+                        {!sansPrix && (
+                          <>
+                            <td className="px-3 py-1.5 text-xs text-right text-slate-700">{ligne.prixUnitaireHT != null ? formatEuros(ligne.prixUnitaireHT) : "—"}</td>
+                            <td className="px-3 py-1.5 text-xs text-right font-medium text-slate-700">{ligne.totalHT != null ? formatEuros(ligne.totalHT) : "—"}</td>
+                          </>
+                        )}
                       </tr>
                       {clauses.length > 0 && (
                         <tr className="bg-red-50/30">
-                          <td colSpan={6} className="px-3 py-1.5 pl-10">
+                          <td colSpan={nbCols} className="px-3 py-1.5 pl-10">
                             <p className="text-[9px] font-bold uppercase tracking-widest text-red-600 mb-1">Clauses et Réserves :</p>
                             <ul className="space-y-0.5">
                               {clauses.map((c, ci) => (
@@ -245,39 +264,41 @@ export default async function ApercuDevisPage({
           </div>
 
           {/* Récapitulatif totaux */}
-          <div className="flex justify-end mb-6">
-            <div className="w-72">
-              <div className="flex justify-between border-t border-slate-200 py-1.5 text-sm">
-                <span className="text-slate-500">Total HT</span>
-                <span className="font-medium">{formatEuros(devis.totalHT)}</span>
-              </div>
-              {hasTVAReduite ? (
-                <>
-                  <div className="flex justify-between py-1.5 text-sm">
-                    <span className="text-slate-500">TVA 5,5% (réduite)</span>
-                    <span className="font-medium text-slate-700">—</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 text-sm">
-                    <span className="text-slate-500">TVA 10% (intermédiaire)</span>
-                    <span className="font-medium text-slate-700">—</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 text-sm">
-                    <span className="text-slate-500">TVA 20% (normale)</span>
-                    <span className="font-medium text-slate-700">—</span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex justify-between py-1.5 text-sm">
-                  <span className="text-slate-500">TVA</span>
-                  <span className="font-medium">{formatEuros(devis.totalTVA)}</span>
+          {!sansPrix && (
+            <div className="flex justify-end mb-6">
+              <div className="w-72">
+                <div className="flex justify-between border-t border-slate-200 py-1.5 text-sm">
+                  <span className="text-slate-500">Total HT</span>
+                  <span className="font-medium">{formatEuros(devis.totalHT)}</span>
                 </div>
-              )}
-              <div className="flex justify-between border-t-2 border-[#1E2F6E] pt-2 mt-1">
-                <span className="text-base font-bold text-[#1E2F6E]">TOTAL TTC</span>
-                <span className="text-base font-bold text-[#1E2F6E]">{formatEuros(devis.totalTTC)}</span>
+                {hasTVAReduite ? (
+                  <>
+                    <div className="flex justify-between py-1.5 text-sm">
+                      <span className="text-slate-500">TVA 5,5% (réduite)</span>
+                      <span className="font-medium text-slate-700">—</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 text-sm">
+                      <span className="text-slate-500">TVA 10% (intermédiaire)</span>
+                      <span className="font-medium text-slate-700">—</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 text-sm">
+                      <span className="text-slate-500">TVA 20% (normale)</span>
+                      <span className="font-medium text-slate-700">—</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between py-1.5 text-sm">
+                    <span className="text-slate-500">TVA</span>
+                    <span className="font-medium">{formatEuros(devis.totalTVA)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t-2 border-[#1E2F6E] pt-2 mt-1">
+                  <span className="text-base font-bold text-[#1E2F6E]">TOTAL TTC</span>
+                  <span className="text-base font-bold text-[#1E2F6E]">{formatEuros(devis.totalTTC)}</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Mentions libres */}
           {devis.mentionsLibres && (
@@ -288,23 +309,25 @@ export default async function ApercuDevisPage({
           )}
 
           {/* Bon pour accord */}
-          <div className="mb-8 rounded-lg border-2 border-[#1E2F6E]/20 bg-slate-50 p-5">
-            <p className="text-sm font-semibold text-[#1E2F6E] mb-3">Bon pour accord</p>
-            <p className="text-xs text-slate-500 mb-6">
-              En signant ce devis, le client accepte les conditions générales de vente et autorise {COMPANY.nom} à réaliser les travaux décrits ci-dessus.
-            </p>
-            <div className="grid grid-cols-2 gap-8">
-              <div>
-                <p className="text-xs text-slate-400 mb-1">Fait à :</p>
-                <div className="h-px w-full bg-slate-300 mt-8" />
-                <p className="text-xs text-slate-400 mt-1">Lieu et date</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 mb-1">Signature du client (précédée de la mention « Bon pour accord ») :</p>
-                <div className="h-16 w-full rounded border border-dashed border-slate-300 bg-white" />
+          {!sansPrix && (
+            <div className="mb-8 rounded-lg border-2 border-[#1E2F6E]/20 bg-slate-50 p-5">
+              <p className="text-sm font-semibold text-[#1E2F6E] mb-3">Bon pour accord</p>
+              <p className="text-xs text-slate-500 mb-6">
+                En signant ce devis, le client accepte les conditions générales de vente et autorise {COMPANY.nom} à réaliser les travaux décrits ci-dessus.
+              </p>
+              <div className="grid grid-cols-2 gap-8">
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Fait à :</p>
+                  <div className="h-px w-full bg-slate-300 mt-8" />
+                  <p className="text-xs text-slate-400 mt-1">Lieu et date</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Signature du client (précédée de la mention « Bon pour accord ») :</p>
+                  <div className="h-16 w-full rounded border border-dashed border-slate-300 bg-white" />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Pied de page légal */}
           <div className="border-t border-slate-200 pt-4">
@@ -322,7 +345,7 @@ export default async function ApercuDevisPage({
       </div>
 
       {/* Annexe — Conditions générales de vente */}
-      <CGVAnnexe />
+      {!sansPrix && <CGVAnnexe />}
 
       {/* CSS print */}
       <style>{`

@@ -10,7 +10,7 @@ import {
   type CorpsEtatCode,
 } from "@/lib/corps-etat";
 import { formatEuros } from "@/lib/format";
-import { parseStyle, styleToCSS } from "@/components/ui/font-toolbar";
+import { parseStyle, styleToCSS } from "@/lib/style-texte";
 
 // ---------------------------------------------------------------------------
 // Colonnes par offre

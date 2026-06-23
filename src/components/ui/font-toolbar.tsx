@@ -1,30 +1,9 @@
 "use client";
 
 import { AlignLeft, AlignCenter, AlignRight, Palette, Type } from "lucide-react";
+import type { StyleTexte } from "@/lib/style-texte";
 
-export type StyleTexte = {
-  bold?: boolean;
-  italic?: boolean;
-  underline?: boolean;
-  fontSize?: number;
-  color?: string;
-  align?: "left" | "center" | "right";
-};
-
-export function parseStyle(s: string): StyleTexte {
-  try { return JSON.parse(s) as StyleTexte; } catch { return {}; }
-}
-
-export function styleToCSS(s: StyleTexte): React.CSSProperties {
-  return {
-    fontWeight: s.bold ? "bold" : "normal",
-    fontStyle: s.italic ? "italic" : "normal",
-    textDecoration: s.underline ? "underline" : "none",
-    fontSize: s.fontSize ? `${s.fontSize}px` : undefined,
-    color: s.color || undefined,
-    textAlign: s.align || "left",
-  };
-}
+export type { StyleTexte };
 
 const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
 const PRESET_COLORS = ["#1e293b", "#1B3F94", "#F7941E", "#dc2626", "#16a34a", "#7c3aed", "#0f766e", "#78716c"];

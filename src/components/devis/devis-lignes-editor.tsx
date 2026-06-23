@@ -5,7 +5,8 @@ import {
   Plus, Trash2, ChevronUp, ChevronDown, BookOpen, Save, Search, X,
 } from "lucide-react";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { FontToolbar, parseStyle, styleToCSS, type StyleTexte } from "@/components/ui/font-toolbar";
+import { FontToolbar } from "@/components/ui/font-toolbar";
+import { parseStyle, styleToCSS, type StyleTexte } from "@/lib/style-texte";
 import { formatEuros } from "@/lib/format";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS, type CorpsEtatCode } from "@/lib/corps-etat";
 import { saveOuvrageFromDevis } from "@/lib/actions/ouvrages";

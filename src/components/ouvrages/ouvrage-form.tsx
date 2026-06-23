@@ -3,7 +3,8 @@
 import { useActionState, useState } from "react";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { FontToolbar, parseStyle, styleToCSS, type StyleTexte } from "@/components/ui/font-toolbar";
+import { FontToolbar } from "@/components/ui/font-toolbar";
+import { parseStyle, styleToCSS, type StyleTexte } from "@/lib/style-texte";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS, UNITES_COURANTES } from "@/lib/corps-etat";
 import type { OuvrageState } from "@/lib/actions/ouvrages";
 

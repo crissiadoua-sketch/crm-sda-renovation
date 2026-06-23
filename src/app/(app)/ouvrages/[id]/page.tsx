@@ -9,7 +9,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { prisma } from "@/lib/prisma";
 import { formatEuros } from "@/lib/format";
 import { CORPS_ETAT_LABELS, CORPS_ETAT_BADGE_TONES, type CorpsEtatCode } from "@/lib/corps-etat";
-import { parseStyle, styleToCSS } from "@/components/ui/font-toolbar";
+import { parseStyle, styleToCSS } from "@/lib/style-texte";
 import {
   upsertSousDetail,
   addLigneSDP,

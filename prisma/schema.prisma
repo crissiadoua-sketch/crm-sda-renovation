@@ -1045,6 +1045,8 @@ model BulletinDePaie {
   lignes                String    @default("[]") // JSON : LigneBulletin[]
   commentaires          String?
   statut                String    @default("BROUILLON") // BROUILLON | VALIDE | PAYE
+  shareToken            String?   @unique // lien de consultation sécurisé envoyé au salarié par email
+  shareExpiry           DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

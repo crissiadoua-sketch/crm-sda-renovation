@@ -9,6 +9,7 @@ const publicRoutePatterns = [
   /^\/devis\/sign\//,
   /^\/contrats\/sign\//,
   /^\/pv-public\//,
+  /^\/bulletin-public\//,
 ];
 
 // Cette route nécessite une session mais est exemptée du contrôle de permissions

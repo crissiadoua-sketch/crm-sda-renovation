@@ -3,7 +3,9 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { envoyerEmail } from "@/lib/email";
 import {
   getLignesTemplate,
   calculerLignes,
@@ -228,4 +230,39 @@ export async function deleteBulletin(salarieId: string, bulletinId: string) {
   await prisma.bulletinDePaie.delete({ where: { id: bulletinId } });
   revalidatePath(`/rh/${salarieId}`);
   redirect(`/rh/${salarieId}`);
+}
+
+// ---------------------------------------------------------------------------
+// Envoi du bulletin au salarié par email (lien de consultation sécurisé)
+// ---------------------------------------------------------------------------
+
+export async function envoyerBulletinParEmail(
+  salarieId: string,
+  bulletinId: string,
+  destinataire: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!destinataire) return { ok: false, error: "Adresse email manquante." };
+
+  const bulletin = await prisma.bulletinDePaie.findUnique({ where: { id: bulletinId } });
+  if (!bulletin || bulletin.salarieId !== salarieId) return { ok: false, error: "Bulletin introuvable." };
+
+  const token = bulletin.shareToken ?? randomBytes(24).toString("hex");
+  const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 an
+
+  if (!bulletin.shareToken) {
+    await prisma.bulletinDePaie.update({
+      where: { id: bulletinId },
+      data: { shareToken: token, shareExpiry: expiry },
+    });
+  }
+
+  const periode = bulletin.periode;
+  const lien = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/bulletin-public/${token}`;
+
+  return envoyerEmail({
+    to: destinataire,
+    subject: `Votre bulletin de paie — ${periode}`,
+    text: `Bonjour,\n\nVotre bulletin de paie est disponible en suivant ce lien sécurisé :\n\n${lien}\n\nCordialement,\nSDA Rénovation`,
+    html: `<p>Bonjour,</p><p>Votre bulletin de paie est disponible en suivant ce lien sécurisé :</p><p><a href="${lien}">${lien}</a></p><p>Cordialement,<br/>SDA Rénovation</p>`,
+  });
 }

@@ -95,6 +95,7 @@ export default async function ApercuDevisPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Client / Maître d&apos;ouvrage</p>
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
                 <p className="font-semibold text-[#1E2F6E]">{clientDisplayName(devis.client)}</p>
+                {devis.client.reference && <p className="text-xs text-slate-500">{devis.client.reference}</p>}
                 {devis.client.adresse && <p className="text-xs text-slate-500 mt-0.5">{devis.client.adresse}</p>}
                 {(devis.client.codePostal || devis.client.ville) && (
                   <p className="text-xs text-slate-500">{devis.client.codePostal} {devis.client.ville}</p>

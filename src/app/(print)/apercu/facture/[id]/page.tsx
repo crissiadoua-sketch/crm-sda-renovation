@@ -77,6 +77,7 @@ export default async function ApercuFacturePage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Facturé à</p>
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
                 <p className="font-semibold text-[#1E2F6E]">{clientDisplayName(facture.client)}</p>
+                {facture.client.reference && <p className="text-xs text-slate-500">{facture.client.reference}</p>}
                 {facture.client.adresse && <p className="text-xs text-slate-500 mt-0.5">{facture.client.adresse}</p>}
                 {(facture.client.codePostal || facture.client.ville) && (
                   <p className="text-xs text-slate-500">{facture.client.codePostal} {facture.client.ville}</p>

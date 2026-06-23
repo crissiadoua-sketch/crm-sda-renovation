@@ -25,7 +25,7 @@ const salarieSchema = z.object({
   dateSortie: z.string().optional(),
   typeContrat: z.string().default("CDI"),
   typeCcn: z.enum(["OUVRIERS", "ETAM", "CADRES"]).default("OUVRIERS"),
-  coefficient: z.preprocess((v) => (v === "" ? null : v), z.coerce.number().int().nullable()),
+  coefficient: z.preprocess((v) => (v === "" || v === undefined || v === null ? null : v), z.coerce.number().int().nullable()),
   position: z.string().optional(),
   qualification: z.string().optional(),
   salaireBase: z.coerce.number().min(0),

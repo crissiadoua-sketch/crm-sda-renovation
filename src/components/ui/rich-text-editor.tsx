@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AlignLeft, AlignCenter, AlignRight, Palette, Type } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Palette, Pilcrow, Type } from "lucide-react";
 
 const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
+const FONT_FAMILIES = [
+  { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+  { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
+  { label: "Georgia", value: "Georgia, serif" },
+  { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
+  { label: "Trebuchet MS", value: "'Trebuchet MS', sans-serif" },
+  { label: "Courier New", value: "'Courier New', Courier, monospace" },
+];
 const PRESET_COLORS = ["#1e293b", "#1B3F94", "#F7941E", "#dc2626", "#16a34a", "#7c3aed", "#0f766e", "#78716c"];
 
 // Éditeur de texte enrichi — permet d'appliquer gras/italique/souligné/taille/
@@ -64,6 +72,24 @@ export function RichTextEditor({
     emit();
   };
 
+  const applyFontFamily = (family: string) => {
+    const sel = window.getSelection();
+    ref.current?.focus();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    const span = document.createElement("span");
+    span.style.fontFamily = family;
+    try {
+      range.surroundContents(span);
+    } catch {
+      const frag = range.extractContents();
+      span.appendChild(frag);
+      range.insertNode(span);
+    }
+    sel.removeAllRanges();
+    emit();
+  };
+
   const applyAlign = (align: "left" | "center" | "right") => {
     ref.current?.focus();
     document.execCommand(align === "left" ? "justifyLeft" : align === "center" ? "justifyCenter" : "justifyRight");
@@ -80,6 +106,19 @@ export function RichTextEditor({
         <button type="button" title="Souligné" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("underline")} className={`${btnCls} underline`}>S</button>
 
         <div className="mx-1 h-5 w-px bg-slate-300" />
+
+        <label className="flex items-center gap-1 text-xs text-slate-500">
+          <Pilcrow className="h-3.5 w-3.5" />
+          <select
+            onMouseDown={(e) => e.stopPropagation()}
+            onChange={(e) => { const v = e.target.value; if (v) applyFontFamily(v); e.target.value = ""; }}
+            defaultValue=""
+            className="max-w-[6.5rem] rounded border border-slate-200 bg-white px-1 py-0.5 text-xs focus:outline-none"
+          >
+            <option value="">Police…</option>
+            {FONT_FAMILIES.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
+          </select>
+        </label>
 
         <label className="flex items-center gap-1 text-xs text-slate-500">
           <Type className="h-3.5 w-3.5" />

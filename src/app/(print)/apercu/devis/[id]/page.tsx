@@ -7,6 +7,7 @@ import { PrintToolbar } from "./print-toolbar";
 import { PageDeGarde } from "./page-de-garde";
 import { TamponSDAprint } from "@/components/tampon-sda";
 import { CGVAnnexe } from "./cgv-annexe";
+import { RichText } from "@/components/ui/rich-text";
 
 export default async function ApercuDevisPage({
   params,
@@ -172,7 +173,7 @@ export default async function ApercuDevisPage({
                       <React.Fragment key={ligne.id}>
                         <tr className="bg-[#29ABE2]/10">
                           <td colSpan={nbCols} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#29ABE2]/40 whitespace-pre-wrap">
-                            {ligne.designation}
+                            <RichText html={ligne.designation} />
                           </td>
                         </tr>
                         {clauses.length > 0 && (
@@ -197,7 +198,7 @@ export default async function ApercuDevisPage({
                       <tr key={ligne.id} className="bg-red-50/60">
                         <td colSpan={nbCols} className="px-3 py-2 pl-6 border-t border-red-100">
                           <p className="text-[9px] font-bold uppercase tracking-widest text-red-600 mb-0.5">Clause / réserve</p>
-                          <p className="text-xs italic text-red-700 whitespace-pre-wrap">{ligne.designation}</p>
+                          <p className="text-xs italic text-red-700 whitespace-pre-wrap"><RichText html={ligne.designation} /></p>
                         </td>
                       </tr>
                     );
@@ -207,7 +208,7 @@ export default async function ApercuDevisPage({
                       <React.Fragment key={ligne.id}>
                         <tr className="bg-slate-50">
                           <td colSpan={nbCols} className="px-3 py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200 whitespace-pre-wrap">
-                            {ligne.designation}
+                            <RichText html={ligne.designation} />
                           </td>
                         </tr>
                         {clauses.length > 0 && (
@@ -232,7 +233,7 @@ export default async function ApercuDevisPage({
                     <React.Fragment key={ligne.id}>
                       <tr className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}>
                         <td className="px-3 py-1.5 text-xs text-slate-400 pl-8">{ligne.codeArticle ?? "—"}</td>
-                        <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap">{ligne.designation}</td>
+                        <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap"><RichText html={ligne.designation} /></td>
                         <td className="px-3 py-1.5 text-xs text-center text-slate-500">{ligne.unite ?? "—"}</td>
                         <td className="px-3 py-1.5 text-xs text-right text-slate-700">{ligne.quantite?.toFixed(2) ?? "—"}</td>
                         {!sansPrix && (

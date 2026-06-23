@@ -5,8 +5,7 @@ import {
   Plus, Trash2, ChevronUp, ChevronDown, BookOpen, Save, Search, X,
 } from "lucide-react";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { FontToolbar } from "@/components/ui/font-toolbar";
-import { parseStyle, styleToCSS, type StyleTexte } from "@/lib/style-texte";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { formatEuros } from "@/lib/format";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS, type CorpsEtatCode } from "@/lib/corps-etat";
 import { saveOuvrageFromDevis } from "@/lib/actions/ouvrages";
@@ -52,12 +51,6 @@ type Action = (prevState: DevisLignesState, formData: FormData) => Promise<Devis
 
 let keyCounter = 0;
 function newKey() { keyCounter += 1; return `new-${keyCounter}`; }
-
-function autoGrow(el: HTMLTextAreaElement | null) {
-  if (!el) return;
-  el.style.height = "auto";
-  el.style.height = `${el.scrollHeight}px`;
-}
 
 function toRow(ligne: DevisLigne): LigneRow {
   return {
@@ -411,16 +404,6 @@ export function DevisLignesEditor({
     setRows((cur) => cur.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }
 
-  function updateStyle(key: string, patch: Partial<StyleTexte>) {
-    setRows((cur) =>
-      cur.map((r) => {
-        if (r.key !== key) return r;
-        const current = parseStyle(r.styleTexte);
-        return { ...r, styleTexte: JSON.stringify({ ...current, ...patch }) };
-      })
-    );
-  }
-
   function addRow(type: LigneType) { setRows((cur) => [...cur, emptyRow(type)]); }
 
   function removeRow(key: string) {
@@ -480,8 +463,6 @@ export function DevisLignesEditor({
     })),
   );
 
-  const selectedRow = selectedRowKey ? rows.find((r) => r.key === selectedRowKey) : null;
-
   return (
     <>
       {bpuPickerOpen && (
@@ -502,28 +483,9 @@ export function DevisLignesEditor({
       <form action={formAction} className="flex flex-col gap-4">
         <input type="hidden" name="lignes" value={payload} />
 
-        {/* ── Barre d'outils police ── */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Mise en forme</span>
-            {selectedRow && (
-              <span className="truncate text-xs text-slate-500">
-                — ligne sélectionnée : <em>{selectedRow.designation || "(vide)"}</em>
-              </span>
-            )}
-          </div>
-          <FontToolbar
-            style={selectedRow ? parseStyle(selectedRow.styleTexte) : {}}
-            onChange={(patch) => {
-              if (selectedRowKey) updateStyle(selectedRowKey, patch);
-            }}
-          />
-          {!selectedRow && (
-            <p className="mt-1 text-xs text-slate-400">
-              Cliquez sur une ligne du tableau pour la sélectionner et appliquer une mise en forme.
-            </p>
-          )}
-        </div>
+        <p className="text-xs text-slate-400">
+          Chaque désignation a son propre éditeur : sélectionnez un mot ou une phrase à l&apos;intérieur du texte pour lui appliquer gras / italique / taille / couleur, indépendamment du reste de la ligne.
+        </p>
 
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="min-w-full divide-y divide-slate-100 text-sm">
@@ -545,8 +507,6 @@ export function DevisLignesEditor({
             <tbody className="divide-y divide-slate-100">
               {rows.map((row, index) => {
                 const isSelected = selectedRowKey === row.key;
-                const rowStyle = parseStyle(row.styleTexte);
-                const inputCSS = styleToCSS(rowStyle);
                 const clauses = parseClauses(row.clausesReserves);
 
                 return (
@@ -587,34 +547,24 @@ export function DevisLignesEditor({
                     ) : (
                       <td className="px-3 py-2 align-top"></td>
                     )}
-                    <td className="px-3 py-2 align-top">
-                      <textarea
-                        ref={autoGrow}
-                        value={row.designation}
-                        onChange={(e) => update(row.key, { designation: e.target.value })}
-                        onClick={(e) => e.stopPropagation()}
-                        rows={row.type === "CLAUSE_RESERVE" ? 3 : 2}
-                        placeholder={
-                          row.type === "CHAPITRE"
-                            ? "Intitulé du titre"
-                            : row.type === "SOUS_CHAPITRE"
-                              ? "Intitulé du sous-titre"
-                              : row.type === "CLAUSE_RESERVE"
-                                ? "Saisir la clause ou réserve…"
-                                : "Désignation / descriptif de l'ouvrage"
-                        }
-                        style={{
-                          paddingLeft: row.type === "LIGNE" ? "1.25rem" : row.type === "SOUS_CHAPITRE" ? "0.625rem" : "0",
-                          resize: "none",
-                          overflow: "hidden",
-                          ...inputCSS,
-                        }}
-                        className={`w-full min-w-[260px] rounded-md border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 ${
-                          row.type === "CLAUSE_RESERVE"
-                            ? "border-red-200 italic text-red-700 placeholder:text-red-300 focus:border-red-400 focus:ring-red-300"
-                            : "border-slate-200 focus:border-brand-blue focus:ring-brand-blue/30"
-                        }`}
-                      />
+                    <td className="px-3 py-2 align-top" onClick={(e) => e.stopPropagation()}>
+                      <div style={{ paddingLeft: row.type === "LIGNE" ? "1.25rem" : row.type === "SOUS_CHAPITRE" ? "0.625rem" : "0" }} className="min-w-[280px]">
+                        <RichTextEditor
+                          value={row.designation}
+                          onChange={(html) => update(row.key, { designation: html })}
+                          rows={row.type === "CLAUSE_RESERVE" ? 3 : 2}
+                          placeholder={
+                            row.type === "CHAPITRE"
+                              ? "Intitulé du titre"
+                              : row.type === "SOUS_CHAPITRE"
+                                ? "Intitulé du sous-titre"
+                                : row.type === "CLAUSE_RESERVE"
+                                  ? "Saisir la clause ou réserve…"
+                                  : "Désignation / descriptif de l'ouvrage"
+                          }
+                          className={row.type === "CLAUSE_RESERVE" ? "border-red-200" : ""}
+                        />
+                      </div>
                     </td>
                     {row.type === "LIGNE" ? (
                       <>

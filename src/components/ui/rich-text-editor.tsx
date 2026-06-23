@@ -25,7 +25,7 @@ export function RichTextEditor({
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const lastValue = useRef(value);
+  const lastValue = useRef<string | null>(null);
 
   useEffect(() => {
     if (ref.current && value !== lastValue.current && ref.current.innerHTML !== value) {
@@ -137,7 +137,7 @@ export function RichTextEditor({
         onInput={emit}
         onBlur={emit}
         data-placeholder={placeholder}
-        className="px-3 py-2 text-sm leading-snug focus:outline-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]"
+        className="whitespace-pre-wrap px-3 py-2 text-sm leading-snug focus:outline-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]"
         style={{ minHeight: `${rows * 1.4}rem` }}
       />
     </div>

@@ -338,7 +338,15 @@ export default async function ApercuDevisPage({
       {/* CSS print */}
       <style>{`
         @media print {
-          @page { size: A4; margin: 0; }
+          @page {
+            size: A4;
+            margin: 0 0 14mm 0;
+            @bottom-center {
+              content: "Page " counter(page) " / " counter(pages);
+              font-size: 9px;
+              color: #94a3b8;
+            }
+          }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `}</style>

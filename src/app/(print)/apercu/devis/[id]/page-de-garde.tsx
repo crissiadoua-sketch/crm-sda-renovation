@@ -48,8 +48,8 @@ export function PageDeGarde({ devis }: { devis: {
           {/* En-tête */}
           <div className="flex items-start justify-between border-b-2 border-[#1E2F6E] pb-6 mb-8">
             <div className="flex items-center gap-4">
-              <div className="rounded-xl bg-white px-4 py-2 shadow-sm border border-slate-100">
-                <img src="/logo.png" alt="SDA Rénovation" className="h-16 w-auto object-contain" />
+              <div className="rounded-xl bg-white px-5 py-3 shadow-sm border border-slate-100">
+                <img src="/logo.png" alt="SDA Rénovation" className="h-20 w-auto object-contain" />
               </div>
               <p className="text-xs font-semibold text-[#F7941E] uppercase tracking-wide">{COMPANY.activite}</p>
             </div>
@@ -63,7 +63,7 @@ export function PageDeGarde({ devis }: { devis: {
           {/* Titre */}
           <div className="mb-6 text-center">
             <div className="inline-block rounded-lg bg-gradient-to-r from-[#1E2F6E] to-[#29ABE2] px-8 py-3 mb-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/90 mb-1">Réponse à l&apos;appel d&apos;offres</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#F7941E] mb-1">Réponse à l&apos;appel d&apos;offres</p>
               <p className="text-2xl font-black text-white uppercase tracking-tight">OFFRE DE PRIX</p>
             </div>
             {(devis.nomProjet || devis.objet) && (
@@ -145,13 +145,13 @@ export function PageDeGarde({ devis }: { devis: {
     return (
       <div className="relative min-h-[297mm] bg-white flex flex-col page-break-after-always overflow-hidden">
         {/* Bandeau dégradé haut */}
-        <div className="h-3 w-full bg-gradient-to-r from-[#1E2F6E] via-[#29ABE2] to-[#F7941E]" />
+        <div className="h-4 w-full bg-gradient-to-r from-[#1E2F6E] via-[#29ABE2] to-[#F7941E]" />
 
         <div className="flex flex-col flex-1 px-10 py-8">
           {/* En-tête */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <img src="/logo.png" alt="SDA Rénovation" className="h-16 w-auto object-contain" />
+              <img src="/logo.png" alt="SDA Rénovation" className="h-20 w-auto object-contain" />
               <p className="text-xs font-semibold text-[#F7941E] uppercase tracking-wide">{COMPANY.activite}</p>
             </div>
             <div className="text-right text-xs text-slate-400">
@@ -177,8 +177,9 @@ export function PageDeGarde({ devis }: { devis: {
           <div className="mb-6 text-center">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[#F7941E] mb-1">Devis de travaux</p>
             <h1 className="text-3xl font-black text-[#1E2F6E] uppercase tracking-tight">Rénovation</h1>
+            <div className="w-12 h-1 bg-[#F7941E] mx-auto mt-2 rounded-full" />
             {(devis.nomProjet || devis.chantier.nom) && (
-              <p className="text-lg font-bold text-slate-600 mt-2">{devis.nomProjet || devis.chantier.nom}</p>
+              <p className="text-lg font-bold text-slate-600 mt-3">{devis.nomProjet || devis.chantier.nom}</p>
             )}
             <p className="text-sm text-slate-500 mt-0.5">{adresseChantier}</p>
           </div>
@@ -224,7 +225,7 @@ export function PageDeGarde({ devis }: { devis: {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <div className="rounded-xl bg-white px-5 py-3 shadow-lg">
-                <img src="/logo.png" alt="SDA Rénovation" className="h-16 w-auto object-contain" />
+                <img src="/logo.png" alt="SDA Rénovation" className="h-20 w-auto object-contain" />
               </div>
               <p className="text-xs font-semibold text-white/90 uppercase tracking-wide">{COMPANY.activite}</p>
             </div>
@@ -246,7 +247,7 @@ export function PageDeGarde({ devis }: { devis: {
           </div>
 
           <div className="text-center">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/90 mb-1">Devis de travaux</p>
+            <span className="inline-block rounded-full bg-[#F7941E] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white mb-2">Devis de travaux</span>
             <h1 className="text-3xl font-black uppercase tracking-tight">Construction Neuve</h1>
             {(devis.nomProjet || devis.chantier.nom) && (
               <p className="text-xl font-bold text-white/90 mt-2">{devis.nomProjet || devis.chantier.nom}</p>
@@ -303,7 +304,7 @@ export function PageDeGarde({ devis }: { devis: {
         {/* En-tête épuré */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-6 mb-8">
           <div className="flex items-center gap-4">
-            <img src="/logo.png" alt="SDA Rénovation" className="h-14 w-auto object-contain" />
+            <img src="/logo.png" alt="SDA Rénovation" className="h-16 w-auto object-contain" />
             <p className="text-xs text-slate-400 uppercase tracking-wide">{COMPANY.activite}</p>
           </div>
           <div className="text-right">
@@ -314,9 +315,9 @@ export function PageDeGarde({ devis }: { devis: {
 
         {/* Titre centré minimal */}
         <div className="text-center mb-8 mt-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400 mb-3">Proposition commerciale</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-[#F7941E] font-semibold mb-3">Proposition commerciale</p>
           <h1 className="text-4xl font-black text-[#1E2F6E]">DEVIS</h1>
-          <div className="w-16 h-1 bg-[#F7941E] mx-auto mt-3 rounded-full" />
+          <div className="w-20 h-1.5 bg-[#F7941E] mx-auto mt-3 rounded-full" />
           {(devis.nomProjet || devis.chantier.nom) && (
             <p className="text-xl font-semibold text-slate-600 mt-4">{devis.nomProjet || devis.chantier.nom}</p>
           )}

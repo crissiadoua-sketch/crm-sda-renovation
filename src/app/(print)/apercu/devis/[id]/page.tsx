@@ -6,6 +6,7 @@ import { formatEuros, formatDate, clientDisplayName } from "@/lib/format";
 import { PrintToolbar } from "./print-toolbar";
 import { PageDeGarde } from "./page-de-garde";
 import { TamponSDAprint } from "@/components/tampon-sda";
+import { CGVAnnexe } from "./cgv-annexe";
 
 export default async function ApercuDevisPage({
   params,
@@ -14,17 +15,14 @@ export default async function ApercuDevisPage({
 }) {
   const { id } = await params;
 
-  const [devis, parametres] = await Promise.all([
-    prisma.devis.findUnique({
-      where: { id },
-      include: {
-        chantier: true,
-        client: true,
-        lignes: { orderBy: { ordre: "asc" } },
-      },
-    }),
-    prisma.parametres.findUnique({ where: { id: "default" } }),
-  ]);
+  const devis = await prisma.devis.findUnique({
+    where: { id },
+    include: {
+      chantier: true,
+      client: true,
+      lignes: { orderBy: { ordre: "asc" } },
+    },
+  });
 
   if (!devis) notFound();
 
@@ -323,17 +321,8 @@ export default async function ApercuDevisPage({
         </div>
       </div>
 
-      {/* Annexe — Conditions générales */}
-      {parametres?.conditionsDevis && (
-        <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none print:break-before-page">
-          <div className="px-12 py-10 print:px-10 print:py-8">
-            <p className="mb-4 text-lg font-black text-[#1E2F6E]">ANNEXE — CONDITIONS GÉNÉRALES</p>
-            <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-slate-700">
-              {parametres.conditionsDevis}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Annexe — Conditions générales de vente */}
+      <CGVAnnexe />
 
       {/* CSS print */}
       <style>{`

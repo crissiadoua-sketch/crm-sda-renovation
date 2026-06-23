@@ -1,11 +1,11 @@
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
-import { formatDate } from "@/lib/format";
+import { formatDate, urlFichier } from "@/lib/format";
 
 type BET = { specialite: string; nom: string; representant?: string; email?: string; telephone?: string };
 type BordRow = { destinataire: string; societe?: string; exemplaires?: number; dateEnvoi?: string; visa?: string };
 
 export function PageDeGarde({ devis }: { devis: {
-  numero: string; modeleCouverture: string; nomProjet?: string | null;
+  numero: string; modeleCouverture: string; nomProjet?: string | null; photoProjetUrl?: string | null;
   dateCreation: Date | string; dateValidite?: Date | string | null;
   objet?: string | null; referenceMarche?: string | null; lot?: string | null;
   moNom?: string | null; moRepresentant?: string | null; moEmail?: string | null; moTelephone?: string | null;
@@ -147,12 +147,16 @@ export function PageDeGarde({ devis }: { devis: {
           </div>
 
           {/* Zone photo */}
-          <div className="mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 h-52 flex items-center justify-center border border-slate-200">
-            <div className="text-center">
-              <div className="text-4xl mb-2">🏗️</div>
-              <p className="text-sm font-semibold text-slate-400">Photo du projet</p>
-              <p className="text-xs text-slate-400">(à ajouter dans l&apos;éditeur)</p>
-            </div>
+          <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 h-52 flex items-center justify-center border border-slate-200">
+            {devis.photoProjetUrl ? (
+              <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <div className="text-center">
+                <div className="text-4xl mb-2">🏗️</div>
+                <p className="text-sm font-semibold text-slate-400">Photo du projet</p>
+                <p className="text-xs text-slate-400">(à ajouter dans l&apos;éditeur)</p>
+              </div>
+            )}
           </div>
 
           {/* Titre */}
@@ -198,36 +202,43 @@ export function PageDeGarde({ devis }: { devis: {
   if (devis.modeleCouverture === "CONSTRUCTION_NEUVE") {
     return (
       <div className="relative min-h-[297mm] bg-white flex flex-col page-break-after-always">
-        {/* Grand bloc titre navy avec dégradé */}
-        <div className="bg-gradient-to-br from-[#1E2F6E] to-[#0f1e4a] px-10 py-10 text-white">
+        {/* Liseré tricolore de marque */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#1E2F6E] via-[#29ABE2] to-[#F7941E]" />
+
+        {/* Grand bloc titre — dégradé clair aux couleurs de la marque */}
+        <div className="bg-gradient-to-br from-[#1E2F6E] to-[#29ABE2] px-10 py-10 text-white">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-white px-3 py-1.5">
-                <img src="/logo.png" alt="SDA Rénovation" className="h-9 w-auto object-contain" />
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl bg-white px-5 py-3 shadow-lg">
+                <img src="/logo.png" alt="SDA Rénovation" className="h-16 w-auto object-contain" />
               </div>
-              <p className="text-xs font-semibold text-[#29ABE2] uppercase tracking-wide">{COMPANY.activite}</p>
+              <p className="text-xs font-semibold text-white/90 uppercase tracking-wide">{COMPANY.activite}</p>
             </div>
-            <div className="text-right text-xs text-white/70">
+            <div className="text-right text-xs text-white/80">
               <p className="font-mono font-bold text-white">{devis.numero}</p>
             </div>
           </div>
 
-          {/* Zone photo */}
-          <div className="rounded-xl overflow-hidden bg-white/10 h-44 flex items-center justify-center mb-6 border border-white/20">
-            <div className="text-center">
-              <div className="text-4xl mb-2">🏢</div>
-              <p className="text-sm font-semibold text-white/60">Photo / visuel du projet</p>
-            </div>
+          {/* Zone photo agrandie, plein format */}
+          <div className="relative rounded-xl overflow-hidden bg-white/10 h-72 flex items-center justify-center mb-6 border border-white/20">
+            {devis.photoProjetUrl ? (
+              <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <div className="text-center">
+                <div className="text-5xl mb-2">🏢</div>
+                <p className="text-sm font-semibold text-white/60">Photo / visuel du projet</p>
+              </div>
+            )}
           </div>
 
           <div className="text-center">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#29ABE2] mb-1">Devis de travaux</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/90 mb-1">Devis de travaux</p>
             <h1 className="text-3xl font-black uppercase tracking-tight">Construction Neuve</h1>
             {(devis.nomProjet || devis.chantier.nom) && (
-              <p className="text-xl font-bold text-white/80 mt-2">{devis.nomProjet || devis.chantier.nom}</p>
+              <p className="text-xl font-bold text-white/90 mt-2">{devis.nomProjet || devis.chantier.nom}</p>
             )}
-            <p className="text-sm text-white/60 mt-1">{adresseChantier}</p>
-            <p className="text-xs text-white/50 mt-2">Émis le {formatDate(devis.dateCreation)}</p>
+            <p className="text-sm text-white/70 mt-1">{adresseChantier}</p>
+            <p className="text-xs text-white/60 mt-2">Émis le {formatDate(devis.dateCreation)}</p>
           </div>
         </div>
 

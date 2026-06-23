@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
-import { updateDevisCouverture } from "@/lib/actions/devis";
+import { useRef, useState } from "react";
+import { updateDevisCouverture, uploadDevisPhoto, supprimerDevisPhoto } from "@/lib/actions/devis";
+import { urlFichier } from "@/lib/format";
 
 type BET = { specialite: string; nom: string; representant?: string; email?: string; telephone?: string };
 type BordRecipient = { destinataire: string; societe?: string; exemplaires?: number; dateEnvoi?: string; visa?: string };
@@ -52,6 +53,37 @@ export function DevisCouverture({ devis }: { devis: {
   const [bord, setBord] = useState<BordRecipient[]>(() => {
     try { return devis.bordereauDiffusion ? JSON.parse(devis.bordereauDiffusion) : []; } catch { return []; }
   });
+  const [photoProjetUrl, setPhotoProjetUrl] = useState<string | null>(devis.photoProjetUrl ?? null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(devis.photoProjetUrl ? urlFichier(devis.photoProjetUrl) : null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoError(null);
+    setPhotoPreview(URL.createObjectURL(file));
+    setUploadingPhoto(true);
+    const result = await uploadDevisPhoto(devis.id, file);
+    setUploadingPhoto(false);
+    if ("error" in result) {
+      setPhotoError(result.error);
+      setPhotoPreview(photoProjetUrl ? urlFichier(photoProjetUrl) : null);
+      return;
+    }
+    setPhotoProjetUrl(result.url);
+    setPhotoPreview(urlFichier(result.url));
+  };
+
+  const handleRemovePhoto = async () => {
+    if (photoInputRef.current) photoInputRef.current.value = "";
+    setUploadingPhoto(true);
+    await supprimerDevisPhoto(devis.id);
+    setUploadingPhoto(false);
+    setPhotoProjetUrl(null);
+    setPhotoPreview(null);
+  };
 
   const addBet = () => setBets(prev => [...prev, { specialite: "Structure", nom: "" }]);
   const removeBet = (i: number) => setBets(prev => prev.filter((_, idx) => idx !== i));
@@ -68,6 +100,7 @@ export function DevisCouverture({ devis }: { devis: {
     await updateDevisCouverture(devis.id, {
       modeleCouverture: modele,
       nomProjet: nomProjet || null,
+      photoProjetUrl,
       moNom: moNom || null, moRepresentant: moRep || null, moEmail: moEmail || null, moTelephone: moTel || null,
       moeNom: moeNom || null, moeRepresentant: moeRep || null, moeEmail: moeEmail || null, moeTelephone: moeTel || null,
       bets: bets.length ? JSON.stringify(bets) : null,
@@ -101,15 +134,42 @@ export function DevisCouverture({ devis }: { devis: {
       {/* Projet */}
       <div className="rounded-xl border border-slate-200 bg-white p-5">
         <h3 className="text-sm font-bold text-[#1E2F6E] uppercase tracking-wide mb-4">Informations projet</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
+        <div className="grid gap-4">
+          <div className="sm:max-w-sm">
             <label className={labelCls}>Nom du projet</label>
             <input className={inputCls} value={nomProjet} onChange={e => setNomProjet(e.target.value)} placeholder="Ex : Rénovation Appartement Dupont" />
           </div>
           <div>
-            <label className={labelCls}>URL photo / image du projet</label>
-            <input className={inputCls} value={""} onChange={() => {}} placeholder="(Upload à venir — laisser vide)" disabled />
-            <p className="text-xs text-slate-400 mt-1">Placeholder pour la photo sur la page de garde</p>
+            <label className={labelCls}>Photo / visuel du projet</label>
+            <div className="flex flex-wrap items-start gap-4">
+              {photoPreview && (
+                <div className="relative">
+                  <img src={photoPreview} alt="Photo du projet" className="h-28 w-44 rounded-lg border border-slate-200 object-cover" />
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    disabled={uploadingPhoto}
+                    title="Retirer la photo"
+                    className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {uploadingPhoto ? "Envoi…" : photoPreview ? "Changer la photo" : "Importer une photo"}
+                </button>
+                <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                <p className="text-xs text-slate-400">JPEG, PNG — 8 Mo max. Apparaît sur la page de garde du devis.</p>
+                {photoError && <p className="text-xs text-red-500">{photoError}</p>}
+              </div>
+            </div>
           </div>
         </div>
       </div>

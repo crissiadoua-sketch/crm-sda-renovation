@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getNextNumero } from "@/lib/numbering";
 import { randomBytes } from "crypto";
+import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
 
 const devisHeaderSchema = z.object({
   chantierId: z.string().min(1, "Le chantier est requis."),
@@ -298,6 +299,31 @@ export async function updateDevisCouverture(
 ) {
   "use server";
   await prisma.devis.update({ where: { id }, data });
+  revalidatePath(`/devis/${id}`);
+}
+
+export async function uploadDevisPhoto(id: string, file: File): Promise<{ url: string } | { error: string }> {
+  if (!file.type.startsWith("image/")) {
+    return { error: "Le fichier doit être une image (JPEG, PNG…)." };
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    return { error: "Image trop volumineuse (8 Mo maximum)." };
+  }
+
+  const existing = await prisma.devis.findUnique({ where: { id }, select: { photoProjetUrl: true } });
+  await supprimerFichierStocke(existing?.photoProjetUrl);
+
+  const { url } = await stockerFichier(file, "devis-photos");
+  await prisma.devis.update({ where: { id }, data: { photoProjetUrl: url } });
+
+  revalidatePath(`/devis/${id}`);
+  return { url };
+}
+
+export async function supprimerDevisPhoto(id: string): Promise<void> {
+  const existing = await prisma.devis.findUnique({ where: { id }, select: { photoProjetUrl: true } });
+  await supprimerFichierStocke(existing?.photoProjetUrl);
+  await prisma.devis.update({ where: { id }, data: { photoProjetUrl: null } });
   revalidatePath(`/devis/${id}`);
 }
 

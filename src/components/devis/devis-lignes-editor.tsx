@@ -11,6 +11,7 @@ import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS, type CorpsEtatCode } from "@/lib/c
 import { saveOuvrageFromDevis } from "@/lib/actions/ouvrages";
 import type { DevisLignesState } from "@/lib/actions/devis";
 import type { DevisLigne } from "@/generated/prisma/client";
+import { computeSousTotaux } from "@/lib/devis-subtotals";
 
 type LigneType = "CHAPITRE" | "SOUS_CHAPITRE" | "LIGNE" | "CLAUSE_RESERVE";
 
@@ -103,19 +104,7 @@ function lineTotal(row: LigneRow) {
 }
 
 function computeSubtotals(rows: LigneRow[]) {
-  const subtotals = new Array(rows.length).fill(0);
-  const stack: number[] = [];
-  rows.forEach((row, i) => {
-    if (row.type === "CHAPITRE") { stack.length = 0; stack.push(i); }
-    else if (row.type === "SOUS_CHAPITRE") {
-      while (stack.length > 0 && rows[stack[stack.length - 1]].type === "SOUS_CHAPITRE") stack.pop();
-      stack.push(i);
-    } else {
-      const total = lineTotal(row);
-      for (const idx of stack) subtotals[idx] += total;
-    }
-  });
-  return subtotals.map((v) => Math.round(v * 100) / 100);
+  return computeSousTotaux(rows, lineTotal);
 }
 
 function computeNumbering(rows: LigneRow[]) {

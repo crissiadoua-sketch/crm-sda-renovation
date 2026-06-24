@@ -8,6 +8,7 @@ import { PageDeGarde } from "./page-de-garde";
 import { TamponSDAprint } from "@/components/tampon-sda";
 import { CGVAnnexe } from "./cgv-annexe";
 import { RichText } from "@/components/ui/rich-text";
+import { computeSousTotaux, computeSectionClosures } from "@/lib/devis-subtotals";
 
 // Toujours recalculé à la demande : ce document doit refléter la dernière
 // sauvegarde (page de garde, lignes…), jamais une version mise en cache par
@@ -41,6 +42,8 @@ export default async function ApercuDevisPage({
   const chapitres = lignes.filter(l => l.type === "CHAPITRE");
   const hasTVAReduite = lignes.some(l => l.tauxTVA && l.tauxTVA < 10);
   const nbCols = sansPrix ? 4 : 6;
+  const sousTotaux = computeSousTotaux(lignes, (l) => (l.type === "LIGNE" ? l.totalHT ?? 0 : 0));
+  const { closingBefore, closingAtEnd } = computeSectionClosures(lignes);
 
   return (
     <>
@@ -174,9 +177,21 @@ export default async function ApercuDevisPage({
                   let clauses: string[] = [];
                   try { if (cr) clauses = JSON.parse(cr) as string[]; } catch { /* noop */ }
 
+                  const subtotalRows = !sansPrix && closingBefore[i].length > 0
+                    ? closingBefore[i].map((titleIdx) => (
+                        <SousTotalRow
+                          key={`sous-total-${lignes[titleIdx].id}`}
+                          montant={sousTotaux[titleIdx]}
+                          niveau={lignes[titleIdx].type === "SOUS_CHAPITRE" ? "sous_chapitre" : "chapitre"}
+                          nbCols={nbCols}
+                        />
+                      ))
+                    : null;
+
                   if (ligne.type === "CHAPITRE") {
                     return (
                       <React.Fragment key={ligne.id}>
+                        {subtotalRows}
                         <tr className="bg-[#29ABE2]/10">
                           <td colSpan={nbCols} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#29ABE2]/40 whitespace-pre-wrap">
                             <RichText html={ligne.designation} />
@@ -212,6 +227,7 @@ export default async function ApercuDevisPage({
                   if (ligne.type === "SOUS_CHAPITRE") {
                     return (
                       <React.Fragment key={ligne.id}>
+                        {subtotalRows}
                         <tr className="bg-slate-50">
                           <td colSpan={nbCols} className="px-3 py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200 whitespace-pre-wrap">
                             <RichText html={ligne.designation} />
@@ -266,6 +282,14 @@ export default async function ApercuDevisPage({
                     </React.Fragment>
                   );
                 })}
+                {!sansPrix && closingAtEnd.map((titleIdx) => (
+                  <SousTotalRow
+                    key={`sous-total-${lignes[titleIdx].id}`}
+                    montant={sousTotaux[titleIdx]}
+                    niveau={lignes[titleIdx].type === "SOUS_CHAPITRE" ? "sous_chapitre" : "chapitre"}
+                    nbCols={nbCols}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
@@ -370,5 +394,18 @@ export default async function ApercuDevisPage({
         }
       `}</style>
     </>
+  );
+}
+
+function SousTotalRow({ montant, niveau, nbCols }: { montant: number; niveau: "chapitre" | "sous_chapitre"; nbCols: number }) {
+  return (
+    <tr className={niveau === "chapitre" ? "bg-[#1E2F6E]/5" : "bg-slate-50"}>
+      <td colSpan={nbCols - 1} className="px-3 py-1.5 text-right text-xs font-semibold text-slate-500 border-t border-slate-300">
+        Sous-total {niveau === "chapitre" ? "chapitre" : "sous-chapitre"}
+      </td>
+      <td className="px-3 py-1.5 text-right text-xs font-bold text-[#1E2F6E] border-t border-slate-300">
+        {formatEuros(montant)}
+      </td>
+    </tr>
   );
 }

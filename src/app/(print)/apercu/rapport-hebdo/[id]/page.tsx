@@ -127,7 +127,7 @@ export default async function ApercuRapportHebdoPage({
                     const fin = ligne.avancementFin ?? 0;
                     const progression = fin - debut;
                     return (
-                      <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                      <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                         <td className="px-2 py-1.5 text-center text-slate-400">{i + 1}</td>
                         <td className="px-2 py-1.5 text-slate-700">{ligne.tache}</td>
                         <td className="px-2 py-1.5 text-center text-slate-600">{debut}%</td>

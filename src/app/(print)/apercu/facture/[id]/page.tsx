@@ -112,20 +112,20 @@ export default async function ApercuFacturePage({
                 {facture.lignes.map((ligne, i) => {
                   if (ligne.type === "CHAPITRE") {
                     return (
-                      <tr key={ligne.id} className="bg-[#29ABE2]/10">
+                      <tr key={ligne.id} className="bg-[#29ABE2]/10" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                         <td colSpan={6} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#29ABE2]/40">{ligne.designation}</td>
                       </tr>
                     );
                   }
                   if (ligne.type === "SOUS_CHAPITRE") {
                     return (
-                      <tr key={ligne.id} className="bg-slate-50">
+                      <tr key={ligne.id} className="bg-slate-50" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                         <td colSpan={6} className="px-3 py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200">{ligne.designation}</td>
                       </tr>
                     );
                   }
                   return (
-                    <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}>
+                    <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="px-3 py-1.5 text-xs text-slate-400 pl-8">{ligne.codeArticle ?? "—"}</td>
                       <td className="px-3 py-1.5 text-xs text-slate-700 pl-8">{ligne.designation}</td>
                       <td className="px-3 py-1.5 text-xs text-center text-slate-500">{ligne.unite ?? "—"}</td>

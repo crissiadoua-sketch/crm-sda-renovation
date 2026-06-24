@@ -218,7 +218,7 @@ export default async function ApercuPvReceptionPage({
                     <tr key={l.id} className={`border-b border-slate-100 text-xs ${
                       l.conformite === "NON_CONFORME" ? "bg-red-50" :
                       i % 2 === 0 ? "bg-white" : "bg-slate-50/40"
-                    }`}>
+                    }`} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="px-2 py-1.5 text-slate-400">{i + 1}</td>
                       <td className="px-2 py-1.5 font-medium text-slate-700">{l.designation}</td>
                       <td className="px-2 py-1.5 font-mono text-slate-500 text-[10px]">{l.reference ?? "—"}</td>
@@ -251,7 +251,7 @@ export default async function ApercuPvReceptionPage({
                 {pvr.reserves.map((r, i) => (
                   <div key={r.id} className={`border-b border-slate-100 last:border-0 px-3 py-2.5 ${
                     r.statut === "LEVEE" ? "bg-green-50/50" : "bg-red-50/30"
-                  }`}>
+                  }`} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-start gap-2">
                         <span className="rounded-full bg-[#1E2F6E] text-white text-[9px] font-bold px-1.5 py-0.5 mt-0.5 shrink-0">

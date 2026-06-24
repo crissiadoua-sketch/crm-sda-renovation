@@ -98,7 +98,7 @@ export default async function ApercuFraisChantierPage({
               </thead>
               <tbody>
                 {fc.lignes.map((ligne, i) => (
-                  <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                  <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                     <td className="px-2 py-1.5 text-slate-500 text-[10px]">{ligne.categorie.replace(/_/g, " ")}</td>
                     <td className="px-2 py-1.5 text-slate-700">{ligne.designation}</td>
                     <td className="px-2 py-1.5 text-slate-500">{ligne.fournisseur ?? "—"}</td>
@@ -127,7 +127,7 @@ export default async function ApercuFraisChantierPage({
                 </thead>
                 <tbody>
                   {Object.entries(parCategorie).map(([cat, totaux], i) => (
-                    <tr key={cat} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                    <tr key={cat} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="px-2 py-1.5 text-slate-700">{cat.replace(/_/g, " ")}</td>
                       <td className="px-2 py-1.5 text-right text-slate-600">{formatEuros(totaux.totalHT)}</td>
                       <td className="px-2 py-1.5 text-right text-slate-600">{formatEuros(totaux.totalTTC)}</td>

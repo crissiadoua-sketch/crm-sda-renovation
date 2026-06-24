@@ -99,7 +99,7 @@ export default async function ApercuPVReunionChantierPage({
                 </thead>
                 <tbody>
                   {pv.participants.map((p, i) => (
-                    <tr key={p.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                    <tr key={p.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="px-2 py-1.5 text-slate-700">{p.nom}</td>
                       <td className="px-2 py-1.5 text-slate-500">{p.societe ?? "—"}</td>
                       <td className="px-2 py-1.5 text-slate-500">{p.fonction ?? "—"}</td>
@@ -121,7 +121,7 @@ export default async function ApercuPVReunionChantierPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Points traités</p>
               <div className="space-y-2">
                 {pv.points.map((point, i) => (
-                  <div key={point.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div key={point.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                     <p className="text-xs font-semibold text-[#1E2F6E]">
                       {i + 1}. {point.titre}
                     </p>
@@ -150,7 +150,7 @@ export default async function ApercuPVReunionChantierPage({
                 </thead>
                 <tbody>
                   {pv.actions.map((action, i) => (
-                    <tr key={action.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                    <tr key={action.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="px-2 py-1.5 text-center text-slate-400">{action.ordre}</td>
                       <td className="px-2 py-1.5 text-slate-700">{action.description}</td>
                       <td className="px-2 py-1.5 text-slate-600">{action.responsable ?? "—"}</td>

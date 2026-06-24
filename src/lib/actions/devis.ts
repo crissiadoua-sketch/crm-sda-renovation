@@ -19,7 +19,6 @@ const devisHeaderSchema = z.object({
   objet: z.string().optional(),
   delaiExecution: z.string().optional(),
   modaliteReglement: z.string().optional(),
-  modelePdf: z.enum(["APPEL_OFFRE", "MINIMALISTE", "CLASSIQUE"]),
 });
 
 export type DevisState = {
@@ -72,7 +71,6 @@ export async function createDevis(
       objet: emptyToNull(data.objet),
       delaiExecution: emptyToNull(data.delaiExecution),
       modaliteReglement: emptyToNull(data.modaliteReglement),
-      modelePdf: data.modelePdf,
     },
   });
 
@@ -112,7 +110,6 @@ export async function updateDevisInfo(
       objet: emptyToNull(data.objet),
       delaiExecution: emptyToNull(data.delaiExecution),
       modaliteReglement: emptyToNull(data.modaliteReglement),
-      modelePdf: data.modelePdf,
     },
   });
 
@@ -148,7 +145,6 @@ export async function creerAvenant(devisParentId: string) {
       objet: parent.objet ? `Avenant — ${parent.objet}` : null,
       delaiExecution: parent.delaiExecution,
       modaliteReglement: parent.modaliteReglement,
-      modelePdf: parent.modelePdf,
     },
   });
 
@@ -352,7 +348,6 @@ export async function convertirDevisEnFacture(devisId: string) {
       devisId: devis.id,
       statut: "BROUILLON",
       type: "STANDARD",
-      modelePdf: devis.modelePdf,
       totalHT: devis.totalHT,
       totalTVA: devis.totalTVA,
       totalTTC: devis.totalTTC,

@@ -17,12 +17,6 @@ const statutLabels: Record<string, string> = {
   EXPIRE: "Expiré",
 };
 
-const modelePdfLabels: Record<string, string> = {
-  APPEL_OFFRE: "Appel d'offres (DCE / DPGF)",
-  MINIMALISTE: "Minimaliste / Grand groupe",
-  CLASSIQUE: "Classique Artisan / Particulier",
-};
-
 export function DevisForm({
   devis,
   chantiers,
@@ -69,31 +63,15 @@ export function DevisForm({
         </Field>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Field
-          label="Modèle de présentation PDF"
-          htmlFor="modelePdf"
-          error={errors.modelePdf}
-          className="sm:col-span-2"
-        >
-          <select id="modelePdf" name="modelePdf" defaultValue={devis?.modelePdf ?? "APPEL_OFFRE"} className={inputClasses}>
-            {Object.entries(modelePdfLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Date de validité de l'offre" htmlFor="dateValidite" error={errors.dateValidite}>
-          <input
-            id="dateValidite"
-            name="dateValidite"
-            type="date"
-            defaultValue={toDateInputValue(devis?.dateValidite)}
-            className={inputClasses}
-          />
-        </Field>
-      </div>
+      <Field label="Date de validité de l'offre" htmlFor="dateValidite" error={errors.dateValidite} className="sm:max-w-xs">
+        <input
+          id="dateValidite"
+          name="dateValidite"
+          type="date"
+          defaultValue={toDateInputValue(devis?.dateValidite)}
+          className={inputClasses}
+        />
+      </Field>
 
       <Field label="Objet du devis" htmlFor="objet" error={errors.objet}>
         <input

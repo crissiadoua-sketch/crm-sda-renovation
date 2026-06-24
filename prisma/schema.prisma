@@ -301,6 +301,9 @@ model Devis {
   modeleCouverture         String   @default("RENOVATION") // APPEL_OFFRE | RENOVATION | CONSTRUCTION_NEUVE | SERVICES
   nomProjet                String?
   photoProjetUrl           String?
+  photoRotation            Int      @default(0) // 0 | 90 | 180 | 270
+  photoPositionX           Int      @default(50) // % cadrage horizontal (object-position)
+  photoPositionY           Int      @default(50) // % cadrage vertical (object-position)
 
   // Maître d'ouvrage
   moNom                    String?
@@ -373,6 +376,8 @@ model DevisLigne {
   totalHT        Float?
   styleTexte      String  @default("{}") // JSON: { bold, italic, underline, fontSize, color, align }
   clausesReserves String? // JSON: string[] — liste de clauses et réserves
+  sousTotalMasque Boolean @default(false) // CHAPITRE/SOUS_CHAPITRE : masque l'affichage du sous-total
+  sousTotalManuel Float? // CHAPITRE/SOUS_CHAPITRE : si renseigné, remplace le sous-total calculé
 
   devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
 }

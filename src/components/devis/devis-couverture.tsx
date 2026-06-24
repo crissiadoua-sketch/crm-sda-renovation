@@ -17,6 +17,7 @@ const BET_SPECIALITES = ["Structure", "Thermique", "Fluides", "Acoustique", "Él
 
 export function DevisCouverture({ devis }: { devis: {
   id: string; modeleCouverture: string; nomProjet?: string | null; photoProjetUrl?: string | null;
+  photoRotation?: number | null; photoPositionX?: number | null; photoPositionY?: number | null;
   moNom?: string | null; moRepresentant?: string | null; moEmail?: string | null; moTelephone?: string | null;
   moeNom?: string | null; moeRepresentant?: string | null; moeEmail?: string | null; moeTelephone?: string | null;
   bets?: string | null;
@@ -57,6 +58,9 @@ export function DevisCouverture({ devis }: { devis: {
   const [photoPreview, setPhotoPreview] = useState<string | null>(devis.photoProjetUrl ? urlFichier(devis.photoProjetUrl) : null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoRotation, setPhotoRotation] = useState(devis.photoRotation ?? 0);
+  const [photoPositionX, setPhotoPositionX] = useState(devis.photoPositionX ?? 50);
+  const [photoPositionY, setPhotoPositionY] = useState(devis.photoPositionY ?? 50);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,6 +78,9 @@ export function DevisCouverture({ devis }: { devis: {
     }
     setPhotoProjetUrl(result.url);
     setPhotoPreview(urlFichier(result.url));
+    setPhotoRotation(0);
+    setPhotoPositionX(50);
+    setPhotoPositionY(50);
   };
 
   const handleRemovePhoto = async () => {
@@ -83,7 +90,13 @@ export function DevisCouverture({ devis }: { devis: {
     setUploadingPhoto(false);
     setPhotoProjetUrl(null);
     setPhotoPreview(null);
+    setPhotoRotation(0);
+    setPhotoPositionX(50);
+    setPhotoPositionY(50);
   };
+
+  const rotatePhoto = (delta: number) => setPhotoRotation(prev => (prev + delta + 360) % 360);
+  const recentrerPhoto = () => { setPhotoPositionX(50); setPhotoPositionY(50); };
 
   const addBet = () => setBets(prev => [...prev, { specialite: "Structure", nom: "" }]);
   const removeBet = (i: number) => setBets(prev => prev.filter((_, idx) => idx !== i));
@@ -101,6 +114,9 @@ export function DevisCouverture({ devis }: { devis: {
       modeleCouverture: modele,
       nomProjet: nomProjet || null,
       photoProjetUrl,
+      photoRotation,
+      photoPositionX,
+      photoPositionY,
       moNom: moNom || null, moRepresentant: moRep || null, moEmail: moEmail || null, moTelephone: moTel || null,
       moeNom: moeNom || null, moeRepresentant: moeRep || null, moeEmail: moeEmail || null, moeTelephone: moeTel || null,
       bets: bets.length ? JSON.stringify(bets) : null,
@@ -143,8 +159,13 @@ export function DevisCouverture({ devis }: { devis: {
             <label className={labelCls}>Photo / visuel du projet</label>
             <div className="flex flex-wrap items-start gap-4">
               {photoPreview && (
-                <div className="relative">
-                  <img src={photoPreview} alt="Photo du projet" className="h-28 w-44 rounded-lg border border-slate-200 object-cover" />
+                <div className="relative h-28 w-44 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                  <img
+                    src={photoPreview}
+                    alt="Photo du projet"
+                    className="h-full w-full object-cover"
+                    style={{ objectPosition: `${photoPositionX}% ${photoPositionY}%`, transform: photoRotation ? `rotate(${photoRotation}deg)` : undefined }}
+                  />
                   <button
                     type="button"
                     onClick={handleRemovePhoto}
@@ -170,6 +191,28 @@ export function DevisCouverture({ devis }: { devis: {
                 {photoError && <p className="text-xs text-red-500">{photoError}</p>}
               </div>
             </div>
+
+            {photoPreview && (
+              <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 sm:max-w-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => rotatePhoto(-90)} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" title="Pivoter à gauche">⟲ 90°</button>
+                    <button type="button" onClick={() => rotatePhoto(90)} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-50" title="Pivoter à droite">⟳ 90°</button>
+                  </div>
+                  <button type="button" onClick={recentrerPhoto} className="text-xs font-semibold text-[#1E2F6E] hover:underline">
+                    Recentrer
+                  </button>
+                </div>
+                <div>
+                  <label className={labelCls}>Cadrage horizontal</label>
+                  <input type="range" min={0} max={100} value={photoPositionX} onChange={e => setPhotoPositionX(Number(e.target.value))} className="w-full" />
+                </div>
+                <div>
+                  <label className={labelCls}>Cadrage vertical</label>
+                  <input type="range" min={0} max={100} value={photoPositionY} onChange={e => setPhotoPositionY(Number(e.target.value))} className="w-full" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

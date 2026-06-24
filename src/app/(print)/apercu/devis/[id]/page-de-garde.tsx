@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { formatDate, urlFichier } from "@/lib/format";
 
@@ -6,6 +7,7 @@ type BordRow = { destinataire: string; societe?: string; exemplaires?: number; d
 
 export function PageDeGarde({ devis }: { devis: {
   numero: string; modeleCouverture: string; nomProjet?: string | null; photoProjetUrl?: string | null;
+  photoRotation?: number | null; photoPositionX?: number | null; photoPositionY?: number | null;
   dateCreation: Date | string; dateValidite?: Date | string | null;
   objet?: string | null; referenceMarche?: string | null; lot?: string | null;
   moNom?: string | null; moRepresentant?: string | null; moEmail?: string | null; moTelephone?: string | null;
@@ -21,6 +23,10 @@ export function PageDeGarde({ devis }: { devis: {
   const bets: BET[] = (() => { try { return devis.bets ? JSON.parse(devis.bets) : []; } catch { return []; } })();
   const bord: BordRow[] = (() => { try { return devis.bordereauDiffusion ? JSON.parse(devis.bordereauDiffusion) : []; } catch { return []; } })();
   const adresseChantier = [devis.chantier.adresse, devis.chantier.codePostal, devis.chantier.ville].filter(Boolean).join(" ");
+  const photoStyle: CSSProperties = {
+    objectPosition: `${devis.photoPositionX ?? 50}% ${devis.photoPositionY ?? 50}%`,
+    transform: devis.photoRotation ? `rotate(${devis.photoRotation}deg)` : undefined,
+  };
   const clientNom = devis.client.type === "ENTREPRISE" ? (devis.client.raisonSociale || devis.client.nom) : `${devis.client.prenom ?? ""} ${devis.client.nom}`.trim();
 
   // Composants partagés
@@ -75,7 +81,7 @@ export function PageDeGarde({ devis }: { devis: {
           {/* Zone photo */}
           <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 to-[#29ABE2]/10 h-56 flex items-center justify-center border border-[#1E2F6E]/10">
             {devis.photoProjetUrl ? (
-              <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" />
+              <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
             ) : (
               <div className="text-center">
                 <div className="text-4xl mb-2">📷</div>
@@ -163,7 +169,7 @@ export function PageDeGarde({ devis }: { devis: {
           {/* Zone photo */}
           <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 via-[#29ABE2]/5 to-slate-50 h-72 flex items-center justify-center border border-[#1E2F6E]/10">
             {devis.photoProjetUrl ? (
-              <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" />
+              <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
             ) : (
               <div className="text-center">
                 <div className="text-4xl mb-2">🏗️</div>
@@ -237,7 +243,7 @@ export function PageDeGarde({ devis }: { devis: {
           {/* Zone photo agrandie, plein format */}
           <div className="relative rounded-xl overflow-hidden bg-white/10 h-72 flex items-center justify-center mb-6 border border-white/20">
             {devis.photoProjetUrl ? (
-              <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" />
+              <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
             ) : (
               <div className="text-center">
                 <div className="text-5xl mb-2">🏢</div>
@@ -327,7 +333,7 @@ export function PageDeGarde({ devis }: { devis: {
         {/* Zone photo */}
         <div className="relative mb-8 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 to-[#29ABE2]/10 h-56 flex items-center justify-center border border-[#1E2F6E]/10">
           {devis.photoProjetUrl ? (
-            <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
           ) : (
             <div className="text-center">
               <div className="text-4xl mb-2">📷</div>
@@ -395,7 +401,7 @@ function PartieRow({ label, nom, rep, email, tel, color }: { label: string; nom?
 // Bordereau de diffusion
 function BordereauDiffusion({ rows }: { rows: BordRow[] }) {
   return (
-    <div className="mt-4">
+    <div className="mt-4" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
       <div className="rounded-xl border border-slate-200 overflow-hidden">
         <div className="bg-slate-700 px-4 py-2">
           <p className="text-[10px] font-bold uppercase tracking-widest text-white">Bordereau de diffusion</p>

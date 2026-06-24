@@ -20,11 +20,12 @@ export default async function ApercuDevisPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ sansPrix?: string }>;
+  searchParams: Promise<{ sansPrix?: string; synthese?: string }>;
 }) {
   const { id } = await params;
-  const { sansPrix: sansPrixParam } = await searchParams;
+  const { sansPrix: sansPrixParam, synthese: syntheseParam } = await searchParams;
   const sansPrix = sansPrixParam === "1";
+  const synthese = syntheseParam === "1";
 
   const devis = await prisma.devis.findUnique({
     where: { id },
@@ -44,9 +45,17 @@ export default async function ApercuDevisPage({
   const sousTotaux = computeSousTotaux(lignes, (l) => (l.type === "LIGNE" ? l.totalHT ?? 0 : 0));
   const { closingBefore, closingAtEnd } = computeSectionClosures(lignes);
 
+  // Sous-total effectif d'un titre : null si masqué, sinon la valeur manuelle
+  // si renseignée, sinon le calcul automatique.
+  function sousTotalAffiche(titleIdx: number): number | null {
+    const l = lignes[titleIdx];
+    if (l.sousTotalMasque) return null;
+    return l.sousTotalManuel ?? sousTotaux[titleIdx];
+  }
+
   return (
     <>
-      <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}${sansPrix ? " · Sans prix" : ""}`} />
+      <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}${sansPrix ? " · Sans prix" : ""}${synthese ? " · Synthèse" : ""}`} />
 
       <PageDeGarde devis={devis} />
 
@@ -57,6 +66,12 @@ export default async function ApercuDevisPage({
           {sansPrix && (
             <div className="mb-4 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-center">
               <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Document sans prix — quantités uniquement</p>
+            </div>
+          )}
+
+          {synthese && (
+            <div className="mb-4 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Synthèse — sous-totaux et totaux uniquement</p>
             </div>
           )}
 
@@ -155,6 +170,43 @@ export default async function ApercuDevisPage({
 
           {/* Tableau des lignes */}
           <div className="mb-6">
+            {synthese ? (
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-[#1E2F6E] text-white">
+                    <th className="px-3 py-2 text-left font-semibold text-xs">Désignation</th>
+                    <th className="px-3 py-2 text-right font-semibold text-xs w-32">Sous-total HT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lignes.map((ligne, i) => {
+                    if (ligne.type !== "CHAPITRE" && ligne.type !== "SOUS_CHAPITRE") return null;
+                    const montant = sousTotalAffiche(i);
+                    if (montant == null) return null;
+                    return (
+                      <tr
+                        key={ligne.id}
+                        className={ligne.type === "CHAPITRE" ? "bg-[#29ABE2]/10" : "bg-slate-50"}
+                        style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+                      >
+                        <td className={`px-3 whitespace-pre-wrap ${
+                          ligne.type === "CHAPITRE"
+                            ? "py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#29ABE2]/40"
+                            : "py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200"
+                        }`}>
+                          <RichText html={ligne.designation} />
+                        </td>
+                        <td className={`px-3 text-right font-bold text-[#1E2F6E] ${
+                          ligne.type === "CHAPITRE" ? "py-2 border-t-2 border-[#29ABE2]/40" : "py-1.5 text-xs border-t border-slate-200"
+                        }`}>
+                          {formatEuros(montant)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-[#1E2F6E] text-white">
@@ -175,15 +227,19 @@ export default async function ApercuDevisPage({
                   let clauses: string[] = [];
                   try { if (cr) clauses = JSON.parse(cr) as string[]; } catch { /* noop */ }
 
-                  const subtotalRows = !sansPrix && closingBefore[i].length > 0
-                    ? closingBefore[i].map((titleIdx) => (
-                        <SousTotalRow
-                          key={`sous-total-${lignes[titleIdx].id}`}
-                          montant={sousTotaux[titleIdx]}
-                          niveau={lignes[titleIdx].type === "SOUS_CHAPITRE" ? "sous_chapitre" : "chapitre"}
-                          nbCols={nbCols}
-                        />
-                      ))
+                  const subtotalRows = !sansPrix
+                    ? closingBefore[i].map((titleIdx) => {
+                        const montant = sousTotalAffiche(titleIdx);
+                        if (montant == null) return null;
+                        return (
+                          <SousTotalRow
+                            key={`sous-total-${lignes[titleIdx].id}`}
+                            montant={montant}
+                            niveau={lignes[titleIdx].type === "SOUS_CHAPITRE" ? "sous_chapitre" : "chapitre"}
+                            nbCols={nbCols}
+                          />
+                        );
+                      })
                     : null;
 
                   if (ligne.type === "CHAPITRE") {
@@ -284,17 +340,22 @@ export default async function ApercuDevisPage({
                 })}
                 {!sansPrix && closingAtEnd.length > 0 && (
                   <tbody>
-                    {closingAtEnd.map((titleIdx) => (
-                      <SousTotalRow
-                        key={`sous-total-${lignes[titleIdx].id}`}
-                        montant={sousTotaux[titleIdx]}
-                        niveau={lignes[titleIdx].type === "SOUS_CHAPITRE" ? "sous_chapitre" : "chapitre"}
-                        nbCols={nbCols}
-                      />
-                    ))}
+                    {closingAtEnd.map((titleIdx) => {
+                      const montant = sousTotalAffiche(titleIdx);
+                      if (montant == null) return null;
+                      return (
+                        <SousTotalRow
+                          key={`sous-total-${lignes[titleIdx].id}`}
+                          montant={montant}
+                          niveau={lignes[titleIdx].type === "SOUS_CHAPITRE" ? "sous_chapitre" : "chapitre"}
+                          nbCols={nbCols}
+                        />
+                      );
+                    })}
                   </tbody>
                 )}
             </table>
+            )}
           </div>
 
           {/* Récapitulatif totaux */}
@@ -335,7 +396,7 @@ export default async function ApercuDevisPage({
           )}
 
           {/* Mentions libres */}
-          {devis.mentionsLibres && (
+          {!synthese && devis.mentionsLibres && (
             <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
               <p className="text-xs font-semibold text-slate-500 mb-1">Mentions</p>
               <p className="text-xs text-slate-700 whitespace-pre-wrap">{devis.mentionsLibres}</p>
@@ -343,7 +404,7 @@ export default async function ApercuDevisPage({
           )}
 
           {/* Bon pour accord */}
-          {!sansPrix && (
+          {!sansPrix && !synthese && (
             <div className="mb-8 rounded-lg border-2 border-[#1E2F6E]/20 bg-slate-50 p-5">
               <p className="text-sm font-semibold text-[#1E2F6E] mb-3">Bon pour accord</p>
               <p className="text-xs text-slate-500 mb-6">

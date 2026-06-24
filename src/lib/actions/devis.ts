@@ -179,6 +179,8 @@ const ligneInputSchema = z.object({
   tauxTVA: z.number().nullable().optional(),
   styleTexte: z.string().optional(),
   clausesReserves: z.string().nullable().optional(), // JSON string[]
+  sousTotalMasque: z.boolean().optional(),
+  sousTotalManuel: z.number().nullable().optional(),
 });
 
 export type DevisLignesState = {
@@ -234,6 +236,8 @@ export async function updateDevisLignes(
       totalHT: total,
       styleTexte: ligne.styleTexte ?? "{}",
       clausesReserves: ligne.clausesReserves ?? null,
+      sousTotalMasque: ligne.sousTotalMasque ?? false,
+      sousTotalManuel: ligne.sousTotalManuel ?? null,
     };
   });
 
@@ -284,6 +288,9 @@ export async function updateDevisCouverture(
     modeleCouverture: string;
     nomProjet?: string | null;
     photoProjetUrl?: string | null;
+    photoRotation?: number;
+    photoPositionX?: number;
+    photoPositionY?: number;
     moNom?: string | null; moRepresentant?: string | null; moEmail?: string | null; moTelephone?: string | null;
     moeNom?: string | null; moeRepresentant?: string | null; moeEmail?: string | null; moeTelephone?: string | null;
     bets?: string | null;

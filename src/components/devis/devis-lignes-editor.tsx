@@ -2,7 +2,7 @@
 
 import React, { useActionState, useState, startTransition } from "react";
 import {
-  Plus, Trash2, ChevronUp, ChevronDown, BookOpen, Save, Search, X,
+  Plus, Trash2, ChevronUp, ChevronDown, BookOpen, Save, Search, X, Eye, EyeOff,
 } from "lucide-react";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -27,6 +27,8 @@ type LigneRow = {
   tauxTVA: string;
   styleTexte: string; // JSON StyleTexte
   clausesReserves: string; // JSON string[]
+  sousTotalMasque: boolean; // CHAPITRE/SOUS_CHAPITRE : masque l'affichage du sous-total
+  sousTotalManuel: string; // CHAPITRE/SOUS_CHAPITRE : si renseigné, remplace le sous-total calculé
 };
 
 export type OuvrageRow = {
@@ -66,6 +68,10 @@ function toRow(ligne: DevisLigne): LigneRow {
     tauxTVA: ligne.tauxTVA != null ? String(ligne.tauxTVA) : "20",
     styleTexte: (ligne as DevisLigne & { styleTexte?: string }).styleTexte ?? "{}",
     clausesReserves: (ligne as DevisLigne & { clausesReserves?: string | null }).clausesReserves ?? "[]",
+    sousTotalMasque: (ligne as DevisLigne & { sousTotalMasque?: boolean }).sousTotalMasque ?? false,
+    sousTotalManuel: (ligne as DevisLigne & { sousTotalManuel?: number | null }).sousTotalManuel != null
+      ? String((ligne as DevisLigne & { sousTotalManuel?: number | null }).sousTotalManuel)
+      : "",
   };
 }
 
@@ -73,7 +79,7 @@ function emptyRow(type: LigneType): LigneRow {
   return {
     key: newKey(), type, codeArticle: "", designation: "",
     unite: "", quantite: "", prixUnitaireHT: "", remise: "0", tauxTVA: "20",
-    styleTexte: "{}", clausesReserves: "[]",
+    styleTexte: "{}", clausesReserves: "[]", sousTotalMasque: false, sousTotalManuel: "",
   };
 }
 
@@ -91,6 +97,8 @@ function rowFromOuvrage(o: OuvrageRow, offreKey: "eco" | "opt" | "prem" = "opt")
     tauxTVA: String(o.tauxTVA),
     styleTexte: o.styleTexte ?? "{}",
     clausesReserves: "[]",
+    sousTotalMasque: false,
+    sousTotalManuel: "",
   };
 }
 
@@ -449,6 +457,8 @@ export function DevisLignesEditor({
       tauxTVA: row.type === "LIGNE" && row.tauxTVA !== "" ? Number(row.tauxTVA) : null,
       styleTexte: row.styleTexte,
       clausesReserves: parseClauses(row.clausesReserves).length > 0 ? row.clausesReserves : null,
+      sousTotalMasque: row.sousTotalMasque,
+      sousTotalManuel: row.sousTotalManuel !== "" ? Number(row.sousTotalManuel) : null,
     })),
   );
 
@@ -606,16 +616,43 @@ export function DevisLignesEditor({
                           {formatEuros(lineTotal(row))}
                         </td>
                       </>
+                    ) : row.type === "CLAUSE_RESERVE" ? (
+                      <td className="px-3 py-2" colSpan={6}></td>
                     ) : (
                       <>
                         <td className="px-3 py-2" colSpan={5}></td>
-                        <td className="px-3 py-2 text-right align-top text-slate-500">
-                          {subtotals[index] !== 0 ? `Sous-total : ${formatEuros(subtotals[index])}` : ""}
+                        <td className="px-3 py-2 align-top" onClick={(e) => e.stopPropagation()}>
+                          {!row.sousTotalMasque && (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <span className="whitespace-nowrap text-xs text-slate-400">Sous-total :</span>
+                              <input
+                                type="number" step="0.01"
+                                value={row.sousTotalManuel}
+                                onChange={(e) => update(row.key, { sousTotalManuel: e.target.value })}
+                                placeholder={subtotals[index].toFixed(2)}
+                                title="Laisser vide pour le calcul automatique"
+                                className="w-24 rounded-md border border-slate-200 px-2 py-1 text-right text-sm text-slate-700"
+                              />
+                              <span className="text-xs text-slate-400">€</span>
+                            </div>
+                          )}
                         </td>
                       </>
                     )}
                     <td className="px-3 py-2 align-top">
                       <div className="flex items-center justify-end gap-1">
+                        {(row.type === "CHAPITRE" || row.type === "SOUS_CHAPITRE") && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); update(row.key, { sousTotalMasque: !row.sousTotalMasque }); }}
+                            title={row.sousTotalMasque ? "Afficher le sous-total" : "Masquer le sous-total"}
+                            className={`rounded p-1 transition ${
+                              row.sousTotalMasque ? "text-slate-300 hover:bg-slate-100" : "text-brand-blue hover:bg-brand-blue/10"
+                            }`}
+                          >
+                            {row.sousTotalMasque ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
                         {/* Bouton Clauses et Réserves */}
                         <button
                           type="button"

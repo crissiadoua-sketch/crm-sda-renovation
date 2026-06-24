@@ -1,4 +1,3 @@
-import React from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
@@ -171,8 +170,7 @@ export default async function ApercuDevisPage({
                   )}
                 </tr>
               </thead>
-              <tbody>
-                {lignes.map((ligne, i) => {
+              {lignes.map((ligne, i) => {
                   const cr = (ligne as typeof ligne & { clausesReserves?: string | null }).clausesReserves;
                   let clauses: string[] = [];
                   try { if (cr) clauses = JSON.parse(cr) as string[]; } catch { /* noop */ }
@@ -190,7 +188,7 @@ export default async function ApercuDevisPage({
 
                   if (ligne.type === "CHAPITRE") {
                     return (
-                      <React.Fragment key={ligne.id}>
+                      <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                         {subtotalRows}
                         <tr className="bg-[#29ABE2]/10">
                           <td colSpan={nbCols} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#29ABE2]/40 whitespace-pre-wrap">
@@ -211,22 +209,24 @@ export default async function ApercuDevisPage({
                             </td>
                           </tr>
                         )}
-                      </React.Fragment>
+                      </tbody>
                     );
                   }
                   if (ligne.type === "CLAUSE_RESERVE") {
                     return (
-                      <tr key={ligne.id} className="bg-red-50/60">
-                        <td colSpan={nbCols} className="px-3 py-2 pl-6 border-t border-red-100">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-red-600 mb-0.5">Clause / réserve</p>
-                          <p className="text-xs italic text-red-700 whitespace-pre-wrap"><RichText html={ligne.designation} /></p>
-                        </td>
-                      </tr>
+                      <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+                        <tr className="bg-red-50/60">
+                          <td colSpan={nbCols} className="px-3 py-2 pl-6 border-t border-red-100">
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-red-600 mb-0.5">Clause / réserve</p>
+                            <p className="text-xs italic text-red-700 whitespace-pre-wrap"><RichText html={ligne.designation} /></p>
+                          </td>
+                        </tr>
+                      </tbody>
                     );
                   }
                   if (ligne.type === "SOUS_CHAPITRE") {
                     return (
-                      <React.Fragment key={ligne.id}>
+                      <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                         {subtotalRows}
                         <tr className="bg-slate-50">
                           <td colSpan={nbCols} className="px-3 py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200 whitespace-pre-wrap">
@@ -247,12 +247,12 @@ export default async function ApercuDevisPage({
                             </td>
                           </tr>
                         )}
-                      </React.Fragment>
+                      </tbody>
                     );
                   }
                   // LIGNE normale
                   return (
-                    <React.Fragment key={ligne.id}>
+                    <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <tr className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}>
                         <td className="px-3 py-1.5 text-xs text-slate-400 pl-8">{ligne.codeArticle ?? "—"}</td>
                         <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap"><RichText html={ligne.designation} /></td>
@@ -279,18 +279,21 @@ export default async function ApercuDevisPage({
                           </td>
                         </tr>
                       )}
-                    </React.Fragment>
+                    </tbody>
                   );
                 })}
-                {!sansPrix && closingAtEnd.map((titleIdx) => (
-                  <SousTotalRow
-                    key={`sous-total-${lignes[titleIdx].id}`}
-                    montant={sousTotaux[titleIdx]}
-                    niveau={lignes[titleIdx].type === "SOUS_CHAPITRE" ? "sous_chapitre" : "chapitre"}
-                    nbCols={nbCols}
-                  />
-                ))}
-              </tbody>
+                {!sansPrix && closingAtEnd.length > 0 && (
+                  <tbody>
+                    {closingAtEnd.map((titleIdx) => (
+                      <SousTotalRow
+                        key={`sous-total-${lignes[titleIdx].id}`}
+                        montant={sousTotaux[titleIdx]}
+                        niveau={lignes[titleIdx].type === "SOUS_CHAPITRE" ? "sous_chapitre" : "chapitre"}
+                        nbCols={nbCols}
+                      />
+                    ))}
+                  </tbody>
+                )}
             </table>
           </div>
 

@@ -91,7 +91,7 @@ export default async function ApercuApprovisionementChantierPage({
                       </td>
                     </tr>
                     {lignes.map((ligne, i) => (
-                      <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                         <td className="border border-slate-200 px-2 py-1.5 text-slate-700 font-medium">{ligne.designation}</td>
                         <td className="border border-slate-200 px-2 py-1.5 text-right text-slate-600">{ligne.rendementConso?.toFixed(3) ?? "—"}</td>
                         <td className="border border-slate-200 px-2 py-1.5 text-center text-slate-500">{ligne.uniteRendement ?? "—"}</td>

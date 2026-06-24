@@ -315,7 +315,7 @@ export default async function ApercuBonCommandeBetonPage({
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {bcb.livraisons.map((l, i) => (
-                        <tr key={l.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}>
+                        <tr key={l.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                           <td className="px-3 py-2 font-mono text-slate-400">{i + 1}</td>
                           <td className="px-3 py-2 font-medium">{formatDate(l.dateLivraison)}</td>
                           <td className="px-3 py-2 text-right font-bold text-[#1E2F6E]">{l.quantiteM3.toFixed(1)}</td>

@@ -128,7 +128,7 @@ export default async function ApercuFicheInterventionPage({
                 </thead>
                 <tbody>
                   {fi.equipiers.map((e) => (
-                    <tr key={e.id} className="border-b border-slate-100">
+                    <tr key={e.id} className="border-b border-slate-100" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="py-1.5 px-2">{e.nom}</td>
                       <td className="py-1.5 px-2">{e.prenom ?? "—"}</td>
                       <td className="py-1.5 px-2">{e.role ?? "—"}</td>
@@ -158,7 +158,7 @@ export default async function ApercuFicheInterventionPage({
                 </thead>
                 <tbody>
                   {fi.travaux.map((t) => (
-                    <tr key={t.id} className="border-b border-slate-100">
+                    <tr key={t.id} className="border-b border-slate-100" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="py-1.5 px-2 text-slate-400">{t.ordre}</td>
                       <td className="py-1.5 px-2">{t.description}</td>
                       <td className="py-1.5 px-2">{t.quantite != null ? `${t.quantite} ${t.unite ?? ""}` : "—"}</td>

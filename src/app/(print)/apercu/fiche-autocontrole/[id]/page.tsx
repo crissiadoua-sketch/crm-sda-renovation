@@ -116,7 +116,7 @@ export default async function ApercuFicheAutocontrolePage({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {fac.points.map((p) => (
-                    <tr key={p.id} className={resultatBg(p.resultat)}>
+                    <tr key={p.id} className={resultatBg(p.resultat)} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="px-3 py-1.5 text-slate-400 font-bold">{p.ordre}</td>
                       <td className="px-3 py-1.5 text-slate-700">{p.critere}</td>
                       <td className="px-3 py-1.5 text-slate-600">{p.exigence ?? "—"}</td>

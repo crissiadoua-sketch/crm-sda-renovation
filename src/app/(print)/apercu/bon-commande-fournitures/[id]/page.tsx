@@ -157,7 +157,7 @@ export default async function ApercuBcFournituresPage({
                   </thead>
                   <tbody>
                     {catLignes.map((l, i) => (
-                      <tr key={l.id} className={`border-b border-slate-100 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"}`}>
+                      <tr key={l.id} className={`border-b border-slate-100 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"}`} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                         <td className="px-2 py-1.5 text-slate-400">{i + 1}</td>
                         <td className="px-2 py-1.5 font-medium text-slate-700">{l.designation}</td>
                         <td className="px-2 py-1.5 font-mono text-slate-400">{l.reference ?? "—"}</td>

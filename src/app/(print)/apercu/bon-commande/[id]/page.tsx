@@ -100,7 +100,7 @@ export default async function ApercuBonCommandePage({
               </thead>
               <tbody>
                 {bc.lignes.map((ligne, i) => (
-                  <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}>
+                  <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                     <td className="px-3 py-1.5 text-xs text-slate-700">{ligne.designation}</td>
                     <td className="px-3 py-1.5 text-xs text-center text-slate-500">{ligne.unite ?? "—"}</td>
                     <td className="px-3 py-1.5 text-xs text-right text-slate-700">{ligne.quantite?.toFixed(2) ?? "—"}</td>

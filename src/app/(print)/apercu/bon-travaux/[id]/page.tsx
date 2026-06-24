@@ -142,7 +142,7 @@ export default async function ApercuBonTravauxPage({
                 </thead>
                 <tbody>
                   {bt.equipe.map((e, i) => (
-                    <tr key={e.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                    <tr key={e.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="px-2 py-1.5 font-medium text-slate-700">{e.nom}</td>
                       <td className="px-2 py-1.5 text-slate-600">{e.prenom ?? "—"}</td>
                       <td className="px-2 py-1.5 text-slate-500">{e.role ?? "—"}</td>
@@ -172,7 +172,7 @@ export default async function ApercuBonTravauxPage({
                 </thead>
                 <tbody>
                   {bt.taches.map((t, i) => (
-                    <tr key={t.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                    <tr key={t.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="px-2 py-1.5 text-center text-slate-400">{t.ordre}</td>
                       <td className="px-2 py-1.5 text-slate-700">{t.description}</td>
                       <td className="px-2 py-1.5 text-right text-slate-600">{t.quantite?.toFixed(2) ?? "—"}</td>

@@ -126,7 +126,7 @@ export default async function ApercuDemandeApprovisionnementPage({
               </thead>
               <tbody>
                 {da.lignes.map((ligne, i) => (
-                  <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                  <tr key={ligne.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                     <td className="px-2 py-1.5 text-center text-slate-400">{ligne.ordre}</td>
                     <td className="px-2 py-1.5 text-slate-700">{ligne.designation}</td>
                     <td className="px-2 py-1.5 text-slate-500">{ligne.reference ?? "—"}</td>

@@ -92,7 +92,7 @@ export default async function OuvragesPage({
           </span>
         ))}
         <span className="text-xs text-slate-400 self-center ml-2">
-          Colonnes : Temps de pose · Pose seule · Fourniture seule · Fournitures + pose
+          Colonnes : Temps de pose · Pose seule · Fourniture seule · Fournitures + pose · P.U référence (figé, pour l'actualisation des prix)
         </span>
       </div>
 
@@ -171,7 +171,7 @@ export default async function OuvragesPage({
                         {OFFRES.map((offre) => (
                           <th
                             key={offre.key}
-                            colSpan={4}
+                            colSpan={5}
                             className={`border-b border-r border-slate-200 px-3 py-2 text-center font-black uppercase tracking-widest ${offre.color}`}
                           >
                             {offre.label}
@@ -189,7 +189,8 @@ export default async function OuvragesPage({
                             <th className={`px-2 py-2 text-center ${offre.color} opacity-80`}>Tps (h)</th>
                             <th className={`px-2 py-2 text-right ${offre.color} opacity-80`}>Pose €</th>
                             <th className={`px-2 py-2 text-right ${offre.color} opacity-80`}>Fourn. €</th>
-                            <th className={`px-2 py-2 text-right border-r border-slate-200 font-black ${offre.color}`}>Total €</th>
+                            <th className={`px-2 py-2 text-right font-black ${offre.color}`}>Total €</th>
+                            <th className={`px-2 py-2 text-right border-r border-slate-200 font-black text-slate-500`}>P.U référence</th>
                           </React.Fragment>
                         ))}
                         <th className="px-3 py-2"></th>
@@ -227,7 +228,7 @@ export default async function OuvragesPage({
                           <td className="px-3 py-2 text-center text-slate-500 border-r border-slate-200 whitespace-nowrap">
                             {o.unite}
                           </td>
-                          {/* 3 offres × 4 colonnes */}
+                          {/* 3 offres × 5 colonnes (dont prix de référence, figé, identique pour les 3) */}
                           {OFFRES.map((offre) => {
                             const v = offreValues(o, offre.key);
                             return (
@@ -242,7 +243,7 @@ export default async function OuvragesPage({
                                   {v.prixFourniture > 0 ? formatEuros(v.prixFourniture) : "—"}
                                 </td>
                                 <td
-                                  className={`px-2 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap ${
+                                  className={`px-2 py-2 text-right font-bold whitespace-nowrap ${
                                     v.prixTotal > 0
                                       ? offre.key === "eco"
                                         ? "text-emerald-700"
@@ -253,6 +254,9 @@ export default async function OuvragesPage({
                                   }`}
                                 >
                                   {v.prixTotal > 0 ? formatEuros(v.prixTotal) : "—"}
+                                </td>
+                                <td className="px-2 py-2 text-right font-semibold text-slate-500 border-r border-slate-200 whitespace-nowrap">
+                                  {o.prixUnitaire > 0 ? formatEuros(o.prixUnitaire) : "—"}
                                 </td>
                               </React.Fragment>
                             );

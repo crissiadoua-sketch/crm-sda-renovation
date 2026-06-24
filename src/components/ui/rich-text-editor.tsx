@@ -1,7 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, Eraser } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, Eraser, List, ListOrdered, Indent, Outdent } from "lucide-react";
+
+const BULLET_STYLES = [
+  { label: "• Puce", value: "disc" },
+  { label: "○ Cercle", value: "circle" },
+  { label: "▪ Carré", value: "square" },
+];
+const NUMBERING_STYLES = [
+  { label: "1, 2, 3…", value: "decimal" },
+  { label: "01, 02, 03…", value: "decimal-leading-zero" },
+  { label: "a, b, c…", value: "lower-alpha" },
+  { label: "A, B, C…", value: "upper-alpha" },
+  { label: "i, ii, iii…", value: "lower-roman" },
+  { label: "I, II, III…", value: "upper-roman" },
+];
 
 const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
 const FONT_FAMILIES = [
@@ -97,6 +111,29 @@ export function RichTextEditor({
     emit();
   };
 
+  const applyList = (ordered: boolean, listStyleType: string) => {
+    ref.current?.focus();
+    document.execCommand(ordered ? "insertOrderedList" : "insertUnorderedList");
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      let node: Node | null = sel.getRangeAt(0).startContainer;
+      while (node && node !== ref.current) {
+        if (node instanceof HTMLElement && (node.tagName === "UL" || node.tagName === "OL")) {
+          node.style.listStyleType = listStyleType;
+          break;
+        }
+        node = node.parentNode;
+      }
+    }
+    emit();
+  };
+
+  const applyIndent = (direction: "indent" | "outdent") => {
+    ref.current?.focus();
+    document.execCommand(direction);
+    emit();
+  };
+
   const btnCls = "flex h-5 w-5 items-center justify-center rounded text-[11px] text-slate-600 transition hover:bg-slate-200";
   const selectCls = "rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] leading-tight text-slate-500 focus:outline-none";
   const toggleBtnCls = "flex h-5 w-5 items-center justify-center rounded text-slate-400 transition hover:bg-slate-200 hover:text-slate-600";
@@ -160,6 +197,45 @@ export function RichTextEditor({
             );
           })}
 
+          <div className="mx-0.5 h-4 w-px bg-slate-300" />
+
+          <button type="button" title="Liste à puces" onMouseDown={(e) => e.preventDefault()} onClick={() => applyList(false, "disc")} className={btnCls}>
+            <List className="h-3 w-3" />
+          </button>
+          <select
+            title="Bibliothèque de puces"
+            onMouseDown={(e) => e.stopPropagation()}
+            onChange={(e) => { const v = e.target.value; if (v) applyList(false, v); e.target.value = ""; }}
+            defaultValue=""
+            className={`${selectCls} max-w-[4rem]`}
+          >
+            <option value="" disabled>Puces…</option>
+            {BULLET_STYLES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+          </select>
+
+          <button type="button" title="Liste numérotée" onMouseDown={(e) => e.preventDefault()} onClick={() => applyList(true, "decimal")} className={btnCls}>
+            <ListOrdered className="h-3 w-3" />
+          </button>
+          <select
+            title="Bibliothèque de numérotation"
+            onMouseDown={(e) => e.stopPropagation()}
+            onChange={(e) => { const v = e.target.value; if (v) applyList(true, v); e.target.value = ""; }}
+            defaultValue=""
+            className={`${selectCls} max-w-[4.5rem]`}
+          >
+            <option value="" disabled>Numéros…</option>
+            {NUMBERING_STYLES.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
+          </select>
+
+          <button type="button" title="Diminuer le retrait" onMouseDown={(e) => e.preventDefault()} onClick={() => applyIndent("outdent")} className={btnCls}>
+            <Outdent className="h-3 w-3" />
+          </button>
+          <button type="button" title="Augmenter le retrait" onMouseDown={(e) => e.preventDefault()} onClick={() => applyIndent("indent")} className={btnCls}>
+            <Indent className="h-3 w-3" />
+          </button>
+
+          <div className="mx-0.5 h-4 w-px bg-slate-300" />
+
           <button type="button" title="Effacer la mise en forme" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("removeFormat")} className={btnCls}>
             <Eraser className="h-3 w-3" />
           </button>
@@ -194,7 +270,7 @@ export function RichTextEditor({
         onInput={emit}
         onBlur={emit}
         data-placeholder={placeholder}
-        className="whitespace-pre-wrap px-3 py-2 text-sm leading-snug focus:outline-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]"
+        className="rich-text-content whitespace-pre-wrap px-3 py-2 text-sm leading-snug focus:outline-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]"
         style={{ minHeight: `${rows * 1.4}rem` }}
       />
     </div>

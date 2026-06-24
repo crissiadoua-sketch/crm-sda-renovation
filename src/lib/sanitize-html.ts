@@ -1,5 +1,5 @@
-const ALLOWED_TAGS = new Set(["b", "i", "u", "strong", "em", "span", "br", "p", "div", "font"]);
-const ALLOWED_STYLE_PROPS = ["color", "font-size", "font-family", "text-align", "text-decoration", "font-weight", "font-style"];
+const ALLOWED_TAGS = new Set(["b", "i", "u", "strong", "em", "span", "br", "p", "div", "font", "ul", "ol", "li"]);
+const ALLOWED_STYLE_PROPS = ["color", "font-size", "font-family", "text-align", "text-decoration", "font-weight", "font-style", "list-style-type", "margin-left", "padding-left"];
 
 function sanitizeStyleValue(style: string): string {
   return style

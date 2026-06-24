@@ -5,5 +5,5 @@ import { sanitizeRichText } from "@/lib/sanitize-html";
 // du contenu historique en texte brut (qui passe inchangé, sanitize étant
 // idempotent sur du texte sans balises).
 export function RichText({ html, className }: { html: string | null | undefined; className?: string }) {
-  return <span className={className} dangerouslySetInnerHTML={{ __html: sanitizeRichText(html) }} />;
+  return <span className={`rich-text-content ${className ?? ""}`} dangerouslySetInnerHTML={{ __html: sanitizeRichText(html) }} />;
 }

@@ -21,8 +21,12 @@ export function PdfPreviewModal({
   disabledTitle = "Enregistrez le document avant de prévisualiser",
 }: PdfPreviewModalProps) {
   const [open, setOpen] = useState(false);
+  const [nonce, setNonce] = useState(0);
 
   const trigger = buttonLabel ?? label;
+  // Casse tout cache navigateur sur l'iframe : on veut toujours la dernière
+  // version enregistrée, pas un aperçu d'avant la dernière sauvegarde.
+  const freshHref = `${href}${href.includes("?") ? "&" : "?"}_=${nonce}`;
 
   return (
     <>
@@ -30,7 +34,7 @@ export function PdfPreviewModal({
         type="button"
         disabled={disabled}
         title={disabled ? disabledTitle : label}
-        onClick={() => setOpen(true)}
+        onClick={() => { setNonce(Date.now()); setOpen(true); }}
         className={
           buttonClassName ??
           "inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-brand-blue/40 hover:bg-brand-blue/5 hover:text-brand-blue disabled:cursor-not-allowed disabled:opacity-40"
@@ -52,7 +56,7 @@ export function PdfPreviewModal({
               </div>
               <div className="flex items-center gap-1.5">
                 <a
-                  href={href}
+                  href={freshHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1 text-xs font-medium text-white hover:bg-white/20"
@@ -82,8 +86,9 @@ export function PdfPreviewModal({
 
             {/* iframe */}
             <iframe
+              key={nonce}
               id="pdf-preview-iframe"
-              src={href}
+              src={freshHref}
               className="flex-1 w-full border-0 bg-white"
               title={label}
             />

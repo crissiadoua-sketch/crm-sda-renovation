@@ -9,6 +9,12 @@ import { TamponSDAprint } from "@/components/tampon-sda";
 import { CGVAnnexe } from "./cgv-annexe";
 import { RichText } from "@/components/ui/rich-text";
 
+// Toujours recalculé à la demande : ce document doit refléter la dernière
+// sauvegarde (page de garde, lignes…), jamais une version mise en cache par
+// le navigateur ou un CDN.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function ApercuDevisPage({
   params,
   searchParams,

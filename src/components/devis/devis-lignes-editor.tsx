@@ -484,11 +484,11 @@ export function DevisLignesEditor({
                 <th className="w-28 px-3 py-2">Type</th>
                 <th className="w-28 px-3 py-2">Code article</th>
                 <th className="px-3 py-2">Désignation</th>
-                <th className="w-20 px-3 py-2">Unité</th>
-                <th className="w-24 px-3 py-2">Quantité</th>
-                <th className="w-28 px-3 py-2">PU HT €</th>
-                <th className="w-20 px-3 py-2">Remise %</th>
-                <th className="w-20 px-3 py-2">TVA %</th>
+                <th className="w-24 whitespace-nowrap px-3 py-2">Unité</th>
+                <th className="w-28 whitespace-nowrap px-3 py-2">Quantité</th>
+                <th className="w-32 whitespace-nowrap px-3 py-2">PU HT €</th>
+                <th className="w-24 whitespace-nowrap px-3 py-2">Remise %</th>
+                <th className="w-24 whitespace-nowrap px-3 py-2">TVA %</th>
                 <th className="w-32 px-3 py-2 text-right">Prix de vente HT</th>
                 <th className="w-28 px-3 py-2"></th>
               </tr>
@@ -563,7 +563,7 @@ export function DevisLignesEditor({
                             onChange={(e) => update(row.key, { unite: e.target.value })}
                             onClick={(e) => e.stopPropagation()}
                             placeholder="m², u…"
-                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm"
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                           />
                         </td>
                         <td className="px-3 py-2 align-top">
@@ -572,7 +572,7 @@ export function DevisLignesEditor({
                             value={row.quantite}
                             onChange={(e) => update(row.key, { quantite: e.target.value })}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm"
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                           />
                         </td>
                         <td className="px-3 py-2 align-top">
@@ -581,7 +581,7 @@ export function DevisLignesEditor({
                             value={row.prixUnitaireHT}
                             onChange={(e) => update(row.key, { prixUnitaireHT: e.target.value })}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm"
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                           />
                         </td>
                         <td className="px-3 py-2 align-top">
@@ -590,7 +590,7 @@ export function DevisLignesEditor({
                             value={row.remise}
                             onChange={(e) => update(row.key, { remise: e.target.value })}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm"
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                           />
                         </td>
                         <td className="px-3 py-2 align-top">
@@ -599,7 +599,7 @@ export function DevisLignesEditor({
                             value={row.tauxTVA}
                             onChange={(e) => update(row.key, { tauxTVA: e.target.value })}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm"
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                           />
                         </td>
                         <td className="px-3 py-2 text-right align-top font-medium text-slate-700">

@@ -148,7 +148,7 @@ export function AppShell({
       )}
 
       {/* Contenu principal */}
-      <div className="flex flex-1 flex-col lg:pl-72">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-72">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-200 bg-white px-4 sm:px-6">
           <button
             type="button"
@@ -163,7 +163,7 @@ export function AppShell({
           </div>
         </header>
         {banner}
-        <main className="flex-1 bg-slate-50 p-4 sm:p-6">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden bg-slate-50 p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

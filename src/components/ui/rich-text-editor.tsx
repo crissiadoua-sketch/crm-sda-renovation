@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { AlignLeft, AlignCenter, AlignRight, Palette, Pilcrow, Type } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, Eraser } from "lucide-react";
 
 const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
 const FONT_FAMILIES = [
@@ -34,6 +34,7 @@ export function RichTextEditor({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastValue = useRef<string | null>(null);
+  const [toolbarOpen, setToolbarOpen] = useState(true);
 
   useEffect(() => {
     if (ref.current && value !== lastValue.current && ref.current.innerHTML !== value) {
@@ -96,47 +97,44 @@ export function RichTextEditor({
     emit();
   };
 
-  const btnCls = "flex h-7 w-7 items-center justify-center rounded text-sm text-slate-600 transition hover:bg-slate-200";
+  const btnCls = "flex h-5 w-5 items-center justify-center rounded text-[11px] text-slate-600 transition hover:bg-slate-200";
+  const selectCls = "rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] leading-tight text-slate-500 focus:outline-none";
+  const toggleBtnCls = "flex h-5 w-5 items-center justify-center rounded text-slate-400 transition hover:bg-slate-200 hover:text-slate-600";
 
   return (
     <div className={`rounded-lg border border-slate-200 bg-white ${className ?? ""}`}>
-      <div className="flex flex-wrap items-center gap-0.5 rounded-t-lg border-b border-slate-200 bg-slate-50 px-2 py-1.5">
-        <button type="button" title="Gras" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("bold")} className={`${btnCls} font-bold`}>B</button>
-        <button type="button" title="Italique" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("italic")} className={`${btnCls} italic`}>I</button>
-        <button type="button" title="Souligné" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("underline")} className={`${btnCls} underline`}>S</button>
+      {toolbarOpen ? (
+        <div className="flex flex-wrap items-center gap-0.5 rounded-t-lg border-b border-slate-200 bg-slate-50 px-1.5 py-1">
+          <button type="button" title="Gras" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("bold")} className={`${btnCls} font-bold`}>B</button>
+          <button type="button" title="Italique" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("italic")} className={`${btnCls} italic`}>I</button>
+          <button type="button" title="Souligné" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("underline")} className={`${btnCls} underline`}>S</button>
 
-        <div className="mx-1 h-5 w-px bg-slate-300" />
+          <div className="mx-0.5 h-4 w-px bg-slate-300" />
 
-        <label className="flex items-center gap-1 text-xs text-slate-500">
-          <Pilcrow className="h-3.5 w-3.5" />
           <select
+            title="Police"
             onMouseDown={(e) => e.stopPropagation()}
             onChange={(e) => { const v = e.target.value; if (v) applyFontFamily(v); e.target.value = ""; }}
             defaultValue=""
-            className="max-w-[6.5rem] rounded border border-slate-200 bg-white px-1 py-0.5 text-xs focus:outline-none"
+            className={`${selectCls} max-w-[5.5rem]`}
           >
             <option value="">Police…</option>
             {FONT_FAMILIES.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
           </select>
-        </label>
 
-        <label className="flex items-center gap-1 text-xs text-slate-500">
-          <Type className="h-3.5 w-3.5" />
           <select
+            title="Taille"
             onMouseDown={(e) => e.stopPropagation()}
             onChange={(e) => { const v = Number(e.target.value); if (v) applyFontSize(v); e.target.value = ""; }}
             defaultValue=""
-            className="rounded border border-slate-200 bg-white px-1 py-0.5 text-xs focus:outline-none"
+            className={`${selectCls} max-w-[3.5rem]`}
           >
             <option value="">Taille…</option>
             {FONT_SIZES.map((s) => <option key={s} value={s}>{s}pt</option>)}
           </select>
-        </label>
 
-        <div className="mx-1 h-5 w-px bg-slate-300" />
+          <div className="mx-0.5 h-4 w-px bg-slate-300" />
 
-        <div className="flex items-center gap-1">
-          <Palette className="h-3.5 w-3.5 text-slate-400" />
           <div className="flex gap-0.5">
             {PRESET_COLORS.map((c) => (
               <button
@@ -146,29 +144,49 @@ export function RichTextEditor({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => exec("foreColor", c)}
                 style={{ background: c }}
-                className="h-5 w-5 rounded transition hover:scale-110"
+                className="h-4 w-4 rounded-sm transition hover:scale-110"
               />
             ))}
           </div>
+
+          <div className="mx-0.5 h-4 w-px bg-slate-300" />
+
+          {(["left", "center", "right"] as const).map((align) => {
+            const Icon = align === "left" ? AlignLeft : align === "center" ? AlignCenter : AlignRight;
+            return (
+              <button key={align} type="button" title={align} onMouseDown={(e) => e.preventDefault()} onClick={() => applyAlign(align)} className={btnCls}>
+                <Icon className="h-3 w-3" />
+              </button>
+            );
+          })}
+
+          <button type="button" title="Effacer la mise en forme" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("removeFormat")} className={btnCls}>
+            <Eraser className="h-3 w-3" />
+          </button>
+
+          <button
+            type="button"
+            title="Masquer la barre d'outils"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setToolbarOpen(false)}
+            className={`${toggleBtnCls} ml-auto`}
+          >
+            <ChevronUp className="h-3 w-3" />
+          </button>
         </div>
-
-        <div className="mx-1 h-5 w-px bg-slate-300" />
-
-        {(["left", "center", "right"] as const).map((align) => {
-          const Icon = align === "left" ? AlignLeft : align === "center" ? AlignCenter : AlignRight;
-          return (
-            <button key={align} type="button" title={align} onMouseDown={(e) => e.preventDefault()} onClick={() => applyAlign(align)} className={btnCls}>
-              <Icon className="h-3.5 w-3.5" />
-            </button>
-          );
-        })}
-
-        <div className="mx-1 h-5 w-px bg-slate-300" />
-
-        <button type="button" title="Effacer la mise en forme" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("removeFormat")} className="rounded px-2 py-0.5 text-xs text-slate-400 hover:bg-slate-200 hover:text-slate-600">
-          Effacer
-        </button>
-      </div>
+      ) : (
+        <div className="flex items-center justify-end rounded-t-lg border-b border-slate-100 bg-slate-50 px-1.5 py-0.5">
+          <button
+            type="button"
+            title="Afficher la barre d'outils"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setToolbarOpen(true)}
+            className={toggleBtnCls}
+          >
+            <ChevronDown className="h-3 w-3" />
+          </button>
+        </div>
+      )}
       <div
         ref={ref}
         contentEditable

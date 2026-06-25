@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useCallback } from "react";
 import Link from "next/link";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { sauvegarderEtudeDebourse, supprimerEtudeDebourse } from "@/lib/actions/etudes-debourse";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -372,6 +373,7 @@ export function EdsEditor({ etude, chantiers, devisList, ouvrages }: Props) {
   // ─── Render ──────────────────────────────────────────────────────────────
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-0">
       {/* Breadcrumb */}
       <div className="mb-4">
@@ -959,5 +961,6 @@ export function EdsEditor({ etude, chantiers, devisList, ouvrages }: Props) {
         </div>
       </div>
     </div>
+    </FullscreenToggle>
   );
 }

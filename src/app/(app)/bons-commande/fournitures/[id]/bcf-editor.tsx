@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { sauvegarderBcf, supprimerBcf } from "@/lib/actions/bons-commande-fournitures";
 
 const CATEGORIES = [
@@ -154,6 +155,7 @@ export function BcFournituresEditor({
   const categoriesUsees = [...new Set(lignes.map(l => l.categorie))];
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-5 pb-12">
 
       {/* ── Breadcrumb ───────────────────────────────────────────────────────── */}
@@ -446,6 +448,7 @@ export function BcFournituresEditor({
         </div>
       </div>
     </div>
+    </FullscreenToggle>
   );
 }
 

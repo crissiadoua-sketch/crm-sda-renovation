@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { sauvegarderBonCommandeBeton, supprimerBonCommandeBeton } from "@/lib/actions/bons-commande-beton";
 
 const CLASSES_RESISTANCE = [
@@ -188,6 +189,7 @@ export function BonCommandeBetonEditor({
   const montantTotal = parseFloat(form.qteTotale || "0") * parseFloat(form.prixM3 || "0");
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-6 pb-12">
       {/* ── En-tête ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -597,6 +599,7 @@ export function BonCommandeBetonEditor({
         </div>
       </div>
     </div>
+    </FullscreenToggle>
   );
 }
 

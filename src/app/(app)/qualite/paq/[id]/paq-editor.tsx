@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { sauvegarderPAQ, supprimerPAQ } from "@/lib/actions/qualite";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 type Fiche = {
   id: string;
@@ -108,6 +109,7 @@ export function PAQEditor({ paq, chantiers, clients }: Props) {
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
   return (
+    <FullscreenToggle>
     <div className="flex gap-6 p-6 max-w-7xl mx-auto">
       {/* Contenu principal */}
       <div className="flex-1 min-w-0">
@@ -410,5 +412,6 @@ export function PAQEditor({ paq, chantiers, clients }: Props) {
         </Link>
       </aside>
     </div>
+    </FullscreenToggle>
   );
 }

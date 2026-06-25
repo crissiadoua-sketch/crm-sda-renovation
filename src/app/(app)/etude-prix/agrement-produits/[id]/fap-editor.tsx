@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { inputClasses, selectClasses } from "@/components/ui/fields";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import {
   sauvegarderFicheAgrement,
   supprimerFicheAgrement,
@@ -257,6 +258,7 @@ export function FapEditor({
   ];
 
   return (
+    <FullscreenToggle>
     <div className="flex gap-6 flex-col lg:flex-row">
       {/* Main */}
       <div className="flex-1 flex flex-col gap-4">
@@ -620,5 +622,6 @@ export function FapEditor({
         </DeleteButton>
       </aside>
     </div>
+    </FullscreenToggle>
   );
 }

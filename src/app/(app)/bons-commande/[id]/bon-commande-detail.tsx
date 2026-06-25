@@ -12,6 +12,7 @@ import {
 } from "@/lib/actions/bons-commande";
 import { formatEuros, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -144,6 +145,7 @@ export function BonCommandeDetail({
   }
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-6">
       {/* En-tête */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -344,5 +346,6 @@ export function BonCommandeDetail({
         </div>
       </div>
     </div>
+    </FullscreenToggle>
   );
 }

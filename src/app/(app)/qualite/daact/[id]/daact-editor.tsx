@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { sauvegarderDAACT, supprimerDAACT } from "@/lib/actions/qualite";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 type DAACT = {
   id: string;
@@ -96,6 +97,7 @@ export function DAACTEditor({ daact, chantiers, clients }: Props) {
   const tabs = ["Déclaration", "Conformité & Suites"];
 
   return (
+    <FullscreenToggle>
     <div className="flex gap-6 p-6 max-w-7xl mx-auto">
       <div className="flex-1 min-w-0">
         {/* En-tête */}
@@ -342,5 +344,6 @@ export function DAACTEditor({ daact, chantiers, clients }: Props) {
         </Link>
       </aside>
     </div>
+    </FullscreenToggle>
   );
 }

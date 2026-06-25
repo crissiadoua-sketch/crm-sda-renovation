@@ -17,6 +17,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { formatDate } from "@/lib/format";
 
 const modeleTones: Record<string, BadgeTone> = {
@@ -103,6 +104,7 @@ export default async function DOEDetailPage({
   if (!doe) notFound();
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-6">
       {/* ── Header ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -540,6 +542,7 @@ export default async function DOEDetailPage({
         </div>
       </section>
     </div>
+    </FullscreenToggle>
   );
 }
 

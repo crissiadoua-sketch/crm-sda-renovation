@@ -8,6 +8,7 @@ import { Field, inputClasses } from "@/components/ui/fields";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { formatEuros, formatDate, clientDisplayName } from "@/lib/format";
 import { PdfPreviewModal } from "@/components/ui/pdf-preview-modal";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { BridgePaiement } from "@/components/factures/bridge-paiement";
 import { FactureLignesEditor } from "@/components/factures/facture-lignes-editor";
 
@@ -84,6 +85,7 @@ export default async function FactureDetailPage({
   const hasCoordBancaires = parametres?.iban || parametres?.bic;
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-6">
       {/* ── Header ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -419,5 +421,6 @@ export default async function FactureDetailPage({
         </form>
       </div>
     </div>
+    </FullscreenToggle>
   );
 }

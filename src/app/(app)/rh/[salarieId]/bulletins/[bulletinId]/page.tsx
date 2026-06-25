@@ -8,6 +8,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
 import { formatEuros } from "@/lib/format";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 const bulletinStatutTones: Record<string, BadgeTone> = {
   BROUILLON: "gray",
@@ -47,6 +48,7 @@ export default async function BulletinDetailPage({
   const mutuelle = salarie.adhesionMutuelle?.actif ? salarie.adhesionMutuelle : null;
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -96,5 +98,6 @@ export default async function BulletinDetailPage({
         <BulletinEditor salarie={salarie} bulletin={bulletin} action={action} />
       </div>
     </div>
+    </FullscreenToggle>
   );
 }

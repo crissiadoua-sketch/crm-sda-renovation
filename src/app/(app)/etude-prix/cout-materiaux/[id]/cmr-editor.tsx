@@ -3,6 +3,7 @@
 import { useState, useTransition, useCallback } from "react";
 import { inputClasses, selectClasses } from "@/components/ui/fields";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import {
   sauvegarderCoutMateriaux,
   supprimerCoutMateriaux,
@@ -160,6 +161,7 @@ export function CmrEditor({
   const tdCell = "border border-slate-200 px-1 py-1";
 
   return (
+    <FullscreenToggle>
     <div className="flex gap-6 flex-col xl:flex-row">
       {/* Main */}
       <div className="flex-1 flex flex-col gap-4 min-w-0">
@@ -356,5 +358,6 @@ export function CmrEditor({
         </DeleteButton>
       </aside>
     </div>
+    </FullscreenToggle>
   );
 }

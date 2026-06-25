@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { sauvegarderFicheAutocontrole, supprimerFicheAutocontrole } from "@/lib/actions/qualite";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 type Point = {
   id?: string;
@@ -151,6 +152,7 @@ export function FACEditor({ fac, chantiers, clients, paqs }: Props) {
   const tabs = ["Informations", "Points de contrôle"];
 
   return (
+    <FullscreenToggle>
     <div className="flex gap-6 p-6 max-w-7xl mx-auto">
       <div className="flex-1 min-w-0">
         {/* En-tête */}
@@ -442,5 +444,6 @@ export function FACEditor({ fac, chantiers, clients, paqs }: Props) {
         </Link>
       </aside>
     </div>
+    </FullscreenToggle>
   );
 }

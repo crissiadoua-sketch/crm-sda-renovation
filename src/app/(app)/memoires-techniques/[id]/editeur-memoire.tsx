@@ -22,6 +22,7 @@ import {
 import { TYPE_LABELS, MODELE_LABELS, STATUT_LABELS, STATUT_COLORS } from "@/lib/memoire-technique";
 import type { TypeMemoire, ModeleMemoire } from "@/lib/memoire-technique";
 import { urlFichier } from "@/lib/format";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -223,6 +224,7 @@ export function EditeurMemoire({
   const currentSection = activeSection ? sections[activeSection] : null;
 
   return (
+    <FullscreenToggle>
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-slate-50">
       {/* ─── PANNEAU GAUCHE — Navigation sections ─── */}
       <aside className="w-64 shrink-0 flex flex-col bg-white border-r border-slate-200 overflow-y-auto">
@@ -717,5 +719,6 @@ export function EditeurMemoire({
         </div>
       </aside>
     </div>
+    </FullscreenToggle>
   );
 }

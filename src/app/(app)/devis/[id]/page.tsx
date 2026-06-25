@@ -18,6 +18,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { PdfPreviewModal } from "@/components/ui/pdf-preview-modal";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { prisma } from "@/lib/prisma";
 import { formatEuros, formatDate, clientDisplayName } from "@/lib/format";
 
@@ -76,6 +77,7 @@ export default async function DevisDetailPage({
   if (!devis) notFound();
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -256,5 +258,6 @@ export default async function DevisDetailPage({
         </form>
       </div>
     </div>
+    </FullscreenToggle>
   );
 }

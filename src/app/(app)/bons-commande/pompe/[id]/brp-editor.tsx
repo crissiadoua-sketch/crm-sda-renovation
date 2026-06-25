@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { sauvegarderBonReservationPompe, supprimerBonReservationPompe } from "@/lib/actions/bons-reservation-pompe";
 
 const STATUTS = ["BROUILLON", "ENVOYE", "CONFIRME", "ANNULE"];
@@ -152,6 +153,7 @@ export function BonReservationPompeEditor({
   const ttc     = prixHT + tva;
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-6 pb-12">
 
       {/* ── Breadcrumb ───────────────────────────────────────────────────────── */}
@@ -494,6 +496,7 @@ export function BonReservationPompeEditor({
         </div>
       </div>
     </div>
+    </FullscreenToggle>
   );
 }
 

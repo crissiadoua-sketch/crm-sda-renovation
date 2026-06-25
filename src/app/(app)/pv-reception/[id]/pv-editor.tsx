@@ -9,6 +9,7 @@ import {
   envoyerLienPvParEmail,
   supprimerPvReception,
 } from "@/lib/actions/pv-reception";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -280,6 +281,7 @@ export function PvReceptionEditor({
   ] as const;
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-5 pb-12">
 
       {/* ── Breadcrumb + titre ─────────────────────────────────────────────── */}
@@ -829,6 +831,7 @@ export function PvReceptionEditor({
         </div>
       )}
     </div>
+    </FullscreenToggle>
   );
 }
 

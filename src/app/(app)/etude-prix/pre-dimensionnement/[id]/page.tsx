@@ -21,6 +21,7 @@ import {
   FINITION_BETON_LABELS,
   MATERIAU_MARGELLE_LABELS,
 } from "@/lib/calcul-structurel/pre-dimensionnement";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 export default async function PreDimensionnementDetailPage({
   params,
@@ -36,6 +37,7 @@ export default async function PreDimensionnementDetailPage({
   if (!pdim) notFound();
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between">
         <div>
@@ -251,5 +253,6 @@ export default async function PreDimensionnementDetailPage({
         )}
       </div>
     </div>
+    </FullscreenToggle>
   );
 }

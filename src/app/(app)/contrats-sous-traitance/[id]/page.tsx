@@ -9,6 +9,7 @@ import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS } from "@/lib/corps-etat";
 import { LienSignatureContrat } from "@/components/contrats-sous-traitance/lien-signature";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 const STATUTS = ["BROUILLON", "ENVOYE", "SIGNE", "TERMINE", "RESILIE", "ANNULE"];
 const STATUT_LABELS: Record<string, string> = {
@@ -39,6 +40,7 @@ export default async function ContratDetailPage({ params }: { params: Promise<{ 
     : null;
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-6">
       {/* En-tête */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -186,5 +188,6 @@ export default async function ContratDetailPage({ params }: { params: Promise<{ 
         ) : null}
       </div>
     </div>
+    </FullscreenToggle>
   );
 }

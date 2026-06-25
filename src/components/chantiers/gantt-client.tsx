@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useActionState, useMemo, useState } from "react";
-import { Plus, Trash2, Truck, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Truck, AlertTriangle, Maximize2, Minimize2 } from "lucide-react";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -156,7 +156,7 @@ function emptyRow(): TaskRow {
   };
 }
 
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 64;
 const TABLE_WIDTH = 1010;
 const TABLE_GRID_COLUMNS = "1.5fr 0.6fr 0.5fr 0.9fr 0.8fr 1.1fr 1.1fr 1.3fr 0.5fr";
 
@@ -208,6 +208,16 @@ export function GanttClient({
   const [notesOpen, setNotesOpen] = useState<Set<string>>(new Set());
   const [predOpenKey, setPredOpenKey] = useState<string | null>(null);
   const [vue, setVue] = useState<VueGantt>("SEMAINE");
+  const [pleinEcran, setPleinEcran] = useState(false);
+
+  React.useEffect(() => {
+    if (!pleinEcran) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setPleinEcran(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [pleinEcran]);
   const pixelsPerDay = VUE_PIXELS_PER_DAY[vue];
   const [reperesVisibles, setReperesVisibles] = useState<Set<TypeRepere>>(
     () => new Set(Object.keys(REPERE_LABELS) as TypeRepere[]),
@@ -437,7 +447,14 @@ export function GanttClient({
   const labelStepDays = Math.max(1, Math.ceil(34 / pixelsPerDay));
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form
+      action={formAction}
+      className={
+        pleinEcran
+          ? "fixed inset-0 z-50 flex flex-col gap-4 overflow-auto bg-white p-4 sm:p-6"
+          : "flex flex-col gap-4"
+      }
+    >
       <input type="hidden" name="taches" value={payload} />
 
       {(cycleError || state?.error) && (
@@ -463,6 +480,15 @@ export function GanttClient({
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => setPleinEcran((v) => !v)}
+          title={pleinEcran ? "Quitter le plein écran (Échap)" : "Afficher en plein écran"}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          {pleinEcran ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          {pleinEcran ? "Quitter le plein écran" : "Plein écran"}
+        </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

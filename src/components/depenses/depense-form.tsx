@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
+import { Paperclip, X } from "lucide-react";
 import { Field, inputClasses, selectClasses, spellProps, AlertDossierManquant } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { urlFichier } from "@/lib/format";
 import type { DepenseState } from "@/lib/actions/depenses";
 import type { Chantier, Fournisseur } from "@/generated/prisma/client";
 
@@ -38,6 +40,8 @@ interface DepenseFormProps {
     chantierId?: string | null;
     fournisseurId?: string | null;
     notes?: string | null;
+    factureUrl?: string | null;
+    factureNom?: string | null;
   };
   submitLabel?: string;
 }
@@ -56,6 +60,40 @@ export function DepenseForm({
   const groupes = ["Charges variables", "Charges fixes", "Hors exploitation", "Autre"] as const;
 
   const chantierId = defaultValues?.chantierId;
+
+  // Import de la facture d'achat — upload immédiat vers le stockage, l'URL
+  // résultante est portée par un champ caché et n'est persistée en base qu'au
+  // moment où le formulaire (création OU modification) est soumis.
+  const [factureUrl, setFactureUrl] = useState(defaultValues?.factureUrl ?? "");
+  const [factureNom, setFactureNom] = useState(defaultValues?.factureNom ?? "");
+  const [uploadingFacture, setUploadingFacture] = useState(false);
+  const [factureError, setFactureError] = useState("");
+  const factureInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFactureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFactureError("");
+    setUploadingFacture(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/depenses/upload-facture", { method: "POST", body: formData });
+    setUploadingFacture(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      setFactureError(data?.error ?? "Échec de l'import de la facture.");
+      return;
+    }
+    const data = await res.json() as { url: string; nom: string };
+    setFactureUrl(data.url);
+    setFactureNom(data.nom);
+  };
+
+  const handleRemoveFacture = () => {
+    if (factureInputRef.current) factureInputRef.current.value = "";
+    setFactureUrl("");
+    setFactureNom("");
+  };
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -181,6 +219,55 @@ export function DepenseForm({
             className={inputClasses}
             {...spellProps}
           />
+        </Field>
+
+        {/* Facture d'achat */}
+        <Field label="Facture d'achat (optionnel)" htmlFor="facture-input" className="sm:col-span-2">
+          <input type="hidden" name="factureUrl" value={factureUrl} />
+          <input type="hidden" name="factureNom" value={factureNom} />
+          <div className="flex flex-wrap items-center gap-3">
+            {factureUrl ? (
+              <a
+                href={urlFichier(factureUrl)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:border-brand-blue/40"
+              >
+                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                {factureNom || "Facture jointe"}
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={() => factureInputRef.current?.click()}
+                disabled={uploadingFacture}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                <Paperclip className="h-3.5 w-3.5" />
+                {uploadingFacture ? "Envoi…" : "Importer la facture"}
+              </button>
+            )}
+            {factureUrl && (
+              <button
+                type="button"
+                onClick={handleRemoveFacture}
+                title="Retirer la facture"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-red-50 hover:text-red-500"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <input
+              ref={factureInputRef}
+              id="facture-input"
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp"
+              onChange={handleFactureChange}
+              className="hidden"
+            />
+          </div>
+          <p className="mt-1 text-xs text-slate-400">PDF, JPEG, PNG ou WEBP — 15 Mo max.</p>
+          {factureError && <p className="mt-1 text-xs text-red-500">{factureError}</p>}
         </Field>
       </div>
 

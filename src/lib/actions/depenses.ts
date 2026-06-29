@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { supprimerFichierStocke } from "@/lib/blob-storage";
 
 const depenseSchema = z.object({
   libelle: z.string().min(1, "Le libellé est requis."),
@@ -13,6 +14,8 @@ const depenseSchema = z.object({
   chantierId: z.string().optional(),
   fournisseurId: z.string().optional(),
   notes: z.string().optional(),
+  factureUrl: z.string().optional(),
+  factureNom: z.string().optional(),
 });
 
 export type DepenseState = { errors?: Record<string, string[]>; message?: string } | undefined;
@@ -36,6 +39,8 @@ export async function createDepense(
       chantierId: data.chantierId || null,
       fournisseurId: data.fournisseurId || null,
       notes: data.notes ?? null,
+      factureUrl: data.factureUrl || null,
+      factureNom: data.factureNom || null,
     },
   });
 
@@ -56,6 +61,11 @@ export async function updateDepense(
   }
 
   const data = validated.data;
+  const existing = await prisma.depense.findUnique({ where: { id }, select: { factureUrl: true } });
+  if (existing?.factureUrl && existing.factureUrl !== (data.factureUrl || null)) {
+    await supprimerFichierStocke(existing.factureUrl);
+  }
+
   await prisma.depense.update({
     where: { id },
     data: {
@@ -66,6 +76,8 @@ export async function updateDepense(
       chantierId: data.chantierId || null,
       fournisseurId: data.fournisseurId || null,
       notes: data.notes ?? null,
+      factureUrl: data.factureUrl || null,
+      factureNom: data.factureNom || null,
     },
   });
 
@@ -77,6 +89,8 @@ export async function updateDepense(
 }
 
 export async function deleteDepense(id: string) {
+  const existing = await prisma.depense.findUnique({ where: { id }, select: { factureUrl: true } });
+  if (existing?.factureUrl) await supprimerFichierStocke(existing.factureUrl);
   await prisma.depense.delete({ where: { id } });
   revalidatePath("/depenses");
   revalidatePath("/tresorerie");

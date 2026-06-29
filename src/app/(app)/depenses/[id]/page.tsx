@@ -86,6 +86,8 @@ export default async function DepenseDetailPage({
             chantierId: depense.chantierId,
             fournisseurId: depense.fournisseurId,
             notes: depense.notes,
+            factureUrl: depense.factureUrl,
+            factureNom: depense.factureNom,
           }}
         />
       </div>

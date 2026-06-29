@@ -901,6 +901,8 @@ model Depense {
   chantierId    String?
   fournisseurId String?
   notes         String?
+  factureUrl    String? // facture d'achat scannée/PDF jointe
+  factureNom    String? // nom de fichier original, pour l'affichage
 
   createdAt DateTime @default(now())
 

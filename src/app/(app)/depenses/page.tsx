@@ -6,9 +6,12 @@ import {
   Building2,
   Truck,
   Filter,
+  Paperclip,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
-import { formatEuros } from "@/lib/format";
+import { depensesFiltrees } from "@/lib/depenses-filtre";
+import { formatEuros, urlFichier } from "@/lib/format";
 import { LinkButton } from "@/components/ui/button";
 import { SelectRedirect } from "@/components/ui/select-redirect";
 
@@ -51,29 +54,7 @@ export default async function DepensesPage({
   const y = now.getFullYear();
   const m = now.getMonth();
 
-  // Filtre date
-  let debut: Date;
-  let fin: Date;
-  if (moisFilter && /^\d{4}-\d{2}$/.test(moisFilter)) {
-    const [my, mm] = moisFilter.split("-").map(Number);
-    debut = new Date(my, mm - 1, 1);
-    fin = new Date(my, mm, 0, 23, 59, 59);
-  } else {
-    debut = new Date(y, m, 1);
-    fin = new Date(y, m + 1, 0, 23, 59, 59);
-  }
-
-  const depenses = await prisma.depense.findMany({
-    where: {
-      date: { gte: debut, lte: fin },
-      ...(catFilter ? { categorie: catFilter } : {}),
-    },
-    include: {
-      chantier: { select: { nom: true, reference: true } },
-      fournisseur: { select: { nom: true } },
-    },
-    orderBy: { date: "desc" },
-  });
+  const depenses = await depensesFiltrees(moisFilter, catFilter);
 
   const total = depenses.reduce((s, d) => s + d.montant, 0);
 
@@ -94,6 +75,8 @@ export default async function DepensesPage({
 
   const moisActuel = moisFilter ?? moisDispo[0].value;
 
+  const exportQuery = `mois=${moisActuel}${catFilter ? `&categorie=${catFilter}` : ""}`;
+
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
@@ -104,10 +87,28 @@ export default async function DepensesPage({
             Charges opérationnelles · Loyer · Assurances · Amortissements · Investissements
           </p>
         </div>
-        <LinkButton href="/depenses/nouveau">
-          <Plus className="h-4 w-4" />
-          Nouvelle dépense
-        </LinkButton>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/api/depenses/export-excel?${exportQuery}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+            Excel
+          </a>
+          <a
+            href={`/apercu/depenses?${exportQuery}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <FileText className="h-4 w-4 text-red-500" />
+            PDF
+          </a>
+          <LinkButton href="/depenses/nouveau">
+            <Plus className="h-4 w-4" />
+            Nouvelle dépense
+          </LinkButton>
+        </div>
       </div>
 
       {/* Filtres */}
@@ -214,6 +215,18 @@ export default async function DepensesPage({
                       <Link href={`/depenses/${d.id}`} className="font-medium text-slate-700 hover:text-brand-navy hover:underline">
                         {d.libelle}
                       </Link>
+                      {d.factureUrl && (
+                        <a
+                          href={urlFichier(d.factureUrl)}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={d.factureNom ?? "Facture jointe"}
+                          onClick={(e) => e.stopPropagation()}
+                          className="ml-1.5 inline-flex text-slate-400 hover:text-brand-blue"
+                        >
+                          <Paperclip className="inline h-3.5 w-3.5" />
+                        </a>
+                      )}
                       {d.notes && (
                         <p className="text-xs text-slate-400 truncate max-w-xs">{d.notes}</p>
                       )}

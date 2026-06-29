@@ -165,10 +165,9 @@ model Chantier {
   mouvementsStock    MouvementStock[]
   checklistDocuments ChecklistDocumentChantier[]
   heuresInterimaires SuiviHeureInterimaire[]
-  plansConception    PlanConception[]
+  metres             Metre[]
   doe                DOE[]
   ppsps              PPSPS[]
-  projets3d          Projet3D[]
   memoiresTechniques MemoireTechnique[]
   fichesIntervention   FicheIntervention[]  @relation("FIChantier")
   rapportsHebdo        RapportHebdomadaire[] @relation("RCHChantier")
@@ -1428,45 +1427,36 @@ model SauvegardeLog {
 // Bibliothèque matériaux & équipements (module Conception)
 // ---------------------------------------------------------------------------
 
-model ElementCatalogue {
-  id            String   @id @default(cuid())
-  // Catégories : MENUISERIE_INT | MOBILIER | MATERIAUX | MENUISERIE_EXT |
-  //              CHARPENTE | COUVERTURE | RAVALEMENT | MATIERES_PREM |
-  //              PLOMBERIE | CVC | ELECTRICITE
-  categorie     String
-  sousCategorie String?
-  designation   String
-  reference     String?
-  marque        String?
-  unite         String   @default("unité")
-  description   String?
-  matiere       String?  // ex: béton ciré, bois massif, acier inox…
-  finition      String?  // ex: mat, satiné, brossé, patiné…
-  couleur       String?
-  prixUnitHT    Float?   // prix indicatif HT
-  fournisseur   String?
-  image         String?  // chemin vers image de référence (JPG/PNG exporté depuis ArchiCAD, SketchUp, CEDREO…)
-  fichierPlan   String?  // chemin vers plan PDF/image exporté depuis logiciel CAO
-  notes         String?
-  actif         Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+// ---------------------------------------------------------------------------
+// Métré (mesure sur plan : vectorisation/calibration + envoi vers devis)
+// ---------------------------------------------------------------------------
+
+model Metre {
+  id             String   @id @default(cuid())
+  chantierId     String
+  nom            String
+  fichierUrl     String? // plan importé (pdf/image/dxf), stocké via stockerFichier()
+  fichierNom     String?
+  uniteAffichage String   @default("m") // mm | cm | m
+  donneesCanvas  String? // JSON des formes tracées, pour pouvoir rouvrir et continuer à tracer
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  chantier Chantier     @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  lignes   MetreLigne[]
 }
 
-model PlanConception {
+model MetreLigne {
   id          String   @id @default(cuid())
-  titre       String
-  description String?
-  type        String   @default("PLAN") // PLAN | RENDU_3D | COUPE | FACADE | IMPLANTATION | CALEPINAGE
-  source      String?  // ARCHICAD | SKETCHUP | CEDREO | AUTOCAD | AUTRE
-  fichier     String   // chemin vers le fichier uploadé (PDF / JPG / PNG / IFC)
-  taille      Int?     // taille en octets
-  chantierId  String?
-  tags        String?  // JSON string[]
+  metreId     String
+  designation String
+  type        String // LONGUEUR | SURFACE | QUANTITE
+  valeurMm    Float // valeur canonique : mm pour LONGUEUR, mm² pour SURFACE, valeur brute pour QUANTITE
+  uniteCible  String   @default("m") // ml | m2 | u — unité d'ouvrage pour l'export devis
+  ordre       Int      @default(0)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
-  chantier Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  metre Metre @relation(fields: [metreId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------------------------------------------------------------
@@ -1767,27 +1757,6 @@ model MemoireTechnique {
 
   chantier  Chantier  @relation(fields: [chantierId], references: [id])
   devis     Devis?    @relation(fields: [devisId], references: [id], onDelete: SetNull)
-}
-
-// ---------------------------------------------------------------------------
-// Conception 3D — Projets BIM
-// ---------------------------------------------------------------------------
-
-model Projet3D {
-  id          String   @id @default(cuid())
-  titre       String
-  description String?
-  chantierId  String?
-  // JSON: SceneElement[] — éléments placés dans la scène
-  scene       String   @default("[]")
-  // JSON: { longueur, largeur, unitePiece, niveaux }
-  settings    String   @default("{}")
-  // chemin vers screenshot aperçu
-  apercu      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  chantier Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
 }
 
 // ---------------------------------------------------------------------------

@@ -262,12 +262,20 @@ export default async function ChantierDetailPage({
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-semibold text-brand-navy">Planning</h3>
-            <Link
-              href={`/chantiers/${chantier.id}/planning`}
-              className="text-sm text-brand-blue hover:underline"
-            >
-              Voir le planning prévisionnel →
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/chantiers/${chantier.id}/planning`}
+                className="text-sm text-brand-blue hover:underline"
+              >
+                Voir le planning prévisionnel →
+              </Link>
+              <Link
+                href={`/chantiers/${chantier.id}/metre`}
+                className="text-sm text-brand-blue hover:underline"
+              >
+                Métré →
+              </Link>
+            </div>
           </div>
           {chantier.evenements.length === 0 ? (
             <p className="text-sm text-slate-400">Aucun événement planifié.</p>

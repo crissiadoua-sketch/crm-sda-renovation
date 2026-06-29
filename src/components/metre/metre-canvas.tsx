@@ -1,11 +1,17 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useActionState } from "react";
 import {
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Hand, Type,
   Ruler, ArrowRight, Undo2, Redo2, Trash2, Download, ZoomIn, ZoomOut,
   Maximize, Grid, Layers, ScanLine, CheckCircle2, XCircle, Settings2,
+  PlusCircle, Send, Trash,
 } from "lucide-react";
+import { mmVersUnite, uniteVersMm, formatLongueur, type UniteAffichage } from "@/lib/metre-units";
+import { parseDxf, bornesDxf, type EntiteDxf } from "@/lib/metre-dxf";
+import { urlFichier } from "@/lib/format";
+import type { SaveMetreState, EnvoyerDevisState } from "@/lib/actions/metre";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -22,20 +28,31 @@ type Shape = {
 
 type Tool = "select" | "pencil" | "line" | "rect" | "circle" | "arrow" | "text" | "dimension" | "eraser" | "hand" | "calibrate";
 
+type TypeLigne = "LONGUEUR" | "SURFACE" | "QUANTITE";
+type UniteCible = "ml" | "m2" | "u";
+
+type LigneMetreLocale = {
+  id: string;
+  designation: string;
+  type: TypeLigne;
+  valeurMm: number;
+  uniteCible: UniteCible;
+};
+
+function estIdLocal(id: string) { return id.startsWith("local-"); }
 function uid() { return Math.random().toString(36).slice(2, 10); }
 function dist(ax: number, ay: number, bx: number, by: number) {
   return Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
 }
 function snapToGrid(val: number, size: number) { return Math.round(val / size) * size; }
 
+// 1 unité de canvas = 1 mm pour un fond DXF (les coordonnées DXF sont déjà
+// converties en mm par parseDxf) — pas de calibration manuelle nécessaire.
+const DXF_PX_PER_MM = 1;
+
 // ─── Draw ──────────────────────────────────────────────────────────────────
 
-function drawShape(
-  ctx: CanvasRenderingContext2D,
-  shape: Shape,
-  scalePx: number | null,
-  scaleUnit: string
-) {
+function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, scalePxPerMm: number | null, uniteAffichage: UniteAffichage) {
   ctx.save();
   ctx.globalAlpha = shape.opacity / 100;
   ctx.strokeStyle = shape.color;
@@ -98,8 +115,8 @@ function drawShape(
     case "dimension": {
       const ex = shape.x2 ?? shape.x + 100; const ey = shape.y2 ?? shape.y;
       const pxLen = dist(shape.x, shape.y, ex, ey);
-      const label = scalePx && scalePx > 0
-        ? `${(pxLen / scalePx).toFixed(2)} ${scaleUnit}`
+      const label = scalePxPerMm && scalePxPerMm > 0
+        ? formatLongueur(pxLen / scalePxPerMm, uniteAffichage)
         : `${Math.round(pxLen)} px`;
       const angle = Math.atan2(ey - shape.y, ex - shape.x);
       const perp = angle + Math.PI / 2;
@@ -120,6 +137,20 @@ function drawShape(
       ctx.restore();
       break;
     }
+  }
+  ctx.restore();
+}
+
+function drawDxf(ctx: CanvasRenderingContext2D, entites: EntiteDxf[]) {
+  ctx.save();
+  ctx.strokeStyle = "#475569";
+  ctx.lineWidth = 1;
+  for (const e of entites) {
+    if (e.pointsMm.length < 2) continue;
+    ctx.beginPath();
+    ctx.moveTo(e.pointsMm[0].x, e.pointsMm[0].y);
+    for (let i = 1; i < e.pointsMm.length; i++) ctx.lineTo(e.pointsMm[i].x, e.pointsMm[i].y);
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -146,10 +177,10 @@ function hitTest(shape: Shape, px: number, py: number): boolean {
   }
 }
 
-function ToolBtn({ active, onClick, title, children }: { active?: boolean; onClick: () => void; title: string; children: React.ReactNode }) {
+function ToolBtn({ active, onClick, title, disabled, children }: { active?: boolean; onClick: () => void; title: string; disabled?: boolean; children: React.ReactNode }) {
   return (
-    <button title={title} onClick={onClick}
-      className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${active ? "bg-brand-blue text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
+    <button title={title} onClick={onClick} disabled={disabled}
+      className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30 ${active ? "bg-brand-blue text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
       {children}
     </button>
   );
@@ -157,13 +188,26 @@ function ToolBtn({ active, onClick, title, children }: { active?: boolean; onCli
 
 // ─── Main component ─────────────────────────────────────────────────────────
 
-interface VectorisationCanvasProps {
-  initialFile?: File | null;
+interface MetreCanvasProps {
+  chantierId: string;
+  metreId: string;
+  initialFichierUrl: string | null;
+  initialFichierNom: string | null;
+  initialUniteAffichage: UniteAffichage;
+  initialDonneesCanvas: string | null;
+  initialLignes: LigneMetreLocale[];
+  devisOptions: { id: string; numero: string }[];
+  saveAction: (prevState: SaveMetreState, formData: FormData) => Promise<SaveMetreState>;
+  envoyerAction: (prevState: EnvoyerDevisState, formData: FormData) => Promise<EnvoyerDevisState>;
 }
 
-export default function VectorisationCanvas({ initialFile }: VectorisationCanvasProps) {
+export default function MetreCanvas({
+  chantierId, metreId, initialFichierUrl, initialFichierNom, initialUniteAffichage,
+  initialDonneesCanvas, initialLignes, devisOptions, saveAction, envoyerAction,
+}: MetreCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [history, setHistory] = useState<Shape[][]>([]);
@@ -179,11 +223,16 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
   const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
   const [bgOpacity, setBgOpacity] = useState(40);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [dxfEntites, setDxfEntites] = useState<EntiteDxf[] | null>(null);
+  const [fichierNom, setFichierNom] = useState<string | null>(initialFichierNom);
+  const [nouveauFichier, setNouveauFichier] = useState<File | null>(null);
   const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, value: "" });
 
-  // Scale calibration
-  const [scalePx, setScalePx] = useState<number | null>(null);
-  const [scaleUnit, setScaleUnit] = useState<"cm" | "m">("m");
+  // Calibration — scalePxPerMm est TOUJOURS exprimé en pixels par millimètre,
+  // quelle que soit l'unité d'affichage choisie (mm/cm/m) : ça évite tout
+  // recalcul fragile quand l'utilisateur change juste l'unité affichée.
+  const [scalePxPerMm, setScalePxPerMm] = useState<number | null>(null);
+  const [uniteAffichage, setUniteAffichage] = useState<UniteAffichage>(initialUniteAffichage);
   const [calibrating, setCalibrating] = useState(false);
   const [calibLine, setCalibLine] = useState<{ x: number; y: number; x2: number; y2: number } | null>(null);
   const [calibInput, setCalibInput] = useState<{ value: string; visible: boolean }>({ value: "", visible: false });
@@ -195,36 +244,48 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
   const [opacity, setOpacity] = useState(100);
   const [fontSize, setFontSize] = useState(16);
 
-  // Cartouche (title block)
-  const [showCartouche, setShowCartouche] = useState(true);
-  const [showCartouchePanel, setShowCartouchePanel] = useState(false);
-  const [cartouche, setCartouche] = useState({
-    projet: "",
-    affaire: "",
-    echelle: "1:50",
-    etabliPar: "SDA Rénovation",
-    feuille: "1/1",
-    date: new Date().toLocaleDateString("fr-FR"),
-  });
+  // Lignes de métré
+  const [metreLignes, setMetreLignes] = useState<LigneMetreLocale[]>(initialLignes);
+  const [lignesSelectionnees, setLignesSelectionnees] = useState<Set<string>>(new Set());
+  const [ajoutLigne, setAjoutLigne] = useState<{ visible: boolean; designation: string; uniteCible: UniteCible } | null>(null);
+  const [manuelle, setManuelle] = useState({ designation: "", valeur: "" });
 
   const dragRef = useRef<{ startX: number; startY: number; shapeX: number; shapeY: number; shapeX2?: number; shapeY2?: number; active: boolean } | null>(null);
   const panRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
 
-  // Load initial file
+  const [saveState, saveFormAction] = useActionState<SaveMetreState, FormData>(saveAction, undefined);
+  const [envoyerState, envoyerFormAction] = useActionState<EnvoyerDevisState, FormData>(envoyerAction, undefined);
+
+  // ── Chargement initial (plan + tracé déjà enregistrés) ──────────────────
+
   useEffect(() => {
-    if (!initialFile) return;
-    if (initialFile.type === "application/pdf") {
-      const url = URL.createObjectURL(initialFile);
-      setPdfUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else if (initialFile.type.startsWith("image/")) {
-      const url = URL.createObjectURL(initialFile);
+    if (initialDonneesCanvas) {
+      try {
+        const data = JSON.parse(initialDonneesCanvas) as { shapes?: Shape[]; scalePxPerMm?: number | null };
+        if (Array.isArray(data.shapes)) setShapes(data.shapes);
+        if (typeof data.scalePxPerMm === "number") setScalePxPerMm(data.scalePxPerMm);
+      } catch {
+        // tracé corrompu — on repart d'un canvas vide plutôt que de planter
+      }
+    }
+    if (!initialFichierUrl) return;
+    const nomBas = (initialFichierNom ?? initialFichierUrl).toLowerCase();
+    const src = urlFichier(initialFichierUrl);
+    if (nomBas.endsWith(".pdf")) {
+      setPdfUrl(src);
+    } else if (nomBas.endsWith(".dxf")) {
+      fetch(src).then(r => r.text()).then(texte => {
+        const { entites } = parseDxf(texte);
+        setDxfEntites(entites);
+        setScalePxPerMm(DXF_PX_PER_MM);
+      }).catch(() => {});
+    } else {
       const img = new Image();
       img.onload = () => setBgImage(img);
-      img.src = url;
-      return () => URL.revokeObjectURL(url);
+      img.src = src;
     }
-  }, [initialFile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toCanvas = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -255,6 +316,7 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
       ctx.drawImage(bgImage, 0, 0);
       ctx.globalAlpha = 1;
     }
+    if (dxfEntites) drawDxf(ctx, dxfEntites);
 
     if (gridEnabled) {
       ctx.save(); ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 0.5;
@@ -264,10 +326,9 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
       ctx.restore();
     }
 
-    for (const shape of shapes) drawShape(ctx, shape, scalePx, scaleUnit);
-    if (currentShape) drawShape(ctx, currentShape, scalePx, scaleUnit);
+    for (const shape of shapes) drawShape(ctx, shape, scalePxPerMm, uniteAffichage);
+    if (currentShape) drawShape(ctx, currentShape, scalePxPerMm, uniteAffichage);
 
-    // Calibration line preview
     if (calibrating && calibLine) {
       ctx.save();
       ctx.strokeStyle = "#f97316"; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
@@ -276,53 +337,7 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
     }
 
     ctx.restore();
-
-    // Cartouche — dessinée en coordonnées écran (fixe, pas affectée par pan/zoom)
-    if (showCartouche) {
-      const cw = 300; const ch = 112; const margin = 12;
-      const cx = canvas.width - cw - margin; const cy = canvas.height - ch - margin;
-      ctx.save();
-      // Fond blanc avec bordure
-      ctx.fillStyle = "#fff";
-      ctx.strokeStyle = "#1e2f6e";
-      ctx.lineWidth = 1.5;
-      ctx.fillRect(cx, cy, cw, ch);
-      ctx.strokeRect(cx, cy, cw, ch);
-      // Ligne de séparation verticale
-      ctx.beginPath(); ctx.moveTo(cx + 90, cy); ctx.lineTo(cx + 90, cy + ch); ctx.stroke();
-      // Ligne de séparation horizontale (dans la partie droite)
-      [24, 48, 72, 96].forEach(dy => {
-        ctx.beginPath(); ctx.moveTo(cx + 90, cy + dy); ctx.lineTo(cx + cw, cy + dy); ctx.stroke();
-      });
-      // SDA Rénovation (colonne gauche)
-      ctx.fillStyle = "#1e2f6e"; ctx.font = "bold 11px sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("SDA Rénovation", cx + 45, cy + 16);
-      ctx.fillStyle = "#374151"; ctx.font = "8.5px sans-serif";
-      ctx.fillText("SIREN 988 681 672", cx + 45, cy + 30);
-      ctx.fillText("Cugnaux · 31270", cx + 45, cy + 44);
-      ctx.fillText("contact@sda-renovation.com", cx + 45, cy + 58);
-      ctx.fillStyle = "#9ca3af"; ctx.font = "7px sans-serif";
-      ctx.fillText("BTP · Rénovation", cx + 45, cy + 72);
-      // Colonne droite — données affaire
-      ctx.textAlign = "left";
-      const labels = ["Projet :", "Affaire :", "Échelle :", "Établi par :", "Feuille :"];
-      const vals = [
-        cartouche.projet || "—",
-        cartouche.affaire || "—",
-        scalePx ? `1 ${scaleUnit} = ${scalePx.toFixed(1)} px · ${cartouche.echelle}` : cartouche.echelle,
-        cartouche.etabliPar,
-        `${cartouche.feuille} · ${cartouche.date}`,
-      ];
-      labels.forEach((lbl, i) => {
-        const ry = cy + i * 24 + 14;
-        ctx.fillStyle = "#6b7280"; ctx.font = "7.5px sans-serif";
-        ctx.fillText(lbl, cx + 95, ry);
-        ctx.fillStyle = "#111827"; ctx.font = "bold 8.5px sans-serif";
-        ctx.fillText(vals[i].substring(0, 32), cx + 140, ry);
-      });
-      ctx.restore();
-    }
-  }, [shapes, currentShape, pan, zoom, gridEnabled, gridSize, bgImage, bgOpacity, scalePx, scaleUnit, calibrating, calibLine, showCartouche, cartouche]);
+  }, [shapes, currentShape, pan, zoom, gridEnabled, gridSize, bgImage, bgOpacity, dxfEntites, scalePxPerMm, uniteAffichage, calibrating, calibLine]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -339,7 +354,7 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
     if (!canvas) return;
     const handler = (e: WheelEvent) => {
       e.preventDefault();
-      setZoom(z => Math.max(0.1, Math.min(10, z * (e.deltaY > 0 ? 0.9 : 1.1))));
+      setZoom(z => Math.max(0.02, Math.min(10, z * (e.deltaY > 0 ? 0.9 : 1.1))));
     };
     canvas.addEventListener("wheel", handler, { passive: false });
     return () => canvas.removeEventListener("wheel", handler);
@@ -376,7 +391,6 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
       if (e.button !== 0) return;
       const { x, y } = toCanvas(e);
 
-      // Calibration mode
       if (calibrating || tool === "calibrate") {
         setCalibrating(true);
         setCalibLine({ x, y, x2: x, y2: y });
@@ -429,7 +443,6 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const { x, y } = toCanvas(e);
 
-      // Calibration drag
       if (calibrating && calibLine && e.buttons === 1) {
         setCalibLine(c => c ? { ...c, x2: x, y2: y } : c);
         return;
@@ -467,8 +480,7 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
   );
 
   const onMouseUp = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      // End calibration → show input
+    () => {
       if (calibrating && calibLine) {
         const d = dist(calibLine.x, calibLine.y, calibLine.x2, calibLine.y2);
         if (d > 10) {
@@ -496,16 +508,15 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
     [calibrating, calibLine, tool, isDrawing, currentShape, shapes, pushHistory]
   );
 
-  // Confirm calibration
   const confirmCalibration = useCallback(() => {
     const val = parseFloat(calibInput.value.replace(",", "."));
     if (!calibLine || isNaN(val) || val <= 0) return;
     const pxLen = dist(calibLine.x, calibLine.y, calibLine.x2, calibLine.y2);
-    setScalePx(pxLen / val);
+    setScalePxPerMm(pxLen / uniteVersMm(val, uniteAffichage));
     setCalibrating(false); setCalibLine(null);
     setCalibInput({ value: "", visible: false });
     setTool("dimension");
-  }, [calibInput, calibLine]);
+  }, [calibInput, calibLine, uniteAffichage]);
 
   const commitText = useCallback(() => {
     if (!textInput.value.trim()) { setTextInput(t => ({ ...t, visible: false })); return; }
@@ -518,21 +529,111 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
   const exportPng = useCallback(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const url = canvas.toDataURL("image/png");
-    const a = document.createElement("a"); a.href = url; a.download = `plan-vectorise-${Date.now()}.png`; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `metre-${Date.now()}.png`; a.click();
+  }, []);
+
+  const ajusterVueAuxBornes = useCallback((minX: number, minY: number, maxX: number, maxY: number) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const largeur = Math.max(1, maxX - minX);
+    const hauteur = Math.max(1, maxY - minY);
+    const z = Math.max(0.02, Math.min(10, Math.min(container.clientWidth / largeur, container.clientHeight / hauteur) * 0.9));
+    setZoom(z);
+    setPan({ x: container.clientWidth / 2 - ((minX + maxX) / 2) * z, y: container.clientHeight / 2 - ((minY + maxY) / 2) * z });
   }, []);
 
   const importFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
-    if (file.type === "application/pdf") {
+    setNouveauFichier(file);
+    setFichierNom(file.name);
+    setPdfUrl(null); setBgImage(null); setDxfEntites(null);
+
+    const nomBas = file.name.toLowerCase();
+    if (nomBas.endsWith(".dxf")) {
+      file.text().then(texte => {
+        const { entites } = parseDxf(texte);
+        setDxfEntites(entites);
+        setScalePxPerMm(DXF_PX_PER_MM);
+        const b = bornesDxf(entites);
+        ajusterVueAuxBornes(b.minX, b.minY, b.maxX, b.maxY);
+      }).catch(() => {
+        alert("Fichier DXF illisible.");
+      });
+    } else if (file.type === "application/pdf") {
       const url = URL.createObjectURL(file);
-      setPdfUrl(url); setBgImage(null);
+      setPdfUrl(url);
+      setScalePxPerMm(null);
     } else {
       const url = URL.createObjectURL(file);
       const img = new Image();
-      img.onload = () => { setBgImage(img); setPdfUrl(null); };
+      img.onload = () => setBgImage(img);
       img.src = url;
+      setScalePxPerMm(null);
     }
-  }, []);
+  }, [ajusterVueAuxBornes]);
+
+  // ── Lignes de métré ──────────────────────────────────────────────────────
+
+  const shapeSelectionnee = shapes.find(s => s.id === selectedId) ?? null;
+  const peutAjouterDepuisShape = !!shapeSelectionnee && (shapeSelectionnee.type === "dimension" || shapeSelectionnee.type === "rect") && !!scalePxPerMm;
+
+  function valeurMmDepuisShape(shape: Shape): { type: TypeLigne; valeurMm: number } | null {
+    if (!scalePxPerMm) return null;
+    if (shape.type === "dimension") {
+      const pxLen = dist(shape.x, shape.y, shape.x2 ?? shape.x, shape.y2 ?? shape.y);
+      return { type: "LONGUEUR", valeurMm: pxLen / scalePxPerMm };
+    }
+    if (shape.type === "rect") {
+      const wMm = (shape.w ?? 0) / scalePxPerMm;
+      const hMm = (shape.h ?? 0) / scalePxPerMm;
+      return { type: "SURFACE", valeurMm: Math.abs(wMm * hMm) };
+    }
+    return null;
+  }
+
+  function ouvrirAjoutDepuisShape() {
+    if (!shapeSelectionnee) return;
+    const info = valeurMmDepuisShape(shapeSelectionnee);
+    if (!info) return;
+    setAjoutLigne({ visible: true, designation: "", uniteCible: info.type === "SURFACE" ? "m2" : "ml" });
+  }
+
+  function confirmerAjoutDepuisShape() {
+    if (!shapeSelectionnee || !ajoutLigne || !ajoutLigne.designation.trim()) return;
+    const info = valeurMmDepuisShape(shapeSelectionnee);
+    if (!info) return;
+    setMetreLignes(l => [...l, { id: `local-${uid()}`, designation: ajoutLigne.designation.trim(), type: info.type, valeurMm: info.valeurMm, uniteCible: ajoutLigne.uniteCible }]);
+    setAjoutLigne(null);
+  }
+
+  function ajouterLigneManuelle() {
+    const valeur = parseFloat(manuelle.valeur.replace(",", "."));
+    if (!manuelle.designation.trim() || isNaN(valeur) || valeur <= 0) return;
+    setMetreLignes(l => [...l, { id: `local-${uid()}`, designation: manuelle.designation.trim(), type: "QUANTITE", valeurMm: valeur, uniteCible: "u" }]);
+    setManuelle({ designation: "", valeur: "" });
+  }
+
+  function supprimerLigne(id: string) {
+    setMetreLignes(l => l.filter(x => x.id !== id));
+    setLignesSelectionnees(s => { const n = new Set(s); n.delete(id); return n; });
+  }
+
+  function afficherValeurLigne(l: LigneMetreLocale) {
+    if (l.type === "QUANTITE") return `${l.valeurMm.toLocaleString("fr-FR")} u`;
+    if (l.type === "SURFACE") return `${(l.valeurMm / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} m²`;
+    return formatLongueur(l.valeurMm, uniteAffichage);
+  }
+
+  const lignesEnvoyables = metreLignes.filter(l => lignesSelectionnees.has(l.id) && !estIdLocal(l.id));
+  const aDesLignesLocalesSelectionnees = [...lignesSelectionnees].some(id => estIdLocal(id));
+
+  // Synchronise les ids réels renvoyés par le serveur après un enregistrement réussi.
+  useEffect(() => {
+    if (saveState?.success && saveState.lignes) {
+      setMetreLignes(saveState.lignes as LigneMetreLocale[]);
+      setLignesSelectionnees(new Set());
+    }
+  }, [saveState]);
 
   const toolGroups = [
     [
@@ -545,12 +646,12 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
       { id: "arrow" as Tool, icon: <ArrowRight size={15} />, label: "Flèche" },
     ],
     [
-      { id: "rect" as Tool, icon: <Square size={15} />, label: "Rectangle (mur, pièce)" },
+      { id: "rect" as Tool, icon: <Square size={15} />, label: "Rectangle (surface)" },
       { id: "circle" as Tool, icon: <Circle size={15} />, label: "Cercle" },
     ],
     [
       { id: "text" as Tool, icon: <Type size={15} />, label: "Texte / étiquette" },
-      { id: "dimension" as Tool, icon: <Ruler size={15} />, label: "Cote / mesure" },
+      { id: "dimension" as Tool, icon: <Ruler size={15} />, label: "Cote / mesure (longueur)" },
     ],
     [
       { id: "eraser" as Tool, icon: <Eraser size={15} />, label: "Gomme" },
@@ -564,14 +665,14 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
   };
 
   return (
-    <div className="flex flex-col" style={{ height: "calc(100vh - 112px)" }}>
+    <div className="flex flex-col gap-4">
       {/* Calibration modal */}
       {calibInput.visible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="w-80 rounded-xl bg-white p-5 shadow-xl">
             <h3 className="mb-1 font-bold text-brand-navy">Calibrer l&apos;échelle</h3>
             <p className="mb-3 text-sm text-slate-500">
-              La ligne que vous avez tracée fait combien de mètres (ou cm) dans la réalité ?
+              La ligne que vous avez tracée fait combien dans la réalité ?
             </p>
             <div className="mb-3 flex items-center gap-2">
               <input
@@ -586,12 +687,13 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
                 onKeyDown={e => { if (e.key === "Enter") confirmCalibration(); if (e.key === "Escape") { setCalibInput({ value: "", visible: false }); setCalibrating(false); setCalibLine(null); } }}
               />
               <select
-                value={scaleUnit}
-                onChange={e => setScaleUnit(e.target.value as "cm" | "m")}
+                value={uniteAffichage}
+                onChange={e => setUniteAffichage(e.target.value as UniteAffichage)}
                 className="rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm"
               >
-                <option value="m">m</option>
+                <option value="mm">mm</option>
                 <option value="cm">cm</option>
+                <option value="m">m</option>
               </select>
             </div>
             <div className="flex gap-2">
@@ -606,7 +708,43 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
         </div>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Ajout au métré depuis une forme sélectionnée */}
+      {ajoutLigne?.visible && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-80 rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="mb-3 font-bold text-brand-navy">Ajouter au métré</h3>
+            <label className="mb-2 block text-xs font-medium text-slate-600">Désignation</label>
+            <input
+              autoFocus
+              type="text"
+              value={ajoutLigne.designation}
+              onChange={e => setAjoutLigne(a => a && { ...a, designation: e.target.value })}
+              placeholder="ex. Mur cloison salon"
+              className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              lang="fr" spellCheck
+            />
+            <label className="mb-2 block text-xs font-medium text-slate-600">Unité d&apos;ouvrage</label>
+            <select
+              value={ajoutLigne.uniteCible}
+              onChange={e => setAjoutLigne(a => a && { ...a, uniteCible: e.target.value as UniteCible })}
+              className="mb-4 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+            >
+              <option value="ml">ml (mètre linéaire)</option>
+              <option value="m2">m² (mètre carré)</option>
+            </select>
+            <div className="flex gap-2">
+              <button onClick={confirmerAjoutDepuisShape} className="flex-1 rounded-lg bg-brand-blue py-2 text-sm font-medium text-white hover:bg-brand-blue-dark">
+                Ajouter
+              </button>
+              <button onClick={() => setAjoutLigne(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-1 overflow-hidden rounded-xl border border-slate-200" style={{ height: "70vh" }}>
         {/* Left toolbar */}
         <div className="flex flex-col gap-0.5 border-r border-slate-200 bg-white p-1 shadow-sm" style={{ minWidth: 44 }}>
           {toolGroups.map((group, gi) => (
@@ -618,16 +756,17 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
               ))}
             </div>
           ))}
-
-          <div className="mt-1 border-t border-slate-100 pt-1">
-            <ToolBtn
-              active={calibrating || tool === "calibrate"}
-              onClick={() => { setCalibrating(true); setTool("calibrate"); }}
-              title="Calibrer l'échelle (tracer une ligne de référence)"
-            >
-              <ScanLine size={15} />
-            </ToolBtn>
-          </div>
+          {!dxfEntites && (
+            <div className="mt-1 border-t border-slate-100 pt-1">
+              <ToolBtn
+                active={calibrating || tool === "calibrate"}
+                onClick={() => { setCalibrating(true); setTool("calibrate"); }}
+                title="Calibrer l'échelle (tracer une ligne de référence)"
+              >
+                <ScanLine size={15} />
+              </ToolBtn>
+            </div>
+          )}
         </div>
 
         {/* PDF panel (side by side when PDF uploaded) */}
@@ -648,15 +787,17 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
           {/* Top bar */}
           <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-1.5">
             <label className="flex items-center gap-1 text-xs text-slate-600">
-              Trait
-              <input type="color" value={strokeColor} onChange={e => setStrokeColor(e.target.value)} className="h-5 w-5 cursor-pointer rounded border border-slate-200" />
+              Unité
+              <select value={uniteAffichage} onChange={e => setUniteAffichage(e.target.value as UniteAffichage)} className="rounded border border-slate-200 px-1 py-0.5 text-xs">
+                <option value="mm">mm</option>
+                <option value="cm">cm</option>
+                <option value="m">m</option>
+              </select>
             </label>
 
             <label className="flex items-center gap-1 text-xs text-slate-600">
-              Épaisseur
-              <select value={lineWidth} onChange={e => setLineWidth(Number(e.target.value))} className="rounded border border-slate-200 px-1 py-0.5 text-xs">
-                {[1, 2, 3, 5, 8].map(w => <option key={w} value={w}>{w}px</option>)}
-              </select>
+              Trait
+              <input type="color" value={strokeColor} onChange={e => setStrokeColor(e.target.value)} className="h-5 w-5 cursor-pointer rounded border border-slate-200" />
             </label>
 
             {bgImage && (
@@ -670,45 +811,31 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
               <Grid size={12} />
               <input type="checkbox" checked={gridEnabled} onChange={e => setGridEnabled(e.target.checked)} />
               Grille
-              <select value={gridSize} onChange={e => setGridSize(Number(e.target.value))} disabled={!gridEnabled} className="rounded border border-slate-200 px-1 py-0.5 text-xs">
-                {[10, 20, 50].map(g => <option key={g} value={g}>{g}px</option>)}
-              </select>
             </label>
 
-            {scalePx && (
+            {scalePxPerMm ? (
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                Échelle : 1 {scaleUnit} = {scalePx.toFixed(1)} px
+                Échelle : {dxfEntites ? "DXF (auto)" : `1 ${uniteAffichage} = ${(scalePxPerMm * uniteVersMm(1, uniteAffichage)).toFixed(1)} px`}
               </span>
+            ) : (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Échelle non calibrée</span>
             )}
 
             <div className="ml-auto flex items-center gap-1">
               <button title="Annuler" onClick={handleUndo} disabled={!history.length} className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><Undo2 size={14} /></button>
               <button title="Rétablir" onClick={handleRedo} disabled={!future.length} className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><Redo2 size={14} /></button>
-              <button title="Tout effacer" onClick={() => { if (!shapes.length) return; if (!confirm("Effacer tout ?")) return; pushHistory(shapes); setShapes([]); }} className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-500"><Trash2 size={14} /></button>
+              <button title="Tout effacer" onClick={() => { if (!shapes.length) return; if (!confirm("Effacer tout le tracé ?")) return; pushHistory(shapes); setShapes([]); }} className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-500"><Trash2 size={14} /></button>
 
               <div className="mx-1 h-4 w-px bg-slate-200" />
 
-              {/* Cartouche */}
-              <button
-                title="Cartouche SDA Rénovation"
-                onClick={() => setShowCartouchePanel(p => !p)}
-                className={`rounded px-2 py-0.5 text-xs font-medium transition ${showCartouche ? "bg-brand-navy text-white" : "text-slate-500 hover:bg-slate-100"}`}
-              >
-                Cartouche
-              </button>
-              <button
-                title={showCartouche ? "Masquer la cartouche" : "Afficher la cartouche"}
-                onClick={() => setShowCartouche(v => !v)}
-                className="rounded p-1 text-slate-500 hover:bg-slate-100 text-[10px]"
-              >
-                {showCartouche ? "🔲" : "⬜"}
-              </button>
+              <ToolBtn onClick={ouvrirAjoutDepuisShape} disabled={!peutAjouterDepuisShape} title="Ajouter au métré la cote/surface sélectionnée">
+                <PlusCircle size={15} />
+              </ToolBtn>
 
-              {/* Import image ou PDF */}
-              <label title="Importer un plan (image ou PDF)" className="cursor-pointer rounded px-2 py-1 text-xs font-medium text-brand-blue hover:bg-brand-blue/10">
+              <label title="Importer un plan (image, PDF ou DXF)" className="cursor-pointer rounded px-2 py-1 text-xs font-medium text-brand-blue hover:bg-brand-blue/10">
                 <Settings2 className="mr-1 inline h-3.5 w-3.5" />
                 Changer le plan
-                <input type="file" accept="image/*,application/pdf" className="sr-only" onChange={importFile} />
+                <input ref={inputRef} type="file" accept="image/*,application/pdf,.dxf" className="sr-only" onChange={importFile} />
               </label>
 
               <button title="Exporter en PNG" onClick={exportPng} className="rounded p-1 text-slate-500 hover:bg-slate-100"><Download size={14} /></button>
@@ -716,46 +843,11 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
               <div className="mx-1 h-4 w-px bg-slate-200" />
 
               <button title="Zoom +" onClick={() => setZoom(z => Math.min(10, z * 1.2))} className="rounded p-1 text-slate-500 hover:bg-slate-100"><ZoomIn size={14} /></button>
-              <span className="w-8 text-center text-xs text-slate-500">{Math.round(zoom * 100)}%</span>
-              <button title="Zoom -" onClick={() => setZoom(z => Math.max(0.1, z * 0.85))} className="rounded p-1 text-slate-500 hover:bg-slate-100"><ZoomOut size={14} /></button>
+              <span className="w-10 text-center text-xs text-slate-500">{(zoom * 100).toFixed(zoom < 1 ? 1 : 0)}%</span>
+              <button title="Zoom -" onClick={() => setZoom(z => Math.max(0.02, z * 0.85))} className="rounded p-1 text-slate-500 hover:bg-slate-100"><ZoomOut size={14} /></button>
               <button title="Réinitialiser la vue" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} className="rounded p-1 text-slate-500 hover:bg-slate-100"><Maximize size={14} /></button>
             </div>
           </div>
-
-          {/* Panneau cartouche */}
-          {showCartouchePanel && (
-            <div className="absolute right-0 top-0 z-40 w-72 rounded-bl-xl border-b border-l border-slate-200 bg-white p-4 shadow-xl">
-              <div className="mb-3 flex items-center justify-between">
-                <h4 className="text-sm font-bold text-brand-navy">Cartouche du plan</h4>
-                <button onClick={() => setShowCartouchePanel(false)} className="text-slate-400 hover:text-slate-600">×</button>
-              </div>
-              <div className="flex flex-col gap-2 text-xs">
-                {([
-                  ["projet", "Nom du projet"],
-                  ["affaire", "N° d'affaire / dossier"],
-                  ["echelle", "Échelle (ex. 1:50)"],
-                  ["etabliPar", "Établi par"],
-                  ["feuille", "N° de feuille (ex. 1/3)"],
-                  ["date", "Date"],
-                ] as [keyof typeof cartouche, string][]).map(([key, label]) => (
-                  <label key={key}>
-                    <span className="mb-0.5 block text-slate-500">{label}</span>
-                    <input
-                      type="text"
-                      value={cartouche[key]}
-                      onChange={e => setCartouche(c => ({ ...c, [key]: e.target.value }))}
-                      className="w-full rounded border border-slate-200 px-2 py-1 text-xs focus:border-brand-blue focus:outline-none"
-                      lang="fr"
-                      spellCheck
-                    />
-                  </label>
-                ))}
-              </div>
-              <p className="mt-3 text-[10px] text-slate-400">
-                SDA Rénovation · SIREN 988 681 672 · Cugnaux 31270
-              </p>
-            </div>
-          )}
 
           {/* Canvas */}
           <div ref={containerRef} className="relative flex-1 overflow-hidden bg-[#f0f0f0]">
@@ -779,7 +871,6 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
               />
             )}
 
-            {/* Status bar */}
             <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2">
               {calibrating && (
                 <span className="rounded-md bg-orange-500/90 px-2 py-1 text-xs font-medium text-white">
@@ -787,13 +878,106 @@ export default function VectorisationCanvas({ initialFile }: VectorisationCanvas
                 </span>
               )}
               <span className="rounded-md bg-white/80 px-2 py-1 text-xs text-slate-400 shadow-sm">
-                {Math.round(zoom * 100)}% · {shapes.length} forme{shapes.length !== 1 ? "s" : ""}
-                {scalePx ? ` · Éch. 1${scaleUnit}=${scalePx.toFixed(1)}px` : " · Échelle non calibrée"}
+                {(zoom * 100).toFixed(zoom < 1 ? 1 : 0)}% · {shapes.length} forme{shapes.length !== 1 ? "s" : ""}
               </span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Enregistrer */}
+      <form action={saveFormAction} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <input type="hidden" name="lignes" value={JSON.stringify(metreLignes.map(({ designation, type, valeurMm, uniteCible }) => ({ designation, type, valeurMm, uniteCible })))} />
+        <input type="hidden" name="donneesCanvas" value={JSON.stringify({ shapes, scalePxPerMm })} />
+        <input type="hidden" name="uniteAffichage" value={uniteAffichage} />
+        {nouveauFichier && <input type="file" name="fichier" className="hidden" ref={el => { if (el) { const dt = new DataTransfer(); dt.items.add(nouveauFichier); el.files = dt.files; } }} />}
+        {fichierNom && <span className="text-xs text-slate-400">Plan : {fichierNom}</span>}
+        {saveState?.error && <span className="text-sm text-red-600">{saveState.error}</span>}
+        {saveState?.success && <span className="text-sm text-emerald-600">Métré enregistré.</span>}
+        <button type="submit" className="ml-auto rounded-lg bg-brand-blue px-4 py-2 text-sm font-medium text-white hover:bg-brand-blue-dark">
+          Enregistrer le métré
+        </button>
+      </form>
+
+      {/* Lignes de métré */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-4 py-3">
+          <h3 className="font-semibold text-brand-navy">Lignes de métré</h3>
+        </div>
+
+        {metreLignes.length === 0 ? (
+          <p className="px-4 py-6 text-center text-sm text-slate-400">
+            Tracez une cote ou une surface, puis cliquez sur « Ajouter au métré » — ou ajoutez une ligne manuelle ci-dessous.
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="w-8 px-4 py-2"></th>
+                <th className="px-4 py-2">Désignation</th>
+                <th className="px-4 py-2">Type</th>
+                <th className="px-4 py-2 text-right">Valeur</th>
+                <th className="w-8 px-4 py-2"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {metreLignes.map(l => (
+                <tr key={l.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-2">
+                    <input
+                      type="checkbox"
+                      checked={lignesSelectionnees.has(l.id)}
+                      onChange={e => setLignesSelectionnees(s => { const n = new Set(s); if (e.target.checked) n.add(l.id); else n.delete(l.id); return n; })}
+                    />
+                  </td>
+                  <td className="px-4 py-2 text-slate-700">{l.designation}</td>
+                  <td className="px-4 py-2 text-slate-500 text-xs">{l.type}</td>
+                  <td className="px-4 py-2 text-right font-medium text-slate-700">{afficherValeurLigne(l)}</td>
+                  <td className="px-4 py-2 text-right">
+                    <button onClick={() => supprimerLigne(l.id)} className="text-slate-400 hover:text-red-500"><Trash size={14} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Ajout manuel */}
+        <div className="flex flex-wrap items-end gap-2 border-t border-slate-100 px-4 py-3">
+          <div className="flex-1 min-w-[160px]">
+            <label className="mb-1 block text-xs text-slate-500">Désignation (ligne manuelle, ex. « Porte intérieure »)</label>
+            <input type="text" value={manuelle.designation} onChange={e => setManuelle(m => ({ ...m, designation: e.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm" lang="fr" spellCheck />
+          </div>
+          <div className="w-28">
+            <label className="mb-1 block text-xs text-slate-500">Quantité (u)</label>
+            <input type="number" min="0" step="1" value={manuelle.valeur} onChange={e => setManuelle(m => ({ ...m, valeur: e.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm" />
+          </div>
+          <button onClick={ajouterLigneManuelle} className="rounded-lg border border-brand-blue px-3 py-1.5 text-sm font-medium text-brand-blue hover:bg-brand-blue/10">
+            <PlusCircle className="mr-1 inline h-4 w-4" /> Ajouter
+          </button>
+        </div>
+      </div>
+
+      {/* Envoyer vers un devis */}
+      {devisOptions.length > 0 && (
+        <form action={envoyerFormAction} className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <input type="hidden" name="metreLigneIds" value={JSON.stringify(lignesEnvoyables.map(l => l.id))} />
+          <div className="flex-1 min-w-[200px]">
+            <label className="mb-1 block text-xs font-semibold text-slate-500 uppercase tracking-wide">Envoyer les lignes sélectionnées vers le devis</label>
+            <select name="devisId" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              {devisOptions.map(d => <option key={d.id} value={d.id}>{d.numero}</option>)}
+            </select>
+          </div>
+          {aDesLignesLocalesSelectionnees && (
+            <p className="text-xs text-amber-600">Enregistrez le métré avant d&apos;envoyer ces lignes.</p>
+          )}
+          {envoyerState?.error && <p className="text-sm text-red-600">{envoyerState.error}</p>}
+          {envoyerState?.success && <p className="text-sm text-emerald-600">Lignes envoyées vers le devis.</p>}
+          <button type="submit" disabled={lignesEnvoyables.length === 0} className="rounded-lg bg-brand-orange px-4 py-2 text-sm font-medium text-white hover:bg-brand-orange-dark disabled:opacity-40">
+            <Send className="mr-1 inline h-4 w-4" /> Envoyer ({lignesEnvoyables.length})
+          </button>
+        </form>
+      )}
     </div>
   );
 }

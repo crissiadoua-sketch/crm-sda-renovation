@@ -77,7 +77,6 @@ export const ALL_PERMISSIONS = [
   "/finances",
   "/comptabilite",
   "/prospects",
-  "/conception",
   "/memoires-techniques",
   "/doe",
   "/ppsps",
@@ -124,7 +123,6 @@ export const PERMISSION_LABELS: Record<string, string> = {
   "/finances": "Finances",
   "/comptabilite": "Comptabilité",
   "/prospects": "Prospects",
-  "/conception": "Conception & Plans",
   "/memoires-techniques": "Mémoires techniques",
   "/doe": "DOE",
   "/ppsps": "PPSPS",
@@ -170,7 +168,6 @@ export const PERMISSION_GROUPS: { label: string; routes: string[] }[] = [
     routes: ["/depenses", "/tresorerie", "/finances", "/analytique", "/comptabilite"],
   },
   { label: "RH", routes: ["/mutuelle"] },
-  { label: "Conception", routes: ["/conception"] },
   { label: "Documents techniques", routes: ["/memoires-techniques", "/doe", "/ppsps", "/fiches-techniques", "/dtu"] },
   {
     label: "Étude de prix",

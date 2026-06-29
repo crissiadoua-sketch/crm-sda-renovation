@@ -8,7 +8,7 @@ import {
   Maximize, Grid, Layers, ScanLine, CheckCircle2, XCircle, Settings2,
   PlusCircle, Send, Trash,
 } from "lucide-react";
-import { mmVersUnite, uniteVersMm, formatLongueur, type UniteAffichage } from "@/lib/metre-units";
+import { uniteVersMm, formatLongueur, formatValeurLigne, type UniteAffichage } from "@/lib/metre-units";
 import { parseDxf, bornesDxf, type EntiteDxf } from "@/lib/metre-dxf";
 import { urlFichier } from "@/lib/format";
 import type { SaveMetreState, EnvoyerDevisState } from "@/lib/actions/metre";
@@ -619,9 +619,7 @@ export default function MetreCanvas({
   }
 
   function afficherValeurLigne(l: LigneMetreLocale) {
-    if (l.type === "QUANTITE") return `${l.valeurMm.toLocaleString("fr-FR")} u`;
-    if (l.type === "SURFACE") return `${(l.valeurMm / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} m²`;
-    return formatLongueur(l.valeurMm, uniteAffichage);
+    return formatValeurLigne(l.type, l.valeurMm, uniteAffichage);
   }
 
   const lignesEnvoyables = metreLignes.filter(l => lignesSelectionnees.has(l.id) && !estIdLocal(l.id));

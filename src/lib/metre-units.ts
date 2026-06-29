@@ -15,6 +15,18 @@ export function formatLongueur(valeurMm: number, unite: UniteAffichage): string 
   return `${v.toLocaleString("fr-FR", { maximumFractionDigits: unite === "mm" ? 0 : 2 })} ${unite}`;
 }
 
+// Affichage d'une ligne de métré selon son type — partagé entre le canvas,
+// l'export Excel et l'aperçu PDF pour garantir un rendu identique partout.
+export function formatValeurLigne(
+  type: string,
+  valeurMm: number,
+  uniteAffichage: UniteAffichage,
+): string {
+  if (type === "QUANTITE") return `${valeurMm.toLocaleString("fr-FR")} u`;
+  if (type === "SURFACE") return `${(valeurMm / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} m²`;
+  return formatLongueur(valeurMm, uniteAffichage);
+}
+
 // $INSUNITS du header DXF — codes les plus courants rencontrés dans les exports
 // AutoCAD/ArchiCAD/Cedreo. 0 (unitless) traité comme mm par défaut (hypothèse la
 // plus sûre pour des plans de bâtiment, à recalibrer manuellement si besoin).

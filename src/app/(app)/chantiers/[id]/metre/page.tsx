@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FileSpreadsheet, FileText } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateMetre, saveMetre, envoyerLignesVersDevis } from "@/lib/actions/metre";
 import MetreCanvas from "@/components/metre/metre-canvas";
@@ -26,12 +27,32 @@ export default async function ChantierMetrePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link href={`/chantiers/${chantier.id}`} className="text-sm text-brand-blue hover:underline">
-          ← Retour au chantier
-        </Link>
-        <h2 className="mt-1 text-xl font-bold text-brand-navy">Métré — {chantier.nom}</h2>
-        <p className="mt-1 text-sm text-slate-500">{chantier.reference}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <Link href={`/chantiers/${chantier.id}`} className="text-sm text-brand-blue hover:underline">
+            ← Retour au chantier
+          </Link>
+          <h2 className="mt-1 text-xl font-bold text-brand-navy">Métré — {chantier.nom}</h2>
+          <p className="mt-1 text-sm text-slate-500">{chantier.reference}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/api/metre/export-excel?chantierId=${chantier.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+            Excel
+          </a>
+          <a
+            href={`/apercu/metre/${chantier.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <FileText className="h-4 w-4 text-red-500" />
+            PDF
+          </a>
+        </div>
       </div>
 
       <MetreCanvas

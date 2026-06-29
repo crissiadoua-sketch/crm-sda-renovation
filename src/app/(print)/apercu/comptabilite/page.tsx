@@ -42,7 +42,7 @@ export default async function ApercuComptabilitePage({
               </div>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-black text-[#1E2F6E]">BILAN COMPTABLE</p>
+              <p className="text-2xl font-black text-[#1E2F6E]">SYNTHÈSE COMPTABLE</p>
               <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide capitalize">{periodeLabel}</p>
               <p className="text-xs text-slate-500">
                 Du {formatDate(debut)} au {formatDate(fin)}

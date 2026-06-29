@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="bilan-comptable-${periodeFichier}.xlsx"`,
+      "Content-Disposition": `attachment; filename="synthese-comptable-${periodeFichier}.xlsx"`,
     },
   });
 }

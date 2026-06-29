@@ -45,6 +45,7 @@ import {
   FileCheck,
   GanttChart,
   Ruler,
+  Landmark,
   type LucideIcon,
 } from "lucide-react";
 import { canAccess } from "@/lib/permissions";
@@ -165,6 +166,7 @@ export const navGroups: NavGroup[] = [
       { href: "/finances/rapport-mensuel", label: "Rapport mensuel Dirigeant", icon: FileBarChart },
       { href: "/analytique", label: "Analytique & Graphiques", icon: BarChart3 },
       { href: "/comptabilite", label: "Comptabilité", icon: Calculator },
+      { href: "/comptabilite/bilan", label: "Bilan", icon: Landmark },
       { href: "/comptabilite/rapprochement", label: "Rapprochement bancaire", icon: FileCheck },
     ],
   },

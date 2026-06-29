@@ -2569,3 +2569,83 @@ model PreDimensionnementDocument {
 
   preDimensionnement PreDimensionnement @relation(fields: [preDimensionnementId], references: [id], onDelete: Cascade)
 }
+
+// ---------------------------------------------------------------------------
+// Bilan comptable (pré-remplissage façon liasse fiscale / expert-comptable)
+// ---------------------------------------------------------------------------
+
+// Un enregistrement par exercice (année). Les lignes "auto" (CA, achats, charges)
+// sont recalculées à la volée depuis Facture/BonCommande/Depense (cf. bilan-template.ts) ;
+// tous les champs ci-dessous sont saisis manuellement par l'utilisateur car le CRM ne tient
+// pas de comptabilité en partie double (immobilisations, capital, TVA, comptes courants...).
+model BilanExercice {
+  id    String @id @default(cuid())
+  annee Int    @unique
+
+  dateDebutExercice DateTime?
+  dateFinExercice   DateTime?
+
+  // --- ACTIF ---
+  capitalSouscritNonAppele Float?
+
+  immobIncorporellesBrut  Float?
+  immobIncorporellesAmort Float?
+  immobCorporellesBrut    Float?
+  immobCorporellesAmort   Float?
+  immobFinancieresBrut    Float?
+  immobFinancieresAmort   Float?
+
+  stocksEnCours              Float?
+  avancesAcomptesVerses      Float?
+  creancesClientsManuel      Float? // override de la créance auto-calculée (factures impayées) si renseigné
+  autresCreances             Float?
+  valeursMobilieresPlacement Float?
+  disponibilites             Float?
+  chargesConstateesAvance    Float?
+
+  // --- PASSIF ---
+  capitalSocial               Float?
+  primesEmissionFusionApport  Float?
+  reserves                    Float?
+  reportANouveau               Float?
+  subventionsInvestissement   Float?
+  provisionsReglementees       Float?
+
+  provisionsRisquesCharges Float?
+
+  empruntsDettesEtablissementsCredit Float?
+  empruntsDettesFinancieresDiverses  Float?
+  avancesAcomptesRecus                Float?
+  dettesFournisseursManuel            Float? // override de la dette fournisseurs auto-calculée si renseigné
+  dettesFiscalesSociales               Float?
+  autresDettes                         Float?
+  produitsConstatesAvance              Float?
+
+  // --- COMPTE DE RÉSULTAT (lignes non couvertes par Facture/BonCommande/Depense) ---
+  venteMarchandises       Float?
+  productionStockee       Float?
+  productionImmobilisee   Float?
+  subventionsExploitation Float?
+  reprisesProvisions      Float?
+  autresProduitsExploitation Float?
+
+  variationStock                     Float?
+  impotsTaxesVersementsAssimiles     Float?
+  salairesTraitements                Float?
+  chargesSociales                    Float?
+  dotationsAmortissementsProvisions  Float?
+  autresChargesExploitation          Float?
+
+  produitsFinanciers   Float?
+  chargesFinancieres   Float?
+  produitsExceptionnels Float?
+  chargesExceptionnelles Float?
+
+  participationSalaries Float?
+  impotsBenefices        Float?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

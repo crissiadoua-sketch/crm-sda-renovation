@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 import { formatEuros } from "@/lib/format";
+import { donneesComptables } from "@/lib/comptabilite-filtre";
 import { ExportComptaButton } from "./export-compta-button";
+import { ExportBilanButtons } from "./export-bilan-buttons";
 
 export default async function ComptabilitePage({
   searchParams,
@@ -10,44 +11,16 @@ export default async function ComptabilitePage({
 }) {
   const { annee, mois } = await searchParams;
 
-  const now    = new Date();
-  const year   = parseInt(annee ?? String(now.getFullYear()), 10);
-  const month  = mois ? parseInt(mois, 10) : null;
+  const {
+    year, month,
+    factures, depenses, bonsCommande,
+    caHT, caTTC, totalDep, totalAchHT,
+  } = await donneesComptables(annee, mois);
 
-  const debut = month
-    ? new Date(year, month - 1, 1)
-    : new Date(year, 0, 1);
-  const fin = month
-    ? new Date(year, month, 0, 23, 59, 59)
-    : new Date(year, 11, 31, 23, 59, 59);
-
-  const [factures, depenses, bonsCommande] = await Promise.all([
-    prisma.facture.findMany({
-      where: { createdAt: { gte: debut, lte: fin }, statut: { not: "BROUILLON" } },
-      include: {
-        client: { select: { raisonSociale: true } },
-        lignes: { select: { totalHT: true } },
-      },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.depense.findMany({
-      where: { date: { gte: debut, lte: fin } },
-      orderBy: { date: "asc" },
-    }),
-    prisma.bonCommande.findMany({
-      where: { createdAt: { gte: debut, lte: fin }, statut: { not: "ANNULE" } },
-      include: { fournisseur: { select: { nom: true } } },
-      orderBy: { createdAt: "asc" },
-    }),
-  ]);
-
-  const caHT       = factures.reduce((s, f) => s + f.totalHT, 0);
-  const caTTC      = factures.reduce((s, f) => s + f.totalTTC, 0);
-  const totalDep   = depenses.reduce((s, d) => s + d.montant, 0);
-  const totalAchHT = bonsCommande.reduce((s, b) => s + b.totalHT, 0);
-
+  const now = new Date();
   const annees = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
   const moisLabels = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+  const periodeQuery = `annee=${year}${month ? `&mois=${month}` : ""}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,13 +28,16 @@ export default async function ComptabilitePage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-bold text-brand-navy">Comptabilité & Export</h2>
-          <p className="mt-1 text-sm text-slate-500">Export CSV pour votre expert-comptable</p>
+          <p className="mt-1 text-sm text-slate-500">Export CSV, Excel et PDF pour votre expert-comptable</p>
         </div>
-        <ExportComptaButton
-          factureIds={factures.map(f => f.id)}
-          depenseIds={depenses.map(d => d.id)}
-          periode={month ? `${year}-${String(month).padStart(2, "0")}` : String(year)}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportBilanButtons periodeQuery={periodeQuery} />
+          <ExportComptaButton
+            factureIds={factures.map(f => f.id)}
+            depenseIds={depenses.map(d => d.id)}
+            periode={month ? `${year}-${String(month).padStart(2, "0")}` : String(year)}
+          />
+        </div>
       </div>
 
       {/* Filtres période */}

@@ -444,7 +444,10 @@ export function GanttClient({
 
   const timelineWidth = totalDays * pixelsPerDay;
   const dayHeaders = Array.from({ length: totalDays }, (_, i) => addDays(rangeStart, i));
-  const labelStepDays = Math.max(1, Math.ceil(34 / pixelsPerDay));
+  // Un jour par étiquette dès qu'il y a la place pour un nombre à 2 chiffres (vue Semaine/Mois) —
+  // ne regrouper plusieurs jours sous une seule étiquette que sur les vues très dézoomées, pour ne
+  // pas donner l'impression que des jours « disparaissent » du planning.
+  const labelStepDays = pixelsPerDay >= 16 ? 1 : Math.max(1, Math.ceil(32 / pixelsPerDay));
 
   return (
     <form

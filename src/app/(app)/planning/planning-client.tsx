@@ -43,8 +43,14 @@ function buildCalendarDays(year: number, month: number) {
   return days;
 }
 
+// Date calendaire LOCALE "yyyy-MM-dd" — ne JAMAIS passer par toISOString() ici :
+// ça convertit en UTC avant de découper, ce qui décale d'un jour en arrière pour
+// tout fuseau en avance sur UTC (France) lorsque d est une minuit locale.
 function toDateStr(d: Date) {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 // Convertit un instant UTC stocké en base vers la valeur locale attendue par <input type="datetime-local">
@@ -229,7 +235,7 @@ export function PlanningClient({
 
   function getEventsForDay(date: Date) {
     const ds = toDateStr(date);
-    return evenements.filter(e => e.dateDebut.slice(0, 10) === ds);
+    return evenements.filter(e => toDateStr(new Date(e.dateDebut)) === ds);
   }
 
   const moisLabel = new Date(year, month - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });

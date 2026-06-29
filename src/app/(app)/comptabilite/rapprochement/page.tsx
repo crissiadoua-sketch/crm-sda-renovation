@@ -15,7 +15,7 @@ export default async function RapprochementBancairePage() {
       <div>
         <h2 className="text-xl font-bold text-brand-navy">Rapprochement bancaire</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Importez un relevé bancaire (CSV ou OFX) et faites correspondre chaque ligne à un paiement
+          Importez un relevé bancaire (CSV, OFX ou PDF) et faites correspondre chaque ligne à un paiement
           client ou une dépense déjà enregistrée dans le CRM.
         </p>
       </div>

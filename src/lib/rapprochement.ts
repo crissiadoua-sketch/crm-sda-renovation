@@ -108,6 +108,56 @@ export function parseOfxReleve(contenu: string): LigneImportee[] {
   return resultat;
 }
 
+const DATE_TOKEN = /\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/;
+const MONTANT_TOKEN = /(-?\d{1,3}(?:[ .]\d{3})*,\d{2})\s*€?\s*$/;
+
+/**
+ * Parse un relevé bancaire au format PDF — "best effort" : un PDF est une mise en page visuelle,
+ * pas un format de données structuré, donc fiable uniquement si le texte est sélectionnable
+ * (export direct depuis l'espace bancaire en ligne, pas un scan/photo). Chaque ligne de texte est
+ * retenue comme transaction si elle contient à la fois une date et un montant en fin de ligne ;
+ * le libellé est ce qu'il reste après avoir retiré ces deux jetons. Les lignes ne correspondant pas
+ * à ce schéma (en-têtes, totaux, solde…) sont ignorées silencieusement.
+ */
+export async function parsePdfReleve(buffer: Buffer): Promise<LigneImportee[]> {
+  const { PDFParse } = await import("pdf-parse");
+  const parser = new PDFParse({ data: buffer });
+  let texte: string;
+  try {
+    const result = await parser.getText();
+    texte = result.text;
+  } finally {
+    await parser.destroy();
+  }
+
+  const resultat: LigneImportee[] = [];
+  for (const ligneBrute of texte.split(/\r?\n/)) {
+    const ligne = ligneBrute.trim();
+    if (!ligne) continue;
+
+    const matchMontant = ligne.match(MONTANT_TOKEN);
+    if (!matchMontant) continue;
+    const avantMontant = ligne.slice(0, matchMontant.index).trim();
+
+    const matchDate = avantMontant.match(DATE_TOKEN);
+    if (!matchDate) continue;
+    const date = parseDateFr(matchDate[1]);
+    if (!date) continue;
+
+    const libelle = avantMontant.slice(matchDate.index! + matchDate[0].length).trim();
+    // Sans libellé, c'est presque toujours une ligne de solde/total plutôt qu'une vraie transaction.
+    if (!libelle) continue;
+
+    resultat.push({
+      date,
+      libelle,
+      montant: parseMontantFr(matchMontant[1]),
+      reference: null,
+    });
+  }
+  return resultat;
+}
+
 export type CibleRapprochement = { id: string; montant: number; date: Date; label: string };
 
 export type Correspondance = {

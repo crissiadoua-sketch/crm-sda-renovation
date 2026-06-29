@@ -23,12 +23,13 @@ export function ImportReleveForm({ action }: { action: Action }) {
         <Field label="Banque (optionnel)" htmlFor="banque">
           <input id="banque" name="banque" placeholder="Ex : Société Générale" className={inputClasses} />
         </Field>
-        <Field label="Fichier (.csv ou .ofx)" htmlFor="fichier">
-          <input id="fichier" name="fichier" type="file" accept=".csv,.ofx,text/csv" required className={inputClasses} />
+        <Field label="Fichier (.csv, .ofx ou .pdf)" htmlFor="fichier">
+          <input id="fichier" name="fichier" type="file" accept=".csv,.ofx,.pdf,text/csv,application/pdf" required className={inputClasses} />
         </Field>
       </div>
       <p className="mt-2 text-xs text-slate-400">
         Export CSV attendu : colonnes Date, Libellé, Montant (ou Débit/Crédit séparés). Export OFX standard également pris en charge.
+        PDF : pris en charge en best effort si le texte est sélectionnable (export direct banque) — une vérification des lignes importées est recommandée.
       </p>
       <div className="mt-4 flex justify-end">
         <SubmitButton pendingLabel="Import…">Importer</SubmitButton>

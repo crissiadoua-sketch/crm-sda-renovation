@@ -221,7 +221,6 @@ export default async function DepensesPage({
                           target="_blank"
                           rel="noreferrer"
                           title={d.factureNom ?? "Facture jointe"}
-                          onClick={(e) => e.stopPropagation()}
                           className="ml-1.5 inline-flex text-slate-400 hover:text-brand-blue"
                         >
                           <Paperclip className="inline h-3.5 w-3.5" />

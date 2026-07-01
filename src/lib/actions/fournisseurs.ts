@@ -4,7 +4,8 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { nextClientRef, calcInitiales } from "@/lib/reference";
+import { calcInitiales } from "@/lib/reference";
+import { prochaineReferenceClient } from "@/lib/codification";
 
 const fournisseurSchema = z.object({
   nom: z.string().min(1, "Le nom est requis."),
@@ -44,7 +45,7 @@ export async function createFournisseur(
     select: { reference: true },
   });
   const initiales = calcInitiales({ raisonSociale: data.nom });
-  const reference = nextClientRef("FOU", existing.map((r) => r.reference ?? ""), initiales);
+  const reference = await prochaineReferenceClient("FOU", existing.map((r) => r.reference ?? ""), initiales);
 
   const fournisseur = await prisma.fournisseur.create({
     data: {

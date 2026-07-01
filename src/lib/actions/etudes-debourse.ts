@@ -2,10 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function genNumeroEDS() {
-  const count = await prisma.etudeDebourse.count();
-  return `EDS-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.etudeDebourse.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("EDS", items.map((i) => i.numero));
 }
 
 export async function creerEtudeDebourse(formData: FormData) {

@@ -78,3 +78,60 @@ export async function regenerateLeadsApiKey() {
 
   revalidatePath("/parametres");
 }
+
+const ligneCodeSchema = z.object({
+  code: z.string().min(1),
+  prefixe: z.string().min(1, "Le préfixe est requis."),
+  prefixeAVenir: z.string().optional().transform((v) => v?.trim() || null),
+  nbChiffres: z.coerce.number().int().min(1).max(6),
+});
+
+export type CodificationsState = { error?: string; success?: boolean } | undefined;
+
+export async function updateCodifications(
+  _prevState: CodificationsState,
+  formData: FormData,
+): Promise<CodificationsState> {
+  const raw = formData.get("lignes");
+  if (typeof raw !== "string") return { error: "Données invalides." };
+
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { return { error: "Données invalides." }; }
+
+  const result = z.array(ligneCodeSchema).safeParse(parsed);
+  if (!result.success) return { error: result.error.issues[0]?.message ?? "Données invalides." };
+
+  const anneeProchaine = new Date().getFullYear() + 1;
+
+  for (const ligne of result.data) {
+    const conf = await prisma.codification.findUnique({ where: { code: ligne.code } });
+    if (!conf) continue;
+
+    if (conf.geleLegalement) {
+      // Codes soumis au gel légal (DEV, FAC) : on ne modifie jamais le préfixe
+      // actif en cours d'exercice ; si un préfixeAVenir est fourni, on programme
+      // le changement pour l'exercice suivant.
+      await prisma.codification.update({
+        where: { code: ligne.code },
+        data: {
+          nbChiffres: ligne.nbChiffres,
+          prefixeAVenir: ligne.prefixeAVenir ?? null,
+          anneeApplicationAVenir: ligne.prefixeAVenir ? anneeProchaine : null,
+        },
+      });
+    } else {
+      await prisma.codification.update({
+        where: { code: ligne.code },
+        data: {
+          prefixe: ligne.prefixe,
+          nbChiffres: ligne.nbChiffres,
+          prefixeAVenir: null,
+          anneeApplicationAVenir: null,
+        },
+      });
+    }
+  }
+
+  revalidatePath("/parametres/codifications");
+  return { success: true };
+}

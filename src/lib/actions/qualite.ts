@@ -2,12 +2,12 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 // ── PAQ ──────────────────────────────────────────────────────────────────────
 export async function creerPAQ(formData: FormData) {
-  const year = new Date().getFullYear();
-  const count = await prisma.planAssuranceQualite.count();
-  const numero = `PAQ-${year}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.planAssuranceQualite.findMany({ select: { numero: true } });
+  const numero = await prochainNumeroDocument("PAQ", items.map((i) => i.numero));
   const paq = await prisma.planAssuranceQualite.create({
     data: {
       numero,
@@ -48,9 +48,8 @@ export async function supprimerPAQ(id: string) {
 
 // ── Fiche Autocontrôle ────────────────────────────────────────────────────────
 export async function creerFicheAutocontrole(formData: FormData) {
-  const year = new Date().getFullYear();
-  const count = await prisma.ficheAutocontrole.count();
-  const numero = `FAC-${year}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.ficheAutocontrole.findMany({ select: { numero: true } });
+  const numero = await prochainNumeroDocument("FACO", items.map((i) => i.numero));
   const fac = await prisma.ficheAutocontrole.create({
     data: {
       numero,
@@ -96,9 +95,8 @@ export async function supprimerFicheAutocontrole(id: string) {
 
 // ── DAACT ─────────────────────────────────────────────────────────────────────
 export async function creerDAACT(formData: FormData) {
-  const year = new Date().getFullYear();
-  const count = await prisma.dAACT.count();
-  const numero = `DAT-${year}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.dAACT.findMany({ select: { numero: true } });
+  const numero = await prochainNumeroDocument("DAT", items.map((i) => i.numero));
   const daact = await prisma.dAACT.create({
     data: {
       numero,

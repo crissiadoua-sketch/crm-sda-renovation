@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 export async function creerProspect(formData: FormData): Promise<void> {
   const nom       = formData.get("nom") as string;
@@ -36,9 +37,8 @@ export async function convertirEnClient(id: string): Promise<void> {
   const prospect = await prisma.prospect.findUnique({ where: { id } });
   if (!prospect || prospect.clientId) return;
 
-  // Génère une référence client
-  const count = await prisma.client.count();
-  const reference = `CLI-${String(count + 1).padStart(4, "0")}`;
+  const clients = await prisma.client.findMany({ select: { reference: true } });
+  const reference = await prochainNumeroDocument("CLI", clients.map((c) => c.reference).filter((r): r is string => r !== null));
 
   const client = await prisma.client.create({
     data: {

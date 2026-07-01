@@ -2,10 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function genNumeroFAP() {
-  const count = await prisma.ficheAgrementProduit.count();
-  return `FAP-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.ficheAgrementProduit.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("FAP", items.map((i) => i.numero));
 }
 
 export async function creerFicheAgrement(formData: FormData) {

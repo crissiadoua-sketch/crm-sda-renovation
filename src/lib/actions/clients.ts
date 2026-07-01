@@ -4,7 +4,8 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { nextClientRef, calcInitiales, CLIENT_TYPES } from "@/lib/reference";
+import { calcInitiales, CLIENT_TYPES } from "@/lib/reference";
+import { prochaineReferenceClient } from "@/lib/codification";
 
 const clientSchema = z.object({
   type: z.enum(CLIENT_TYPES),
@@ -55,7 +56,7 @@ export async function createClient(_prevState: ClientState, formData: FormData):
     nom: data.nom,
     raisonSociale: data.raisonSociale,
   });
-  const reference = nextClientRef(data.type, existing.map((r) => r.reference ?? ""), initiales);
+  const reference = await prochaineReferenceClient(data.type, existing.map((r) => r.reference ?? ""), initiales);
 
   const client = await prisma.client.create({
     data: {

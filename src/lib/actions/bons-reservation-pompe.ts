@@ -3,17 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function nextNumeroBrp(): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `BRP-${year}-`;
-  const last = await prisma.bonReservationPompe.findFirst({
-    where: { numero: { startsWith: prefix } },
-    orderBy: { numero: "desc" },
-    select: { numero: true },
-  });
-  const seq = last ? parseInt(last.numero.split("-")[2] ?? "0", 10) + 1 : 1;
-  return `${prefix}${String(seq).padStart(4, "0")}`;
+  const brps = await prisma.bonReservationPompe.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("BRP", brps.map((b) => b.numero));
 }
 
 export async function creerBonReservationPompe(formData: FormData): Promise<void> {

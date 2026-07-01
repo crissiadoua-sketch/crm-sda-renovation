@@ -5,18 +5,15 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { genererSectionsInitiales } from "@/lib/memoire-technique";
 import type { TypeMemoire, ModeleMemoire } from "@/lib/memoire-technique";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 // ---------------------------------------------------------------------------
 // Référence auto MT-YYYY-XXXX
 // ---------------------------------------------------------------------------
 
 async function genererReference(): Promise<string> {
-  const annee = new Date().getFullYear();
-  const count = await prisma.memoireTechnique.count({
-    where: { reference: { startsWith: `MT-${annee}-` } },
-  });
-  const numero = String(count + 1).padStart(4, "0");
-  return `MT-${annee}-${numero}`;
+  const memoires = await prisma.memoireTechnique.findMany({ select: { reference: true } });
+  return prochainNumeroDocument("MT", memoires.map((m) => m.reference));
 }
 
 // ---------------------------------------------------------------------------

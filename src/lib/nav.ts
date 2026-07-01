@@ -17,6 +17,7 @@ import {
   Calculator,
   Megaphone,
   Settings,
+  Settings2,
   Banknote,
   UsersRound,
   UserCog,
@@ -180,6 +181,7 @@ export const navGroups: NavGroup[] = [
     label: "Configuration",
     items: [
       { href: "/parametres", label: "Paramètres", icon: Settings },
+      { href: "/parametres/codifications", label: "Codifications", icon: Settings2 },
       { href: "/utilisateurs", label: "Utilisateurs", icon: UserCog },
       { href: "/maintenance", label: "Maintenance & Qualité", icon: ShieldCheck },
       { href: "/securite", label: "Sécurité — Alba-ayla IA", icon: ShieldAlert },

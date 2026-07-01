@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getNextNumero } from "@/lib/numbering";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 const etatSchema = z.object({
   chantierId: z.string().optional(),
@@ -24,7 +24,7 @@ export type EtatReservesState = { errors?: Record<string, string[]>; message?: s
 
 async function getNextNumeroEtat() {
   const etats = await prisma.etatReserves.findMany({ select: { numero: true } });
-  return getNextNumero("REV", etats.map((e) => e.numero));
+  return prochainNumeroDocument("REV", etats.map((e) => e.numero));
 }
 
 export async function createEtatReserves(

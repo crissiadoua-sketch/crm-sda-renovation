@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { stockerFichier, supprimerFichierStocke, recupererBufferFichier } from "@/lib/blob-storage";
+import { prochainNumeroDocument } from "@/lib/codification";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   calculerPoutre,
@@ -23,8 +24,8 @@ import {
 } from "@/lib/calcul-structurel/pre-dimensionnement";
 
 async function genNumeroPDIM(): Promise<string> {
-  const count = await prisma.preDimensionnement.count();
-  return `PDIM-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.preDimensionnement.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("PDIM", items.map((i) => i.numero));
 }
 
 function emptyToNull(value: FormDataEntryValue | null): string | null {

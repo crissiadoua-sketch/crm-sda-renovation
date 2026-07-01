@@ -3,17 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function nextNumeroBcb(): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `BCB-${year}-`;
-  const last = await prisma.bonCommandeBeton.findFirst({
-    where: { numero: { startsWith: prefix } },
-    orderBy: { numero: "desc" },
-    select: { numero: true },
-  });
-  const seq = last ? parseInt(last.numero.split("-")[2] ?? "0", 10) + 1 : 1;
-  return `${prefix}${String(seq).padStart(4, "0")}`;
+  const bcs = await prisma.bonCommandeBeton.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("BCB", bcs.map((b) => b.numero));
 }
 
 // ---------------------------------------------------------------------------

@@ -973,6 +973,26 @@ model Parametres {
 }
 
 // ---------------------------------------------------------------------------
+// Codifications — préfixes de numérotation configurables (devis, factures,
+// bons, clients, fournisseurs...). Voir src/lib/codification.ts.
+// ---------------------------------------------------------------------------
+
+model Codification {
+  id                     String   @id @default(cuid())
+  code                   String   @unique // "DEV", "FAC", "BC", "PA", "FOU"...
+  categorie              String // DOCUMENT | TIERS | CLIENT
+  label                  String
+  prefixe                String // préfixe actif aujourd'hui
+  prefixeAVenir          String? // nouveau préfixe programmé (gel légal uniquement)
+  anneeApplicationAVenir Int? // année à partir de laquelle prefixeAVenir devient actif
+  nbChiffres             Int      @default(3) // largeur du zéro-padding du compteur
+  reinitialisationAnnee  Boolean  @default(true) // false pour TIERS/CLIENT (compteur jamais remis à 0)
+  geleLegalement         Boolean  @default(false) // true pour DEV et FAC : modif effective l'exercice suivant seulement
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
 // État des réserves + Constat de levée de réserves
 // ---------------------------------------------------------------------------
 

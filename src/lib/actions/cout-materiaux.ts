@@ -2,10 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function genNumeroCMR() {
-  const count = await prisma.coutMateriauxRenduChantier.count();
-  return `CMR-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.coutMateriauxRenduChantier.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("CMR", items.map((i) => i.numero));
 }
 
 export async function creerCoutMateriaux(formData: FormData) {

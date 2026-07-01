@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getNextNumero } from "@/lib/numbering";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 export async function creerFactureLibre(formData: FormData): Promise<void> {
   const chantierId = formData.get("chantierId") as string;
@@ -17,7 +17,7 @@ export async function creerFactureLibre(formData: FormData): Promise<void> {
   if (!chantier) redirect("/factures");
 
   const factures = await prisma.facture.findMany({ select: { numero: true } });
-  const numero = getNextNumero("FAC", factures.map((f) => f.numero));
+  const numero = await prochainNumeroDocument("FAC", factures.map((f) => f.numero));
 
   const facture = await prisma.facture.create({
     data: {

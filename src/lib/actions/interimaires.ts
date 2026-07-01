@@ -2,14 +2,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 export async function nextInterimaireRef(): Promise<string> {
   const all = await prisma.interimaire.findMany({ select: { reference: true } });
-  const nums = all
-    .map((i) => parseInt(i.reference.replace("INT-", ""), 10))
-    .filter(Number.isFinite);
-  const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-  return `INT-${String(next).padStart(3, "0")}`;
+  return prochainNumeroDocument("INT", all.map((i) => i.reference));
 }
 
 export async function createInterimaire(formData: FormData): Promise<void> {

@@ -2,10 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function genNumeroFC() {
-  const count = await prisma.fraisChantier.count();
-  return `FC-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.fraisChantier.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("FC", items.map((i) => i.numero));
 }
 
 export async function creerFraisChantier(formData: FormData) {

@@ -2,11 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function genNumeroFNC() {
-  const count = await prisma.ficheNonConformite.count();
-  const year = new Date().getFullYear();
-  return `FNC-${year}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.ficheNonConformite.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("FNC", items.map((i) => i.numero));
 }
 
 export async function creerFicheNonConformite(formData: FormData) {

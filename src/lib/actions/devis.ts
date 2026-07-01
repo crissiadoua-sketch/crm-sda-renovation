@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getNextNumero } from "@/lib/numbering";
+import { prochainNumeroDocument } from "@/lib/codification";
 import { randomBytes } from "crypto";
 import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
 
@@ -35,7 +35,7 @@ function emptyToNullDate(value?: string) {
 
 export async function getNextDevisNumero() {
   const devis = await prisma.devis.findMany({ select: { numero: true } });
-  return getNextNumero("DEV", devis.map((d) => d.numero));
+  return prochainNumeroDocument("DEV", devis.map((d) => d.numero));
 }
 
 export async function createDevis(
@@ -345,7 +345,7 @@ export async function convertirDevisEnFacture(devisId: string) {
   }
 
   const factures = await prisma.facture.findMany({ select: { numero: true } });
-  const numero = getNextNumero("FAC", factures.map((f) => f.numero));
+  const numero = await prochainNumeroDocument("FAC", factures.map((f) => f.numero));
 
   const facture = await prisma.facture.create({
     data: {

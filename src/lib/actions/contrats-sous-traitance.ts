@@ -4,17 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { randomBytes } from "crypto";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function nextNumeroContrat(): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `CST-${year}-`;
-  const last = await prisma.contratSousTraitance.findFirst({
-    where: { numero: { startsWith: prefix } },
-    orderBy: { numero: "desc" },
-    select: { numero: true },
-  });
-  const seq = last ? parseInt(last.numero.split("-")[2] ?? "0", 10) + 1 : 1;
-  return `${prefix}${String(seq).padStart(4, "0")}`;
+  const contrats = await prisma.contratSousTraitance.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("CST", contrats.map((c) => c.numero));
 }
 
 export async function creerContrat(formData: FormData): Promise<void> {

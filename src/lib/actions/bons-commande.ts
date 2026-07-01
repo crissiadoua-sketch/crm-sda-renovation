@@ -3,21 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { prochainNumeroDocument } from "@/lib/codification";
+import { nextNumeroBl } from "@/lib/actions/bons-livraison";
 
 // ---------------------------------------------------------------------------
 // Numérotation
 // ---------------------------------------------------------------------------
 
 async function nextNumeroBc(): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `BC-${year}-`;
-  const last = await prisma.bonCommande.findFirst({
-    where: { numero: { startsWith: prefix } },
-    orderBy: { numero: "desc" },
-    select: { numero: true },
-  });
-  const seq = last ? parseInt(last.numero.split("-")[2] ?? "0", 10) + 1 : 1;
-  return `${prefix}${String(seq).padStart(4, "0")}`;
+  const bcs = await prisma.bonCommande.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("BC", bcs.map((b) => b.numero));
 }
 
 // ---------------------------------------------------------------------------
@@ -145,15 +140,7 @@ export async function supprimerBonCommande(id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function creerBlDepuisBc(bcId: string): Promise<void> {
-  const year = new Date().getFullYear();
-  const prefix = `BL-${year}-`;
-  const last = await prisma.bonLivraison.findFirst({
-    where: { numero: { startsWith: prefix } },
-    orderBy: { numero: "desc" },
-    select: { numero: true },
-  });
-  const seq = last ? parseInt(last.numero.split("-")[2] ?? "0", 10) + 1 : 1;
-  const numero = `${prefix}${String(seq).padStart(4, "0")}`;
+  const numero = await nextNumeroBl();
 
   const bc = await prisma.bonCommande.findUnique({
     where: { id: bcId },

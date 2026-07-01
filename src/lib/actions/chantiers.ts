@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getNextNumero } from "@/lib/numbering";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 const chantierSchema = z.object({
   reference: z.string().min(1, "La référence est requise."),
@@ -38,7 +38,7 @@ function emptyToNullDate(value?: string) {
 
 export async function getNextChantierReference() {
   const chantiers = await prisma.chantier.findMany({ select: { reference: true } });
-  return getNextNumero("CH", chantiers.map((c) => c.reference));
+  return prochainNumeroDocument("CH", chantiers.map((c) => c.reference));
 }
 
 export async function createChantier(

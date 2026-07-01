@@ -2,11 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function genNumeroDA() {
-  const count = await prisma.demandeApprovisionnement.count();
-  const year = new Date().getFullYear();
-  return `DA-${year}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.demandeApprovisionnement.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("DA", items.map((i) => i.numero));
 }
 
 export async function creerDemandeAppro(formData: FormData) {

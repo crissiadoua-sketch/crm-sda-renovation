@@ -2,11 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function genNumeroPRC() {
-  const count = await prisma.pVReunionChantier.count();
-  const year = new Date().getFullYear();
-  return `PRC-${year}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.pVReunionChantier.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("PRC", items.map((i) => i.numero));
 }
 
 export async function creerPVReunionChantier(formData: FormData) {

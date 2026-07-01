@@ -2,11 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function genNumeroFI() {
-  const count = await prisma.ficheIntervention.count();
-  const year = new Date().getFullYear();
-  return `FI-${year}-${String(count + 1).padStart(4, "0")}`;
+  const fiches = await prisma.ficheIntervention.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("FI", fiches.map((f) => f.numero));
 }
 
 export async function creerFicheIntervention(formData: FormData) {

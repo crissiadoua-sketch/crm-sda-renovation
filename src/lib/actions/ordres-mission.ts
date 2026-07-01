@@ -3,17 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function nextNumeroOm(): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `OM-${year}-`;
-  const last = await prisma.ordreMission.findFirst({
-    where: { numero: { startsWith: prefix } },
-    orderBy: { numero: "desc" },
-    select: { numero: true },
-  });
-  const seq = last ? parseInt(last.numero.split("-")[2] ?? "0", 10) + 1 : 1;
-  return `${prefix}${String(seq).padStart(4, "0")}`;
+  const oms = await prisma.ordreMission.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("OM", oms.map((o) => o.numero));
 }
 
 export async function creerOrdreMission(formData: FormData): Promise<void> {

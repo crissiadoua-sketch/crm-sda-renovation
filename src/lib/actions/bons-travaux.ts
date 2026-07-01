@@ -2,10 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { prochainNumeroDocument } from "@/lib/codification";
 
 async function genNumeroBT() {
-  const count = await prisma.bonTravaux.count();
-  return `BT-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+  const items = await prisma.bonTravaux.findMany({ select: { numero: true } });
+  return prochainNumeroDocument("BT", items.map((i) => i.numero));
 }
 
 export async function creerBonTravaux(formData: FormData) {

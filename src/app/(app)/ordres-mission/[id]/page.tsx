@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FileText, FileDown } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
@@ -52,10 +53,28 @@ export default async function OrdreMissionDetailPage({ params }: { params: Promi
             {om.chantier && <> · {om.chantier.nom}</>}
           </p>
         </div>
-        <DeleteButton
-          action={supprimerOrdreMission.bind(null, id)}
-          confirmMessage={`Supprimer l'ordre de mission ${om.numero} ?`}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/apercu/ordre-mission/${id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <FileText className="h-4 w-4 text-red-500" />
+            PDF
+          </a>
+          <a
+            href={`/api/ordres-mission/${id}/word`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <FileDown className="h-4 w-4 text-blue-600" />
+            Word
+          </a>
+          <DeleteButton
+            action={supprimerOrdreMission.bind(null, id)}
+            confirmMessage={`Supprimer l'ordre de mission ${om.numero} ?`}
+          />
+        </div>
       </div>
 
       {/* Infos sous-traitant */}

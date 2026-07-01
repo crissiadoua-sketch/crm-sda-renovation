@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FileText, FileDown } from "lucide-react";
 import { EtatReservesForm } from "@/components/etats-reserves/etat-form";
 import { updateEtatReserves, deleteEtatReserves } from "@/lib/actions/etats-reserves";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -68,10 +69,28 @@ export default async function EtatReservesDetailPage({
             )}
           </p>
         </div>
-        <DeleteButton
-          action={deleteEtatReserves.bind(null, etat.id)}
-          confirmMessage={`Supprimer l'état des réserves ${etat.numero} ? Cette action est irréversible.`}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/apercu/etat-reserves/${etat.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <FileText className="h-4 w-4 text-red-500" />
+            PDF
+          </a>
+          <a
+            href={`/api/etats-reserves/${etat.id}/word`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <FileDown className="h-4 w-4 text-blue-600" />
+            Word
+          </a>
+          <DeleteButton
+            action={deleteEtatReserves.bind(null, etat.id)}
+            confirmMessage={`Supprimer l'état des réserves ${etat.numero} ? Cette action est irréversible.`}
+          />
+        </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm print:shadow-none">

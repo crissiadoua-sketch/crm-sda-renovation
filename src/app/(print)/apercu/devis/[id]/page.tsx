@@ -20,12 +20,13 @@ export default async function ApercuDevisPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ sansPrix?: string; synthese?: string }>;
+  searchParams: Promise<{ sansPrix?: string; synthese?: string; descriptif?: string }>;
 }) {
   const { id } = await params;
-  const { sansPrix: sansPrixParam, synthese: syntheseParam } = await searchParams;
-  const sansPrix = sansPrixParam === "1";
-  const synthese = syntheseParam === "1";
+  const { sansPrix: sansPrixParam, synthese: syntheseParam, descriptif: descriptifParam } = await searchParams;
+  const sansPrix  = sansPrixParam  === "1";
+  const synthese  = syntheseParam  === "1";
+  const descriptif = descriptifParam === "1";
 
   const devis = await prisma.devis.findUnique({
     where: { id },
@@ -41,7 +42,8 @@ export default async function ApercuDevisPage({
   const lignes = devis.lignes;
   const chapitres = lignes.filter(l => l.type === "CHAPITRE");
   const hasTVAReduite = lignes.some(l => l.tauxTVA && l.tauxTVA < 10);
-  const nbCols = sansPrix ? 4 : 6;
+  // descriptif = sans P.U. ni total ligne, mais avec sous-totaux et récap HT/TVA/TTC
+  const nbCols = (sansPrix || descriptif) ? 4 : 6;
   const sousTotaux = computeSousTotaux(lignes, (l) => (l.type === "LIGNE" ? l.totalHT ?? 0 : 0));
   const { closingBefore, closingAtEnd } = computeSectionClosures(lignes);
 
@@ -55,7 +57,7 @@ export default async function ApercuDevisPage({
 
   return (
     <>
-      <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}${sansPrix ? " · Sans prix" : ""}${synthese ? " · Synthèse" : ""}`} />
+      <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}${sansPrix ? " · Sans prix" : ""}${synthese ? " · Synthèse" : ""}${descriptif ? " · Descriptif + totaux" : ""}`} />
 
       <PageDeGarde devis={devis} />
 
@@ -72,6 +74,11 @@ export default async function ApercuDevisPage({
           {synthese && (
             <div className="mb-4 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-center">
               <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Synthèse — sous-totaux et totaux uniquement</p>
+            </div>
+          )}
+          {descriptif && (
+            <div className="mb-4 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Document descriptif — sous-totaux et totaux HT/TVA/TTC</p>
             </div>
           )}
 
@@ -214,7 +221,7 @@ export default async function ApercuDevisPage({
                   <th className="px-3 py-2 text-left font-semibold text-xs">Désignation</th>
                   <th className="px-3 py-2 text-center font-semibold text-xs w-14">Unité</th>
                   <th className="px-3 py-2 text-right font-semibold text-xs w-16">Qté</th>
-                  {!sansPrix && (
+                  {!sansPrix && !descriptif && (
                     <>
                       <th className="px-3 py-2 text-right font-semibold text-xs w-24">P.U. HT</th>
                       <th className="px-3 py-2 text-right font-semibold text-xs w-24">Total HT</th>
@@ -227,7 +234,7 @@ export default async function ApercuDevisPage({
                   let clauses: string[] = [];
                   try { if (cr) clauses = JSON.parse(cr) as string[]; } catch { /* noop */ }
 
-                  const subtotalRows = !sansPrix
+                  const subtotalRows = (!sansPrix || descriptif)
                     ? closingBefore[i].map((titleIdx) => {
                         const montant = sousTotalAffiche(titleIdx);
                         if (montant == null) return null;
@@ -314,7 +321,7 @@ export default async function ApercuDevisPage({
                         <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap"><RichText html={ligne.designation} /></td>
                         <td className="px-3 py-1.5 text-xs text-center text-slate-500">{ligne.unite ?? "—"}</td>
                         <td className="px-3 py-1.5 text-xs text-right text-slate-700">{ligne.quantite?.toFixed(2) ?? "—"}</td>
-                        {!sansPrix && (
+                        {!sansPrix && !descriptif && (
                           <>
                             <td className="px-3 py-1.5 text-xs text-right text-slate-700">{ligne.prixUnitaireHT != null ? formatEuros(ligne.prixUnitaireHT) : "—"}</td>
                             <td className="px-3 py-1.5 text-xs text-right font-medium text-slate-700">{ligne.totalHT != null ? formatEuros(ligne.totalHT) : "—"}</td>
@@ -338,7 +345,7 @@ export default async function ApercuDevisPage({
                     </tbody>
                   );
                 })}
-                {!sansPrix && closingAtEnd.length > 0 && (
+                {(!sansPrix || descriptif) && closingAtEnd.length > 0 && (
                   <tbody>
                     {closingAtEnd.map((titleIdx) => {
                       const montant = sousTotalAffiche(titleIdx);
@@ -359,7 +366,7 @@ export default async function ApercuDevisPage({
           </div>
 
           {/* Récapitulatif totaux */}
-          {!sansPrix && (
+          {(!sansPrix || descriptif) && (
             <div className="flex justify-end mb-6">
               <div className="w-72">
                 <div className="flex justify-between border-t border-slate-200 py-1.5 text-sm">
@@ -404,7 +411,7 @@ export default async function ApercuDevisPage({
           )}
 
           {/* Bon pour accord */}
-          {!sansPrix && !synthese && (
+          {!sansPrix && !synthese && !descriptif && (
             <div className="mb-8 rounded-lg border-2 border-[#1E2F6E]/20 bg-slate-50 p-5">
               <p className="text-sm font-semibold text-[#1E2F6E] mb-3">Bon pour accord</p>
               <p className="text-xs text-slate-500 mb-6">
@@ -440,7 +447,7 @@ export default async function ApercuDevisPage({
       </div>
 
       {/* Annexe — Conditions générales de vente */}
-      {!sansPrix && <CGVAnnexe />}
+      {!sansPrix && !descriptif && <CGVAnnexe />}
 
       {/* CSS print */}
       <style>{`

@@ -140,6 +140,11 @@ export default async function DevisDetailPage({
           label={`Aperçu synthèse — ${devis.numero}`}
           buttonLabel="📄 Aperçu synthèse"
         />
+        <PdfPreviewModal
+          href={`/apercu/devis/${devis.id}?descriptif=1`}
+          label={`Aperçu descriptif + totaux — ${devis.numero}`}
+          buttonLabel="📄 Descriptif + totaux"
+        />
         {devis.type === "INITIAL" && (
           <form action={creerAvenant.bind(null, devis.id)}>
             <button type="submit" className={buttonClasses("secondary")}>

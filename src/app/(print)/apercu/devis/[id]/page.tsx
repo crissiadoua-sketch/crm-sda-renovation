@@ -251,7 +251,7 @@ export default async function ApercuDevisPage({
 
                   if (ligne.type === "CHAPITRE") {
                     return (
-                      <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+                      <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid", breakAfter: "avoid", pageBreakAfter: "avoid" }}>
                         {subtotalRows}
                         <tr className="bg-[#29ABE2]/10">
                           <td colSpan={nbCols} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#29ABE2]/40 whitespace-pre-wrap">
@@ -289,7 +289,7 @@ export default async function ApercuDevisPage({
                   }
                   if (ligne.type === "SOUS_CHAPITRE") {
                     return (
-                      <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+                      <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid", breakAfter: "avoid", pageBreakAfter: "avoid" }}>
                         {subtotalRows}
                         <tr className="bg-slate-50">
                           <td colSpan={nbCols} className="px-3 py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200 whitespace-pre-wrap">
@@ -447,14 +447,14 @@ export default async function ApercuDevisPage({
       </div>
 
       {/* Annexe — Conditions générales de vente */}
-      {!sansPrix && !descriptif && <CGVAnnexe />}
+      {!sansPrix && <CGVAnnexe />}
 
       {/* CSS print */}
       <style>{`
         @media print {
           @page {
             size: A4;
-            margin: 0 0 14mm 0;
+            margin: 10mm 0 14mm 0;
             @bottom-center {
               content: "Page " counter(page) " / " counter(pages);
               font-size: 9px;
@@ -462,6 +462,9 @@ export default async function ApercuDevisPage({
             }
           }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          table { border-collapse: collapse; }
+          tr { break-inside: avoid; page-break-inside: avoid; }
+          thead { display: table-header-group; }
         }
       `}</style>
     </>

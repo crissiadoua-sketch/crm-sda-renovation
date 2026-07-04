@@ -213,6 +213,7 @@ function BpuPicker({
                   <th className="px-3 py-2">Code</th>
                   <th className="px-3 py-2">Désignation</th>
                   <th className="px-3 py-2 text-center">U</th>
+                  <th className="px-3 py-2 text-right">P.U. réf.</th>
                   <th className="px-3 py-2 text-center" colSpan={3}>Insérer au prix</th>
                 </tr>
               </thead>
@@ -227,6 +228,9 @@ function BpuPicker({
                       )}
                     </td>
                     <td className="px-3 py-2 text-center text-slate-500 whitespace-nowrap">{o.unite}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-slate-600 whitespace-nowrap">
+                      {o.prixUnitaire > 0 ? formatEuros(o.prixUnitaire) : <span className="text-slate-300">—</span>}
+                    </td>
                     {BPU_OFFRES.map((of) => {
                       const prix = of.key === "eco" ? o.ecoPrixTotal : of.key === "prem" ? o.premPrixTotal : o.optPrixTotal;
                       return (

@@ -140,9 +140,10 @@ model Chantier {
   dateDebut    DateTime?
   dateFin      DateTime?
   budgetEstime Float?
-  description  String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  description      String?
+  tokenVariantes   String?   @unique // token public pour le lien de sélection de variante client
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   client         Client                 @relation(fields: [clientId], references: [id])
   devis          Devis[]

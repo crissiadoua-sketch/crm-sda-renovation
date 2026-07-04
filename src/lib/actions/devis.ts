@@ -164,6 +164,51 @@ export async function deleteDevis(id: string) {
   redirect("/devis");
 }
 
+export async function retenirVariante(devisId: string, chantierId: string): Promise<void> {
+  await prisma.devis.updateMany({
+    where: { chantierId, statut: "BROUILLON", id: { not: devisId }, type: "INITIAL" },
+    data: { statut: "EXPIRE" },
+  });
+  revalidatePath("/devis");
+  redirect("/devis");
+}
+
+export async function supprimerVariante(devisId: string, chantierId: string): Promise<void> {
+  try {
+    await prisma.devis.delete({ where: { id: devisId } });
+  } catch { /* ignoré si des factures liées */ }
+  revalidatePath("/devis");
+  redirect(`/devis/comparer/${chantierId}`);
+}
+
+export async function envoyerVariantes(chantierId: string, ids: string[]): Promise<void> {
+  await prisma.devis.updateMany({
+    where: { id: { in: ids }, chantierId, type: "INITIAL" },
+    data: { statut: "ENVOYE" },
+  });
+  revalidatePath("/devis");
+  revalidatePath(`/devis/comparer/${chantierId}`);
+}
+
+export async function genererLienVariantes(chantierId: string): Promise<string> {
+  const { randomBytes } = await import("node:crypto");
+  const token = randomBytes(20).toString("hex");
+  await prisma.chantier.update({ where: { id: chantierId }, data: { tokenVariantes: token } });
+  return token;
+}
+
+export async function clientSelectionneVariante(token: string, devisId: string): Promise<void> {
+  const chantier = await prisma.chantier.findUnique({ where: { tokenVariantes: token } });
+  if (!chantier) return;
+  await prisma.devis.update({ where: { id: devisId }, data: { statut: "ACCEPTE" } });
+  await prisma.devis.updateMany({
+    where: { chantierId: chantier.id, statut: { in: ["BROUILLON", "ENVOYE"] }, id: { not: devisId }, type: "INITIAL" },
+    data: { statut: "EXPIRE" },
+  });
+  await prisma.chantier.update({ where: { id: chantier.id }, data: { tokenVariantes: null } });
+  revalidatePath("/devis");
+}
+
 // ---------------------------------------------------------------------------
 // Lignes de métré (chapitres / sous-chapitres / lignes)
 // ---------------------------------------------------------------------------

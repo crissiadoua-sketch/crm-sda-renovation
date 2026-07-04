@@ -45,6 +45,17 @@ export default async function DevisPage({
     orderBy: { dateCreation: "desc" },
   });
 
+  // Détection des groupes de variantes (plusieurs BROUILLON sur le même chantier)
+  const brouillonParChantier = new Map<string, number>();
+  for (const d of devisList) {
+    if (d.statut === "BROUILLON" && d.type === "INITIAL") {
+      brouillonParChantier.set(d.chantierId, (brouillonParChantier.get(d.chantierId) ?? 0) + 1);
+    }
+  }
+  const chantiersVariantes = new Set(
+    [...brouillonParChantier.entries()].filter(([, n]) => n > 1).map(([id]) => id)
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -84,9 +95,15 @@ export default async function DevisPage({
                     {devis.numero}
                   </Link>
                   {devis.type === "AVENANT" && (
-                    <Badge tone="orange" className="ml-2">
-                      Avenant
-                    </Badge>
+                    <Badge tone="orange" className="ml-2">Avenant</Badge>
+                  )}
+                  {chantiersVariantes.has(devis.chantierId) && devis.statut === "BROUILLON" && devis.type === "INITIAL" && (
+                    <Link
+                      href={`/devis/comparer/${devis.chantierId}`}
+                      className="ml-2 inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 hover:bg-violet-100 transition"
+                    >
+                      🔀 {brouillonParChantier.get(devis.chantierId)} variantes — Comparer
+                    </Link>
                   )}
                 </td>
                 <td className="px-4 py-3 text-slate-600">{devis.chantier.nom}</td>

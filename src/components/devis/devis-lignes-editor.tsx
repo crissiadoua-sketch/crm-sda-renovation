@@ -48,6 +48,7 @@ export type OuvrageRow = {
   prixFourniture: number;
   prixPose:       number;
   styleTexte?: string | null; // JSON StyleTexte (mise en forme de la désignation)
+  clausesReserves?: string | null; // JSON string[] — pré-remplies depuis la BPU
 };
 
 type Action = (prevState: DevisLignesState, formData: FormData) => Promise<DevisLignesState>;
@@ -96,7 +97,7 @@ function rowFromOuvrage(o: OuvrageRow, offreKey: "eco" | "opt" | "prem" = "opt")
     remise: "0",
     tauxTVA: String(o.tauxTVA),
     styleTexte: o.styleTexte ?? "{}",
-    clausesReserves: "[]",
+    clausesReserves: o.clausesReserves && o.clausesReserves !== "[]" ? o.clausesReserves : "[]",
     sousTotalMasque: false,
     sousTotalManuel: "",
   };

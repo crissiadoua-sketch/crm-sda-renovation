@@ -154,9 +154,10 @@ type OuvrageFormProps = {
     designation?:      string;
     unite?:            string;
     tauxTVA?:          number;
-    description?:      string;
-    styleTexte?:       string;
-    actif?:            boolean;
+    description?:        string;
+    clausesReserves?:    string;
+    styleTexte?:         string;
+    actif?:              boolean;
     // Offre éco
     ecoTempsPose?:       number;
     ecoPrixPose?:        number;
@@ -177,6 +178,10 @@ export function OuvrageForm({ action, defaultValues, isEdit }: OuvrageFormProps)
   const [state, formAction] = useActionState(action, undefined);
 
   const [styleTexte, setStyleTexte] = useState<StyleTexte>(() => parseStyle(defaultValues?.styleTexte ?? "{}"));
+
+  const [clauses, setClauses] = useState<string[]>(() => {
+    try { return JSON.parse(defaultValues?.clausesReserves ?? "[]") as string[]; } catch { return []; }
+  });
 
   const [offres, setOffres] = useState<Record<OffreKey, OffreValues>>({
     eco: {
@@ -313,6 +318,46 @@ export function OuvrageForm({ action, defaultValues, isEdit }: OuvrageFormProps)
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Clauses et Réserves */}
+      <div className="rounded-lg border border-red-100 bg-red-50/40 p-4">
+        <input type="hidden" name="clausesReserves" value={JSON.stringify(clauses)} />
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-red-700">Clauses et Réserves</p>
+          <button
+            type="button"
+            onClick={() => setClauses((c) => [...c, ""])}
+            className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition"
+          >
+            + Ajouter une clause
+          </button>
+        </div>
+        {clauses.length === 0 ? (
+          <p className="text-xs text-red-400 italic">Aucune clause — elles seront pré-remplies dans le devis lors de l&apos;insertion depuis la BPU.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {clauses.map((c, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="mt-2 text-red-400 text-xs">•</span>
+                <textarea
+                  value={c}
+                  rows={2}
+                  onChange={(e) => setClauses((prev) => prev.map((v, j) => j === i ? e.target.value : v))}
+                  placeholder="Saisir la clause ou réserve…"
+                  className="flex-1 rounded border border-red-200 bg-white px-2 py-1 text-xs italic text-red-700 placeholder:text-red-300 focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-300 resize-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setClauses((prev) => prev.filter((_, j) => j !== i))}
+                  className="mt-1 rounded p-1 text-red-300 hover:bg-red-100 hover:text-red-500 transition text-xs"
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {isEdit && (

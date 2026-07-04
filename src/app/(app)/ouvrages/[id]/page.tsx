@@ -94,6 +94,7 @@ export default async function OuvrageDetailPage({
             unite:             ouvrage.unite,
             tauxTVA:           ouvrage.tauxTVA,
             description:       ouvrage.description ?? undefined,
+            clausesReserves:   ouvrage.clausesReserves,
             styleTexte:        ouvrage.styleTexte,
             actif:             ouvrage.actif,
             // Offre Éco

@@ -94,7 +94,7 @@ export default async function OuvragesPage({
           </span>
         ))}
         <span className="text-xs text-slate-400 self-center ml-2">
-          Colonnes : Temps de pose · Pose seule · P.U référence (figé, pour l'actualisation des prix)
+          Colonnes : Temps de pose · Pose seule · Fourniture · Total · P.U référence
         </span>
       </div>
 
@@ -173,7 +173,7 @@ export default async function OuvragesPage({
                         {OFFRES.map((offre) => (
                           <th
                             key={offre.key}
-                            colSpan={3}
+                            colSpan={5}
                             className={`border-b border-r border-slate-200 px-3 py-2 text-center font-black uppercase tracking-widest ${offre.color}`}
                           >
                             {offre.label}
@@ -190,6 +190,8 @@ export default async function OuvragesPage({
                           <React.Fragment key={offre.key}>
                             <th className={`px-2 py-2 text-center ${offre.color} opacity-80`}>Tps (h)</th>
                             <th className={`px-2 py-2 text-right ${offre.color} opacity-80`}>Pose €</th>
+                            <th className={`px-2 py-2 text-right ${offre.color} opacity-80`}>Fourn. €</th>
+                            <th className={`px-2 py-2 text-right ${offre.color} opacity-80`}>Total €</th>
                             <th className={`px-2 py-2 text-right border-r border-slate-200 font-black text-slate-500`}>P.U référence</th>
                           </React.Fragment>
                         ))}
@@ -238,6 +240,12 @@ export default async function OuvragesPage({
                                 </td>
                                 <td className="px-2 py-2 text-right text-slate-500 whitespace-nowrap">
                                   {v.prixPose > 0 ? formatEuros(v.prixPose) : "—"}
+                                </td>
+                                <td className="px-2 py-2 text-right text-slate-500 whitespace-nowrap">
+                                  {v.prixFourniture > 0 ? formatEuros(v.prixFourniture) : "—"}
+                                </td>
+                                <td className="px-2 py-2 text-right text-slate-500 whitespace-nowrap">
+                                  {v.prixTotal > 0 ? formatEuros(v.prixTotal) : "—"}
                                 </td>
                                 <td className="px-2 py-2 text-right font-semibold text-slate-500 border-r border-slate-200 whitespace-nowrap">
                                   {o.prixUnitaire > 0 ? formatEuros(o.prixUnitaire) : "—"}

@@ -1288,6 +1288,8 @@ model Ouvrage {
   prixPose       Float @default(0)
   prixUnitaire   Float @default(0)
 
+  clausesReserves String @default("[]") // JSON string[] — pré-remplies dans le devis à l'insertion
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

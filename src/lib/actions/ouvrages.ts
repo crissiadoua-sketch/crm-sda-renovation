@@ -20,9 +20,10 @@ const ouvrageSchema = z.object({
   designation: z.string().min(3, "La désignation doit comporter au moins 3 caractères."),
   unite:       z.string().min(1, "L'unité est requise."),
   tauxTVA:     numFloat,
-  description: z.string().optional(),
-  styleTexte:  z.string().optional(),
-  actif:       z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean()),
+  description:     z.string().optional(),
+  styleTexte:      z.string().optional(),
+  clausesReserves: z.string().optional(),
+  actif:           z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean()),
 
   // Offre Économique
   ecoTempsPose:      numFloat,
@@ -77,6 +78,7 @@ export async function createOuvrage(
       tauxTVA:           d.tauxTVA,
       description:       d.description,
       styleTexte:        d.styleTexte ?? "{}",
+      clausesReserves:   d.clausesReserves ?? "[]",
       actif:             true,
       // Offre Éco
       ecoTempsPose:      d.ecoTempsPose,
@@ -134,6 +136,7 @@ export async function updateOuvrage(
       tauxTVA:           d.tauxTVA,
       description:       d.description,
       styleTexte:        d.styleTexte ?? "{}",
+      clausesReserves:   d.clausesReserves ?? "[]",
       actif:             d.actif,
       // Offre Éco
       ecoTempsPose:      d.ecoTempsPose,

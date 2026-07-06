@@ -113,11 +113,16 @@ model SousTraitant {
   email       String?
   telephone   String?
   adresse     String?
-  tauxHoraire Float?
-  couleur     String?  // code hexa — identification visuelle dans le planning Gantt
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  tauxHoraire         Float?
+  couleur             String?  // code hexa — identification visuelle dans le planning Gantt
+  siret               String?
+  rcs                 String?  // ex: "RCS Toulouse"
+  capitalSocial       String?  // ex: "10 000"
+  representant        String?  // nom du gérant / représentant légal
+  qualiteRepresentant String?  // "Gérant", "Président"…
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   interventions ChantierSousTraitant[]
   contrats      ContratSousTraitance[]

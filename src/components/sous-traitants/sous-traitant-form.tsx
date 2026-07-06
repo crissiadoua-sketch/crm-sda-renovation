@@ -65,6 +65,32 @@ export function SousTraitantForm({
         </Field>
       </div>
 
+      {/* Informations légales — Convention de sous-traitance */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Informations légales (convention)</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="SIRET" htmlFor="siret" error={errors.siret}>
+            <input id="siret" name="siret" defaultValue={sousTraitant?.siret ?? ""} placeholder="XXX XXX XXX XXXXX" className={inputClasses} />
+          </Field>
+          <Field label="Capital social (€)" htmlFor="capitalSocial" error={errors.capitalSocial}>
+            <input id="capitalSocial" name="capitalSocial" defaultValue={sousTraitant?.capitalSocial ?? ""} placeholder="ex: 10 000" className={inputClasses} />
+          </Field>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="RCS / Registre" htmlFor="rcs" error={errors.rcs}>
+            <input id="rcs" name="rcs" defaultValue={sousTraitant?.rcs ?? ""} placeholder="ex: RCS Toulouse" className={inputClasses} />
+          </Field>
+          <Field label="Représentant légal" htmlFor="representant" error={errors.representant}>
+            <input id="representant" name="representant" defaultValue={sousTraitant?.representant ?? ""} placeholder="Nom du gérant…" className={inputClasses} />
+          </Field>
+        </div>
+        <div className="mt-4">
+          <Field label="Qualité du représentant" htmlFor="qualiteRepresentant" error={errors.qualiteRepresentant}>
+            <input id="qualiteRepresentant" name="qualiteRepresentant" defaultValue={sousTraitant?.qualiteRepresentant ?? ""} placeholder="Gérant, Président…" className={inputClasses} />
+          </Field>
+        </div>
+      </div>
+
       <Field label="Couleur d'identification (planning Gantt)" htmlFor="couleur" error={errors.couleur}>
         <input
           id="couleur"

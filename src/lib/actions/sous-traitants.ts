@@ -16,6 +16,11 @@ const sousTraitantSchema = z.object({
   adresse: z.string().optional(),
   tauxHoraire: z.string().optional(),
   couleur: z.string().optional(),
+  siret: z.string().optional(),
+  rcs: z.string().optional(),
+  capitalSocial: z.string().optional(),
+  representant: z.string().optional(),
+  qualiteRepresentant: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -59,9 +64,14 @@ export async function createSousTraitant(
       email: emptyToNull(data.email),
       telephone: emptyToNull(data.telephone),
       adresse: emptyToNull(data.adresse),
-      tauxHoraire: emptyToNullNumber(data.tauxHoraire),
-      couleur: emptyToNull(data.couleur),
-      notes: emptyToNull(data.notes),
+      tauxHoraire:         emptyToNullNumber(data.tauxHoraire),
+      couleur:             emptyToNull(data.couleur),
+      siret:               emptyToNull(data.siret),
+      rcs:                 emptyToNull(data.rcs),
+      capitalSocial:       emptyToNull(data.capitalSocial),
+      representant:        emptyToNull(data.representant),
+      qualiteRepresentant: emptyToNull(data.qualiteRepresentant),
+      notes:               emptyToNull(data.notes),
     },
   });
 
@@ -91,9 +101,14 @@ export async function updateSousTraitant(
       email: emptyToNull(data.email),
       telephone: emptyToNull(data.telephone),
       adresse: emptyToNull(data.adresse),
-      tauxHoraire: emptyToNullNumber(data.tauxHoraire),
-      couleur: emptyToNull(data.couleur),
-      notes: emptyToNull(data.notes),
+      tauxHoraire:         emptyToNullNumber(data.tauxHoraire),
+      couleur:             emptyToNull(data.couleur),
+      siret:               emptyToNull(data.siret),
+      rcs:                 emptyToNull(data.rcs),
+      capitalSocial:       emptyToNull(data.capitalSocial),
+      representant:        emptyToNull(data.representant),
+      qualiteRepresentant: emptyToNull(data.qualiteRepresentant),
+      notes:               emptyToNull(data.notes),
     },
   });
 

@@ -95,11 +95,11 @@ export default async function ApercuContratSousTraitancePage({
           <table className="parties">
             <tbody>
               <tr><td>La société</td><td>{blank(st.nom)}</td></tr>
-              <tr><td>Au capital de</td><td>{blank(null, 20)} Euros</td></tr>
-              <tr><td>Immatriculée au</td><td>{blank(null, 20)} de {blank(null, 20)}</td></tr>
-              <tr><td>Sous le numéro</td><td>{blank(null)}</td></tr>
+              <tr><td>Au capital de</td><td>{blank(st.capitalSocial, 20)} Euros</td></tr>
+              <tr><td>Immatriculée au</td><td>{blank(st.rcs, 20)} de {blank(st.adresse ? st.adresse.split(",").pop()?.trim() : null, 20)}</td></tr>
+              <tr><td>Sous le numéro</td><td>{blank(st.siret)}</td></tr>
               <tr><td>Dont le siège social est situé</td><td>{blank(st.adresse)}</td></tr>
-              <tr><td>Représentée par, en sa qualité de</td><td>{blank(st.contact)}</td></tr>
+              <tr><td>Représentée par, en sa qualité de</td><td>{blank(st.representant ?? st.contact)}{st.qualiteRepresentant ? `, ${st.qualiteRepresentant}` : ""}</td></tr>
             </tbody>
           </table>
           <p className="text-xs mb-6">

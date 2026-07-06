@@ -126,13 +126,19 @@ export default async function ChantierDetailPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/chantiers/${chantier.id}/livret-accueil`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+          >
+            📋 Livret d&apos;accueil
+          </Link>
           <a
             href={`/apercu/livret-accueil/${chantier.id}`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
           >
-            📋 Livret d&apos;accueil sous-traitants
+            👁 Aperçu livret
           </a>
           <DeleteButton
             action={deleteChantier.bind(null, chantier.id)}

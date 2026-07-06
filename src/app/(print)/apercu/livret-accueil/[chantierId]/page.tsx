@@ -78,6 +78,7 @@ export default async function LivretAccueilPage({
       where: { id: chantierId },
       include: {
         client: true,
+        livretAccueil: true,
         sousTraitants: { include: { sousTraitant: true } },
         ordresMission: {
           where: { statut: { not: "ANNULE" } },
@@ -100,28 +101,43 @@ export default async function LivretAccueilPage({
   const siretSDA     = parametres?.siret ?? COMPANY.siren;
   const tvaSDA       = parametres?.tvaIntracom ?? COMPANY.tvaIntracommunautaire;
 
+  const cfg = chantier.livretAccueil;
   const adresseChantier = [chantier.adresse, chantier.codePostal, chantier.ville].filter(Boolean).join(", ");
   const refDevis = chantier.devis[0]?.numero ?? "[À compléter]";
   const clientNom = clientDisplayName(chantier.client);
 
-  // Lots depuis ordres de mission (dédupliqués par sous-traitant)
-  const lots = chantier.ordresMission.reduce<{ specialite: string; nom: string; titre: string }[]>((acc, om) => {
-    if (!acc.find((l) => l.nom === om.sousTraitant.nom)) {
-      acc.push({
-        nom: om.sousTraitant.nom,
-        specialite: om.sousTraitant.specialite ?? "",
-        titre: om.titre,
-      });
-    }
-    return acc;
-  }, []);
+  // Lots : depuis la config manuelle si disponible, sinon depuis les ordres de mission
+  type LotAffichage = { nom: string; specialite: string; titre: string; dtu: string };
+  let lotsAffichage: LotAffichage[] = [];
 
-  // Fallback sur sousTraitants du chantier si pas d'ordres de mission
-  const lotsAffichage = lots.length > 0 ? lots : chantier.sousTraitants.map((cs) => ({
-    nom: cs.sousTraitant.nom,
-    specialite: cs.sousTraitant.specialite ?? "",
-    titre: "",
-  }));
+  if (cfg?.lotsJson && cfg.lotsJson !== "[]") {
+    try {
+      const parsed = JSON.parse(cfg.lotsJson) as { lot: string; nom: string; description: string; dtu: string }[];
+      lotsAffichage = parsed.map((l) => ({ nom: l.nom, specialite: l.nom, titre: l.description, dtu: l.dtu }));
+    } catch { /* noop */ }
+  }
+
+  if (lotsAffichage.length === 0) {
+    const seen = new Set<string>();
+    for (const om of chantier.ordresMission) {
+      if (!seen.has(om.sousTraitant.nom)) {
+        seen.add(om.sousTraitant.nom);
+        lotsAffichage.push({ nom: om.sousTraitant.nom, specialite: om.sousTraitant.specialite ?? "", titre: om.titre, dtu: "" });
+      }
+    }
+    if (lotsAffichage.length === 0) {
+      lotsAffichage = chantier.sousTraitants.map((cs) => ({ nom: cs.sousTraitant.nom, specialite: cs.sousTraitant.specialite ?? "", titre: "", dtu: "" }));
+    }
+  }
+
+  // Champs config ou fallback
+  const chefNom     = cfg?.chefChantierNom     || null;
+  const chefContact = cfg?.chefChantierContact || null;
+  const natureOuvrage       = cfg?.natureOuvrage       || chantier.description?.split("\n")[0] || "[À compléter]";
+  const descriptionChantier = cfg?.descriptionChantier || chantier.description || null;
+  const horairesChantier    = cfg?.horairesChantier    || "[À compléter]";
+  const stationnementAcces  = cfg?.stationnementAcces  || null;
+  const remarqueVoisinage   = cfg?.remarqueVoisinage   || null;
 
   const today = new Date();
 
@@ -200,7 +216,7 @@ export default async function LivretAccueilPage({
 
             <SubTitle>Chantier</SubTitle>
             <TableInfo rows={[
-              { label: "Nature de l'ouvrage",         value: chantier.description?.split("\n")[0] ?? "[À compléter]" },
+              { label: "Nature de l'ouvrage",         value: natureOuvrage },
               { label: "Adresse chantier",             value: adresseChantier },
               { label: "Maître d'ouvrage",             value: clientNom },
               { label: "Référence devis / contrat",    value: refDevis },
@@ -223,8 +239,8 @@ export default async function LivretAccueilPage({
                 </tr>
                 <tr className="border border-slate-200 bg-slate-50">
                   <td className="px-3 py-2 border-r border-slate-200">Chef de chantier / référent sur site</td>
-                  <td className="px-3 py-2 border-r border-slate-200 italic text-slate-400">À compléter</td>
-                  <td className="px-3 py-2 italic text-slate-400">À compléter</td>
+                  <td className={`px-3 py-2 border-r border-slate-200 ${chefNom ? "text-slate-700" : "italic text-slate-400"}`}>{chefNom ?? "À compléter"}</td>
+                  <td className={`px-3 py-2 ${chefContact ? "text-slate-700" : "italic text-slate-400"}`}>{chefContact ?? "À compléter"}</td>
                 </tr>
                 <tr className="border border-slate-200">
                   <td className="px-3 py-2 border-r border-slate-200">Maître d&apos;ouvrage</td>
@@ -302,8 +318,8 @@ export default async function LivretAccueilPage({
             </p>
 
             <SectionTitle>Présentation du chantier</SectionTitle>
-            {chantier.description ? (
-              <p className="text-xs text-slate-700 mb-3 leading-relaxed whitespace-pre-wrap">{chantier.description}</p>
+            {descriptionChantier ? (
+              <p className="text-xs text-slate-700 mb-3 leading-relaxed whitespace-pre-wrap">{descriptionChantier}</p>
             ) : (
               <p className="text-xs italic text-slate-400 mb-3">
                 [Description générale du chantier : nature de l&apos;ouvrage, surface, contexte (particulier / professionnel),
@@ -315,7 +331,7 @@ export default async function LivretAccueilPage({
               <div key={i}>
                 <p className="text-xs font-bold text-[#F7941E] mt-2 mb-1">Lot {i + 1} — {lot.specialite || lot.nom}</p>
                 <p className="text-xs text-slate-700 ml-3">{lot.titre || "[Description des travaux]"}</p>
-                <p className="text-xs italic text-slate-500 ml-3 mt-0.5">Travaux réalisés selon les normes et DTU applicables.</p>
+                <p className="text-xs italic text-slate-500 ml-3 mt-0.5">Travaux réalisés selon {lot.dtu || "les normes et DTU applicables"}.</p>
               </div>
             )) : (
               <>
@@ -342,7 +358,11 @@ export default async function LivretAccueilPage({
             )}
 
             <p className="text-[10px] italic text-slate-500 mt-3 leading-relaxed">
-              Remarque : {chantier.adresse ? `Chantier situé au ${adresseChantier}.` : "[préciser le contexte du chantier — zone résidentielle, industrielle, professionnelle — et les points de vigilance particuliers : propreté, voisinage, nuisances, etc.]"}
+              {remarqueVoisinage
+                ? `Remarque : ${remarqueVoisinage}`
+                : chantier.adresse
+                  ? `Remarque : Chantier situé au ${adresseChantier}.`
+                  : "Remarque : [préciser le contexte du chantier — zone résidentielle, industrielle, professionnelle — et les points de vigilance particuliers : propreté, voisinage, nuisances, etc.]"}
             </p>
           </div>
 
@@ -475,7 +495,7 @@ export default async function LivretAccueilPage({
 
             <SubTitle>Limitons les nuisances</SubTitle>
             <div className="mb-3">
-              <Bullet>Respecter les horaires de chantier : [À compléter] ;</Bullet>
+              <Bullet>Respecter les horaires de chantier : {horairesChantier} ;</Bullet>
               <Bullet>Limiter le volume sonore (radios, outils bruyants) et éviter toute nuisance en dehors de ces horaires ;</Bullet>
               <Bullet>Couper le moteur des véhicules et engins à l&apos;arrêt ;</Bullet>
               <Bullet>Utiliser des bacs de rétention pour tout produit polluant et ne rejeter aucun produit dangereux dans les réseaux ou le milieu naturel ;</Bullet>
@@ -483,10 +503,14 @@ export default async function LivretAccueilPage({
             </div>
 
             <SubTitle>Stationnement et accès</SubTitle>
-            <p className="text-xs italic text-slate-400 mb-4 leading-relaxed">
-              [Préciser les modalités de stationnement et d&apos;accès au chantier : aire dédiée, voie publique, restrictions
-              horaires, consignes riverains, etc.]
-            </p>
+            {stationnementAcces ? (
+              <p className="text-xs text-slate-700 mb-4 leading-relaxed whitespace-pre-wrap">{stationnementAcces}</p>
+            ) : (
+              <p className="text-xs italic text-slate-400 mb-4 leading-relaxed">
+                [Préciser les modalités de stationnement et d&apos;accès au chantier : aire dédiée, voie publique, restrictions
+                horaires, consignes riverains, etc.]
+              </p>
+            )}
             <p className="text-xs text-slate-700 leading-relaxed">
               À la sortie du chantier, veillez à ne pas porter vos EPI en dehors de la zone de travaux et à laisser les
               abords propres et dégagés.

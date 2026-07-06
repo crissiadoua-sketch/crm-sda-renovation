@@ -185,6 +185,24 @@ model Chantier {
   fichesAutocontrole    FicheAutocontrole[]    @relation("FACChantier")
   daacts                DAACT[]                @relation("DAACTChantier")
   preDimensionnements   PreDimensionnement[]   @relation("PDIMChantier")
+  livretAccueil         LivretAccueilConfig?
+}
+
+model LivretAccueilConfig {
+  id                  String  @id @default(cuid())
+  chantierId          String  @unique
+  chefChantierNom     String?
+  chefChantierContact String?
+  natureOuvrage       String?
+  descriptionChantier String?
+  lotsJson            String  @default("[]") // JSON [{lot, nom, description, dtu}]
+  horairesChantier    String?
+  stationnementAcces  String?
+  remarqueVoisinage   String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
 }
 
 model ChantierSousTraitant {

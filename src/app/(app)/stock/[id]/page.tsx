@@ -152,51 +152,88 @@ export default async function ArticleStockDetailPage({
           <form action={mouvementAction} className="flex flex-col gap-3">
             <input type="hidden" name="articleId" value={id} />
 
-            <Field label="Type de mouvement" htmlFor="type">
-              <select id="type" name="type" className={inputClasses}>
-                <option value="ENTREE">Entrée (livraison, achat)</option>
-                <option value="SORTIE">Sortie (consommation chantier)</option>
-                <option value="INVENTAIRE">Inventaire (réajustement)</option>
-                <option value="TRANSFERT">Transfert</option>
-                <option value="PERTE">Perte / Casse</option>
-              </select>
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Type de mouvement" htmlFor="type">
+                <select id="type" name="type" className={inputClasses}>
+                  <option value="ENTREE">⬇ Entrée (livraison, achat)</option>
+                  <option value="SORTIE">⬆ Sortie (consommation)</option>
+                  <option value="TRANSFERT">⇄ Transfert entre emplacements</option>
+                  <option value="INVENTAIRE">📋 Inventaire (réajustement)</option>
+                  <option value="PERTE">✕ Perte / Casse</option>
+                </select>
+              </Field>
+              <Field label="Quantité" htmlFor="quantite">
+                <input id="quantite" name="quantite" type="number" step="0.01" min="0.01" required className={inputClasses} placeholder={`En ${article.unite}`} />
+              </Field>
+            </div>
 
-            <Field label="Quantité" htmlFor="quantite">
-              <input id="quantite" name="quantite" type="number" step="0.01" min="0.01" required className={inputClasses} placeholder={`En ${article.unite}`} />
-            </Field>
+            {/* Emplacement source */}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Emplacement source" htmlFor="emplacement">
+                <select id="emplacement" name="emplacement" className={inputClasses}>
+                  <option value="DEPOT">Dépôt</option>
+                  <option value="BUREAU">Bureau</option>
+                  <option value="CHANTIER">Chantier (préciser ci-dessous)</option>
+                </select>
+              </Field>
+              <Field label="Chantier source (si Chantier)" htmlFor="chantierId">
+                <select id="chantierId" name="chantierId" className={inputClasses}>
+                  <option value="">— Aucun / Dépôt —</option>
+                  {chantiers.map((c) => (
+                    <option key={c.id} value={c.id}>{c.reference} — {c.nom}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
 
-            <Field label="Prix unitaire HT (€)" htmlFor="prixUnitaireHT">
-              <input id="prixUnitaireHT" name="prixUnitaireHT" type="number" step="0.01" min="0" defaultValue={article.prixUnitaireHT} className={inputClasses} />
-            </Field>
+            {/* Emplacement destination (TRANSFERT) */}
+            <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
+              <p className="mb-2 text-xs font-semibold text-blue-700">Destination (Transfert uniquement)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Emplacement destination" htmlFor="emplacementDest">
+                  <select id="emplacementDest" name="emplacementDest" className={inputClasses}>
+                    <option value="">— Inutilisé —</option>
+                    <option value="DEPOT">Dépôt</option>
+                    <option value="BUREAU">Bureau</option>
+                    <option value="CHANTIER">Chantier (préciser ci-dessous)</option>
+                  </select>
+                </Field>
+                <Field label="Chantier destination" htmlFor="chantierId_dest">
+                  <select id="chantierId_dest" name="chantierId_dest" className={inputClasses}>
+                    <option value="">— Aucun / Dépôt —</option>
+                    {chantiers.map((c) => (
+                      <option key={c.id} value={c.id}>{c.reference} — {c.nom}</option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+            </div>
 
-            <Field label="Motif" htmlFor="motif">
-              <select id="motif" name="motif" className={inputClasses}>
-                <option value="">— Sélectionner —</option>
-                <option value="LIVRAISON">Livraison fournisseur</option>
-                <option value="CHANTIER">Consommation chantier</option>
-                <option value="BON_COMMANDE">Bon de commande</option>
-                <option value="PERTE">Perte / Casse</option>
-                <option value="AJUSTEMENT">Ajustement inventaire</option>
-              </select>
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Motif" htmlFor="motif">
+                <select id="motif" name="motif" className={inputClasses}>
+                  <option value="">— Sélectionner —</option>
+                  <option value="LIVRAISON">Livraison fournisseur</option>
+                  <option value="CHANTIER">Consommation chantier</option>
+                  <option value="BON_COMMANDE">Bon de commande</option>
+                  <option value="APPROVISIONNEMENT">Approvisionnement chantier</option>
+                  <option value="PERTE">Perte / Casse</option>
+                  <option value="AJUSTEMENT">Ajustement inventaire</option>
+                </select>
+              </Field>
+              <Field label="Réf. document lié (BL, BC, devis…)" htmlFor="refDocument">
+                <input id="refDocument" name="refDocument" placeholder="BL-2026-001, BC-2026-005…" className={inputClasses} />
+              </Field>
+            </div>
 
-            <Field label="Chantier (optionnel)" htmlFor="chantierId">
-              <select id="chantierId" name="chantierId" className={inputClasses}>
-                <option value="">— Aucun chantier —</option>
-                {chantiers.map((c) => (
-                  <option key={c.id} value={c.id}>{c.reference} — {c.nom}</option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Réf. document (BL, BC…)" htmlFor="refDocument">
-              <input id="refDocument" name="refDocument" placeholder="BL-2026-001…" className={inputClasses} />
-            </Field>
-
-            <Field label="Notes" htmlFor="notes">
-              <textarea id="notes" name="notes" rows={2} className={inputClasses} />
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Prix unitaire HT (€)" htmlFor="prixUnitaireHT">
+                <input id="prixUnitaireHT" name="prixUnitaireHT" type="number" step="0.01" min="0" defaultValue={article.prixUnitaireHT} className={inputClasses} />
+              </Field>
+              <Field label="Notes" htmlFor="notes">
+                <input id="notes" name="notes" className={inputClasses} placeholder="Observation…" />
+              </Field>
+            </div>
 
             <SubmitButton pendingLabel="Enregistrement…">Enregistrer le mouvement</SubmitButton>
           </form>
@@ -217,8 +254,9 @@ export default async function ArticleStockDetailPage({
                     <th className="px-4 py-2 text-left">Date</th>
                     <th className="px-4 py-2 text-left">Type</th>
                     <th className="px-4 py-2 text-right">Quantité</th>
+                    <th className="px-4 py-2 text-left">Emplacement</th>
                     <th className="px-4 py-2 text-right">PU HT</th>
-                    <th className="px-4 py-2 text-left">Motif / Réf.</th>
+                    <th className="px-4 py-2 text-left">Motif / Réf. document</th>
                     <th className="px-4 py-2 text-left">Chantier</th>
                   </tr>
                 </thead>
@@ -233,6 +271,16 @@ export default async function ArticleStockDetailPage({
                       </td>
                       <td className={`px-4 py-2 text-right font-semibold ${m.type === "ENTREE" || m.type === "INVENTAIRE" ? "text-emerald-600" : "text-red-600"}`}>
                         {m.type === "ENTREE" || m.type === "INVENTAIRE" ? "+" : "-"}{m.quantite} {article.unite}
+                      </td>
+                      <td className="px-4 py-2 text-xs">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ${
+                          m.emplacement === "DEPOT" ? "bg-brand-navy/10 text-brand-navy" :
+                          m.emplacement === "BUREAU" ? "bg-purple-100 text-purple-700" :
+                          "bg-emerald-100 text-emerald-700"
+                        }`}>
+                          {m.emplacement}
+                          {m.emplacementDest ? ` → ${m.emplacementDest}` : ""}
+                        </span>
                       </td>
                       <td className="px-4 py-2 text-right text-slate-600">
                         {m.prixUnitaireHT ? formatEuros(m.prixUnitaireHT) : "—"}

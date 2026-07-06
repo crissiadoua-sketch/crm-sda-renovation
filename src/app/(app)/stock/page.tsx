@@ -112,6 +112,10 @@ export default async function StockPage({
     include: {
       fournisseur: { select: { nom: true } },
       _count: { select: { mouvements: true } },
+      stocksParEmplacement: {
+        include: { chantier: { select: { id: true, nom: true, reference: true } } },
+        orderBy: { emplacement: "asc" },
+      },
     },
     orderBy: [{ corpsEtat: "asc" }, { gammeOffre: "asc" }, { designation: "asc" }],
   });
@@ -326,7 +330,8 @@ export default async function StockPage({
                           <th className="px-4 py-2">Emplacement</th>
                           <th className="px-4 py-2">Gamme</th>
                           <th className="px-4 py-2 text-right">PU HT</th>
-                          <th className="px-4 py-2 text-right">Stock</th>
+                          <th className="px-4 py-2">Stock par emplacement</th>
+                          <th className="px-4 py-2 text-right">Total</th>
                           <th className="px-4 py-2">Fournisseur</th>
                         </tr>
                       </thead>
@@ -364,10 +369,31 @@ export default async function StockPage({
                                 <GammeSwitcher id={a.id} current={a.gammeOffre} />
                               </td>
                               <td className="px-4 py-2.5 text-right font-medium text-slate-700">{formatEuros(a.prixUnitaireHT)}</td>
-                              <td className={`px-4 py-2.5 text-right font-bold ${enRupture ? "text-red-600" : enAlerte ? "text-amber-600" : "text-emerald-600"}`}>
+                              {/* Stock par emplacement */}
+                              <td className="px-4 py-2.5">
+                                <div className="flex flex-wrap gap-1">
+                                  {a.stocksParEmplacement.length === 0 ? (
+                                    <span className="text-xs text-slate-400">—</span>
+                                  ) : (
+                                    a.stocksParEmplacement.map((s) => {
+                                      const bg = s.emplacement === "DEPOT" ? "bg-brand-navy/10 text-brand-navy" : s.emplacement === "BUREAU" ? "bg-purple-100 text-purple-700" : "bg-emerald-100 text-emerald-700";
+                                      const shortEmp = s.emplacement === "DEPOT" ? "D" : s.emplacement === "BUREAU" ? "B" : "C";
+                                      return (
+                                        <span key={s.id} title={`${s.emplacement}${s.chantier ? " — " + s.chantier.nom : ""}`}
+                                          className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${bg}`}>
+                                          {shortEmp}{s.chantier ? ` ${s.chantier.reference}` : ""}
+                                          <span className="ml-0.5 font-normal">{s.quantite} {a.unite}</span>
+                                        </span>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </td>
+                              {/* Total */}
+                              <td className={`px-4 py-2.5 text-right font-bold text-sm ${enRupture ? "text-red-600" : enAlerte ? "text-amber-600" : "text-emerald-600"}`}>
                                 {a.stockActuel} {a.unite}
-                                {enRupture && " ⚠ RUPTURE"}
-                                {!enRupture && enAlerte && " ⚠"}
+                                {enRupture && <span className="ml-1 text-[10px]">⚠ RUPTURE</span>}
+                                {!enRupture && enAlerte && <span className="ml-1 text-[10px]">⚠</span>}
                               </td>
                               <td className="px-4 py-2.5 text-xs text-slate-500">{a.fournisseur?.nom ?? "—"}</td>
                             </tr>

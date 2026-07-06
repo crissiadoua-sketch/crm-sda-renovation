@@ -191,6 +191,7 @@ model Chantier {
   daacts                DAACT[]                @relation("DAACTChantier")
   preDimensionnements   PreDimensionnement[]   @relation("PDIMChantier")
   livretAccueil         LivretAccueilConfig?
+  stocksParEmplacement  StockParEmplacement[]
 }
 
 model LivretAccueilConfig {
@@ -1202,25 +1203,44 @@ model ArticleStock {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  fournisseur     Fournisseur?     @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
-  mouvements      MouvementStock[]
-  historiquesPrix HistoriquePrix[]
-  lignesCoutMtx   CoutMateriauxLigne[]    @relation("CMRArticle")
-  lignesAppro     ApprovisionementLigne[] @relation("ACArticle")
+  fournisseur          Fournisseur?           @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
+  mouvements           MouvementStock[]
+  historiquesPrix      HistoriquePrix[]
+  lignesCoutMtx        CoutMateriauxLigne[]   @relation("CMRArticle")
+  lignesAppro          ApprovisionementLigne[] @relation("ACArticle")
+  stocksParEmplacement StockParEmplacement[]
+}
+
+// Quantités par emplacement physique — un article peut être à plusieurs endroits
+model StockParEmplacement {
+  id          String   @id @default(cuid())
+  articleId   String
+  emplacement String   // DEPOT | BUREAU | CHANTIER
+  chantierId  String?  // si CHANTIER : quel chantier précisément
+  quantite    Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  article  ArticleStock @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  chantier Chantier?    @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+
+  @@unique([articleId, emplacement, chantierId])
 }
 
 model MouvementStock {
-  id             String   @id @default(cuid())
-  articleId      String
-  type           String   // ENTREE | SORTIE | INVENTAIRE | TRANSFERT | PERTE
-  quantite       Float
-  prixUnitaireHT Float?
-  date           DateTime @default(now())
-  motif          String?  // LIVRAISON | CHANTIER | PERTE | AJUSTEMENT | BON_COMMANDE
-  refDocument    String?  // N° bon de livraison, bon de commande, devis…
-  chantierId     String?
-  notes          String?
-  createdAt      DateTime @default(now())
+  id              String   @id @default(cuid())
+  articleId       String
+  type            String   // ENTREE | SORTIE | INVENTAIRE | TRANSFERT | PERTE
+  quantite        Float
+  prixUnitaireHT  Float?
+  date            DateTime @default(now())
+  motif           String?  // LIVRAISON | CHANTIER | PERTE | AJUSTEMENT | BON_COMMANDE
+  refDocument     String?  // N° bon de livraison, bon de commande, devis…
+  emplacement     String   @default("DEPOT")  // emplacement source du mouvement
+  emplacementDest String?  // emplacement destination (TRANSFERT uniquement)
+  chantierId      String?  // chantier lié (sortie vers chantier, transfert, BL…)
+  notes           String?
+  createdAt       DateTime @default(now())
 
   article  ArticleStock @relation(fields: [articleId], references: [id], onDelete: Cascade)
   chantier Chantier?    @relation(fields: [chantierId], references: [id], onDelete: SetNull)

@@ -105,36 +105,77 @@ export async function updateArticleStock(id: string, formData: FormData) {
   revalidatePath(`/stock/${id}`);
 }
 
-export async function createMouvement(formData: FormData) {
-  const articleId = formData.get("articleId") as string;
-  const type = (formData.get("type") as string | null) ?? "ENTREE";
-  const quantite = parseFloat((formData.get("quantite") as string | null) ?? "0") || 0;
-  const prixUnitaireHT = parseFloat((formData.get("prixUnitaireHT") as string | null) ?? "0") || 0;
+// Upsert la ligne StockParEmplacement et renvoie le nouveau total toutes locations
+async function upsertStockEmplacement(
+  articleId: string,
+  emplacement: string,
+  chantierId: string | null,
+  delta: number,
+  forceValue?: number,
+) {
+  if (forceValue !== undefined) {
+    await prisma.stockParEmplacement.upsert({
+      where: { articleId_emplacement_chantierId: { articleId, emplacement, chantierId: chantierId ?? "" } },
+      create: { articleId, emplacement, chantierId, quantite: forceValue },
+      update: { quantite: forceValue },
+    });
+  } else {
+    const current = await prisma.stockParEmplacement.findFirst({
+      where: { articleId, emplacement, chantierId },
+    });
+    const nouvQte = Math.max(0, (current?.quantite ?? 0) + delta);
+    await prisma.stockParEmplacement.upsert({
+      where: { articleId_emplacement_chantierId: { articleId, emplacement, chantierId: chantierId ?? "" } },
+      create: { articleId, emplacement, chantierId, quantite: nouvQte },
+      update: { quantite: nouvQte },
+    });
+  }
+  // Recalcule le total
+  const lignes = await prisma.stockParEmplacement.findMany({ where: { articleId }, select: { quantite: true } });
+  return lignes.reduce((s, l) => s + l.quantite, 0);
+}
 
+export async function createMouvement(formData: FormData) {
+  const articleId     = formData.get("articleId") as string;
+  const type          = (formData.get("type") as string | null) ?? "ENTREE";
+  const quantite      = parseFloat((formData.get("quantite") as string | null) ?? "0") || 0;
+  const prixUnitaireHT = parseFloat((formData.get("prixUnitaireHT") as string | null) ?? "0") || 0;
+  const emplacement   = (formData.get("emplacement") as string | null) ?? "DEPOT";
+  const emplacementDest = (formData.get("emplacementDest") as string | null) || null;
+  const chantierId    = (formData.get("chantierId") as string | null) || null;
+  const chantierId_dest = (formData.get("chantierId_dest") as string | null) || null;
+
+  // Enregistrer le mouvement
   await prisma.mouvementStock.create({
     data: {
       articleId,
       type,
       quantite,
       prixUnitaireHT: prixUnitaireHT > 0 ? prixUnitaireHT : null,
-      motif: (formData.get("motif") as string | null)?.trim() || null,
-      refDocument: (formData.get("refDocument") as string | null)?.trim() || null,
-      chantierId: (formData.get("chantierId") as string | null) || null,
-      notes: (formData.get("notes") as string | null)?.trim() || null,
+      motif:          (formData.get("motif") as string | null)?.trim() || null,
+      refDocument:    (formData.get("refDocument") as string | null)?.trim() || null,
+      emplacement,
+      emplacementDest,
+      chantierId,
+      notes:          (formData.get("notes") as string | null)?.trim() || null,
     },
   });
 
-  // Mettre à jour le stock actuel
-  const delta = type === "ENTREE" || type === "INVENTAIRE" ? quantite : -quantite;
-  await prisma.articleStock.update({
-    where: { id: articleId },
-    data: { stockActuel: { increment: type === "INVENTAIRE" ? 0 : delta } },
-  });
+  let newTotal = 0;
 
-  // Pour un inventaire on force la valeur
-  if (type === "INVENTAIRE") {
-    await prisma.articleStock.update({ where: { id: articleId }, data: { stockActuel: quantite } });
+  if (type === "TRANSFERT" && emplacementDest) {
+    // Débit source, crédit destination
+    await upsertStockEmplacement(articleId, emplacement, chantierId, -quantite);
+    newTotal = await upsertStockEmplacement(articleId, emplacementDest, chantierId_dest, +quantite);
+  } else if (type === "INVENTAIRE") {
+    newTotal = await upsertStockEmplacement(articleId, emplacement, chantierId, 0, quantite);
+  } else {
+    const delta = (type === "ENTREE") ? +quantite : -quantite;
+    newTotal = await upsertStockEmplacement(articleId, emplacement, chantierId, delta);
   }
+
+  // Synchronise stockActuel (total global)
+  await prisma.articleStock.update({ where: { id: articleId }, data: { stockActuel: newTotal } });
 
   revalidatePath(`/stock/${articleId}`);
   revalidatePath("/stock");

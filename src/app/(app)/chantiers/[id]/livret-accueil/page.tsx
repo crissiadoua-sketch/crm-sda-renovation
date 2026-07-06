@@ -19,7 +19,7 @@ export default async function LivretAccueilEditPage({
       livretAccueil: true,
       ordresMission: {
         where: { statut: { not: "ANNULE" } },
-        include: { sousTraitant: true },
+        include: { sousTraitant: true, interimaire: true },
         orderBy: { createdAt: "asc" },
       },
       sousTraitants: { include: { sousTraitant: true } },
@@ -41,15 +41,17 @@ export default async function LivretAccueilEditPage({
     const seen = new Set<string>();
     let i = 1;
     for (const om of chantier.ordresMission) {
-      if (!seen.has(om.sousTraitant.nom)) {
-        seen.add(om.sousTraitant.nom);
-        lotsInitiaux.push({
-          lot: `Lot ${i++}`,
-          nom: om.sousTraitant.specialite || om.sousTraitant.nom,
-          description: om.titre,
-          dtu: "",
-        });
-      }
+      const nom = om.interimaire
+        ? `${om.interimaire.prenom} ${om.interimaire.nom}`
+        : om.sousTraitant?.nom ?? "";
+      if (!nom || seen.has(nom)) continue;
+      seen.add(nom);
+      lotsInitiaux.push({
+        lot: `Lot ${i++}`,
+        nom: om.interimaire?.corpsEtat || om.sousTraitant?.specialite || nom,
+        description: om.titre,
+        dtu: "",
+      });
     }
     if (lotsInitiaux.length === 0 && chantier.sousTraitants.length > 0) {
       chantier.sousTraitants.forEach((cs, idx) => {
@@ -101,7 +103,9 @@ export default async function LivretAccueilEditPage({
                   <div key={om.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-700">
-                        {om.sousTraitant.specialite || om.sousTraitant.nom}
+                        {om.interimaire
+                          ? `${om.interimaire.prenom} ${om.interimaire.nom}${om.interimaire.agence ? ` (${om.interimaire.agence})` : ""}`
+                          : om.sousTraitant?.specialite || om.sousTraitant?.nom || "—"}
                       </p>
                       <p className="text-xs text-slate-400">{om.titre}</p>
                     </div>
@@ -147,12 +151,17 @@ export default async function LivretAccueilEditPage({
         autoData={{
           natureOuvrage:       chantier.description?.split("\n")[0] ?? "",
           descriptionChantier: chantier.description ?? "",
-          lotsFromOM:          chantier.ordresMission.map((om, i) => ({
-            lot: `Lot ${i + 1}`,
-            nom: om.sousTraitant.specialite || om.sousTraitant.nom,
-            description: om.titre + (om.description ? ` — ${om.description}` : ""),
-            dtu: "",
-          })).filter((l, i, arr) => arr.findIndex((x) => x.nom === l.nom) === i),
+          lotsFromOM: chantier.ordresMission
+            .filter((om, i, arr) => {
+              const key = om.interimaireId ?? om.sousTraitantId ?? "";
+              return arr.findIndex((x) => (x.interimaireId ?? x.sousTraitantId ?? "") === key) === i;
+            })
+            .map((om, i) => ({
+              lot: `Lot ${i + 1}`,
+              nom: om.interimaire?.corpsEtat || om.sousTraitant?.specialite || om.sousTraitant?.nom || `${om.interimaire?.prenom ?? ""} ${om.interimaire?.nom ?? ""}`.trim(),
+              description: om.titre + (om.description ? ` — ${om.description}` : ""),
+              dtu: "",
+            })),
         }}
       />
     </div>

@@ -82,7 +82,7 @@ export default async function LivretAccueilPage({
         sousTraitants: { include: { sousTraitant: true } },
         ordresMission: {
           where: { statut: { not: "ANNULE" } },
-          include: { sousTraitant: true },
+          include: { sousTraitant: true, interimaire: true },
           orderBy: { createdAt: "asc" },
         },
         devis: { where: { statut: "ACCEPTE" }, orderBy: { dateCreation: "desc" }, take: 1 },
@@ -120,10 +120,14 @@ export default async function LivretAccueilPage({
   if (lotsAffichage.length === 0) {
     const seen = new Set<string>();
     for (const om of chantier.ordresMission) {
-      if (!seen.has(om.sousTraitant.nom)) {
-        seen.add(om.sousTraitant.nom);
-        lotsAffichage.push({ nom: om.sousTraitant.nom, specialite: om.sousTraitant.specialite ?? "", titre: om.titre, dtu: "" });
-      }
+      const key = om.interimaireId ?? om.sousTraitantId ?? om.id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const nom = om.interimaire
+        ? `${om.interimaire.prenom} ${om.interimaire.nom}`
+        : om.sousTraitant?.nom ?? "";
+      const specialite = om.interimaire?.corpsEtat ?? om.sousTraitant?.specialite ?? "";
+      lotsAffichage.push({ nom, specialite, titre: om.titre, dtu: "" });
     }
     if (lotsAffichage.length === 0) {
       lotsAffichage = chantier.sousTraitants.map((cs) => ({ nom: cs.sousTraitant.nom, specialite: cs.sousTraitant.specialite ?? "", titre: "", dtu: "" }));

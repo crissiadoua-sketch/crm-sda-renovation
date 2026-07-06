@@ -19,6 +19,7 @@ export default async function ApercuOrdreMissionPage({
       where: { id },
       include: {
         sousTraitant: { select: { nom: true, email: true, telephone: true, specialite: true, adresse: true } },
+        interimaire:  { select: { nom: true, prenom: true, telephone: true, corpsEtat: true, agence: true, qualification: true } },
         chantier:     { select: { nom: true, reference: true, adresse: true } },
       },
     }),
@@ -66,12 +67,25 @@ export default async function ApercuOrdreMissionPage({
               {parametres?.siret && <p className="text-xs text-slate-500">Siren : {parametres.siret}</p>}
             </div>
             <div className="rounded border border-slate-200 bg-slate-50 p-4">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Sous-traitant</p>
-              <p className="font-semibold text-brand-navy">{om.sousTraitant.nom}</p>
-              {om.sousTraitant.specialite && <p className="text-xs text-[#F7941E]">{om.sousTraitant.specialite}</p>}
-              {om.sousTraitant.adresse && <p className="text-xs text-slate-500">{om.sousTraitant.adresse}</p>}
-              {om.sousTraitant.email && <p className="text-xs text-slate-500">{om.sousTraitant.email}</p>}
-              {om.sousTraitant.telephone && <p className="text-xs text-slate-500">{om.sousTraitant.telephone}</p>}
+              {om.interimaire ? (
+                <>
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Intérimaire</p>
+                  <p className="font-semibold text-brand-navy">{om.interimaire.prenom} {om.interimaire.nom}</p>
+                  {om.interimaire.corpsEtat && <p className="text-xs text-[#F7941E]">{om.interimaire.corpsEtat} — {om.interimaire.qualification}</p>}
+                  {om.interimaire.agence && <p className="text-xs font-medium text-slate-600">Agence : {om.interimaire.agence}</p>}
+                  {om.interimaire.telephone && <p className="text-xs text-slate-500">{om.interimaire.telephone}</p>}
+                  {om.interimaire.telephone && <p className="text-xs text-slate-500">{om.interimaire.telephone}</p>}
+                </>
+              ) : om.sousTraitant ? (
+                <>
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Sous-traitant</p>
+                  <p className="font-semibold text-brand-navy">{om.sousTraitant.nom}</p>
+                  {om.sousTraitant.specialite && <p className="text-xs text-[#F7941E]">{om.sousTraitant.specialite}</p>}
+                  {om.sousTraitant.adresse && <p className="text-xs text-slate-500">{om.sousTraitant.adresse}</p>}
+                  {om.sousTraitant.email && <p className="text-xs text-slate-500">{om.sousTraitant.email}</p>}
+                  {om.sousTraitant.telephone && <p className="text-xs text-slate-500">{om.sousTraitant.telephone}</p>}
+                </>
+              ) : null}
             </div>
           </div>
 
@@ -123,7 +137,12 @@ export default async function ApercuOrdreMissionPage({
             </p>
           </div>
           <div className="grid grid-cols-2 gap-8">
-            {[`Le donneur d'ordre\n${parametres?.nomEntreprise ?? COMPANY.nom}`, `Le sous-traitant\n${om.sousTraitant.nom}`].map((label) => (
+            {[
+              `Le donneur d'ordre\n${parametres?.nomEntreprise ?? COMPANY.nom}`,
+              om.interimaire
+                ? `L'intérimaire\n${om.interimaire.prenom} ${om.interimaire.nom}${om.interimaire.agence ? `\n${om.interimaire.agence}` : ""}`
+                : `L'intervenant\n${om.sousTraitant?.nom ?? "—"}`,
+            ].map((label) => (
               <div key={label}>
                 <p className="mb-16 text-sm font-medium text-slate-600 whitespace-pre-line">{label}</p>
                 <div className="border-b border-slate-300" />

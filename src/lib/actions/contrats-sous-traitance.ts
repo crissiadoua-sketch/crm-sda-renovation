@@ -64,8 +64,9 @@ export async function creerContratDepuisOrdreMission(ordreMissionId: string): Pr
   if (!om || !om.chantierId) return;
 
   // Vérifier qu'un contrat n'existe pas déjà pour ce ST sur ce chantier
+  if (!om.sousTraitantId) return; // OM intérimaire — pas de contrat ST
   const existing = await prisma.contratSousTraitance.findFirst({
-    where: { sousTraitantId: om.sousTraitantId, chantierId: om.chantierId },
+    where: { sousTraitantId: om.sousTraitantId, chantierId: om.chantierId ?? undefined },
   });
   if (existing) {
     redirect(`/contrats-sous-traitance/${existing.id}`);
@@ -79,10 +80,10 @@ export async function creerContratDepuisOrdreMission(ordreMissionId: string): Pr
     data: {
       numero,
       sousTraitantId: om.sousTraitantId,
-      chantierId:     om.chantierId,
+      chantierId:     om.chantierId ?? undefined,
       signatureToken,
       objet:          om.titre,
-      lot:            om.sousTraitant.specialite ?? null,
+      lot:            om.sousTraitant?.specialite ?? null,
       dateDebut:      om.dateDebut,
       dateFin:        om.dateFin ?? null,
     },

@@ -261,7 +261,9 @@ model ContratSousTraitance {
 model OrdreMission {
   id             String    @id @default(cuid())
   numero         String    @unique
-  sousTraitantId String
+  type           String    @default("SOUS_TRAITANT") // SOUS_TRAITANT | INTERIMAIRE
+  sousTraitantId String?
+  interimaireId  String?
   chantierId     String?
   statut         String    @default("BROUILLON") // BROUILLON | ENVOYE | EN_COURS | TERMINE | ANNULE
 
@@ -275,8 +277,9 @@ model OrdreMission {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sousTraitant SousTraitant @relation(fields: [sousTraitantId], references: [id])
-  chantier     Chantier?    @relation(fields: [chantierId], references: [id])
+  sousTraitant SousTraitant? @relation(fields: [sousTraitantId], references: [id])
+  interimaire  Interimaire?  @relation(fields: [interimaireId], references: [id])
+  chantier     Chantier?     @relation(fields: [chantierId], references: [id])
 }
 
 // ---------------------------------------------------------------------------
@@ -1416,7 +1419,8 @@ model Interimaire {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  heures SuiviHeureInterimaire[]
+  heures        SuiviHeureInterimaire[]
+  ordresMission OrdreMission[]
 }
 
 model SuiviHeureInterimaire {

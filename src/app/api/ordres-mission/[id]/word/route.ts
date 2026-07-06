@@ -56,6 +56,7 @@ export async function GET(
       where: { id },
       include: {
         sousTraitant: { select: { nom: true, email: true, telephone: true, specialite: true, adresse: true } },
+        interimaire:  { select: { nom: true, prenom: true, telephone: true, corpsEtat: true, agence: true, qualification: true } },
         chantier:     { select: { nom: true, reference: true, adresse: true } },
       },
     }),
@@ -124,13 +125,15 @@ export async function GET(
                 }),
                 new TableCell({
                   width: { size: 50, type: WidthType.PERCENTAGE },
-                  children: [
-                    new Paragraph({ children: [new TextRun({ text: "Sous-traitant", bold: true, size: 18, color: "1E2F6E" })] }),
-                    new Paragraph({ children: [new TextRun({ text: om.sousTraitant.nom, bold: true, size: 18 })] }),
-                    ...(om.sousTraitant.specialite ? [new Paragraph({ children: [new TextRun({ text: om.sousTraitant.specialite, size: 16, color: "F7941E" })] })] : []),
-                    ...(om.sousTraitant.adresse ? [new Paragraph({ children: [new TextRun({ text: om.sousTraitant.adresse, size: 16, color: "666666" })] })] : []),
-                    ...(om.sousTraitant.email ? [new Paragraph({ children: [new TextRun({ text: om.sousTraitant.email, size: 16, color: "666666" })] })] : []),
-                    ...(om.sousTraitant.telephone ? [new Paragraph({ children: [new TextRun({ text: om.sousTraitant.telephone, size: 16, color: "666666" })] })] : []),
+                  children: om.interimaire ? [
+                    new Paragraph({ children: [new TextRun({ text: "Intérimaire", bold: true, size: 18, color: "1E2F6E" })] }),
+                    new Paragraph({ children: [new TextRun({ text: `${om.interimaire.prenom} ${om.interimaire.nom}`, bold: true, size: 18 })] }),
+                    ...(om.interimaire.corpsEtat ? [new Paragraph({ children: [new TextRun({ text: `${om.interimaire.corpsEtat} — ${om.interimaire.qualification}`, size: 16, color: "F7941E" })] })] : []),
+                    ...(om.interimaire.agence ? [new Paragraph({ children: [new TextRun({ text: `Agence : ${om.interimaire.agence}`, size: 16, color: "444444" })] })] : []),
+                    ...(om.interimaire.telephone ? [new Paragraph({ children: [new TextRun({ text: om.interimaire.telephone, size: 16, color: "666666" })] })] : []),
+                    ...(om.interimaire.telephone ? [new Paragraph({ children: [new TextRun({ text: om.interimaire.telephone, size: 16, color: "666666" })] })] : []),
+                  ] : [
+                    new Paragraph({ children: [new TextRun({ text: om.sousTraitant?.nom ?? "—", bold: true, size: 18 })] }),
                   ],
                   margins: { top: 80, bottom: 80, left: 120, right: 120 },
                 }),
@@ -168,7 +171,10 @@ export async function GET(
             new TableRow({
               children: [
                 sigCell("Le donneur d'ordre", nomSociete),
-                sigCell("Le sous-traitant", om.sousTraitant.nom),
+                sigCell(
+                  om.interimaire ? "L'intérimaire" : "L'intervenant",
+                  om.interimaire ? `${om.interimaire.prenom} ${om.interimaire.nom}` : (om.sousTraitant?.nom ?? "—")
+                ),
               ],
             }),
           ],

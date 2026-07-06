@@ -35,7 +35,10 @@ export function ImportStockClient({ fournisseurs }: { fournisseurs: { id: string
       const res = await fetch("/api/stock/import-analyse", { method: "POST", body: fd });
       const data = await res.json() as { articles?: ImportArticle[]; error?: string; debug?: string };
       if (data.error) { setError(data.error); return; }
-      if (!data.articles?.length) { setError("Aucun article détecté dans ce document."); return; }
+      if (!data.articles?.length) {
+        setError(data.debug ?? "Aucun article détecté. Assurez-vous de déposer une facture ou un devis fournisseur avec des lignes articles.");
+        return;
+      }
       setArticles(data.articles.map((a, i) => ({ ...a, fournisseurId, selected: true, key: `${i}-${a.designation}` })));
     } catch { setError("Erreur lors de l'analyse. Vérifiez votre connexion."); }
     finally { setAnalysing(false); }

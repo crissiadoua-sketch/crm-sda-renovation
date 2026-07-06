@@ -15,22 +15,24 @@ export type ArticleExtrait = {
   notes:           string;
 };
 
-const PROMPT = `Tu es un expert en gestion de stock BTP. Analyse cette facture ou ce devis fournisseur et extrais tous les articles/lignes produits.
+const PROMPT = `Tu es un expert en gestion de stock BTP. Analyse ce document (facture, devis, bon de livraison, catalogue ou liste de prix fournisseur) et extrais TOUS les articles/produits/lignes que tu peux identifier.
 
-Pour chaque article, retourne un objet JSON avec :
-- designation : nom complet de l'article (string)
-- reference : référence fournisseur si visible, sinon "" (string)
-- unite : unité de mesure (u, m², ml, L, kg, m³, boîte, rouleau, sac, carton...) (string)
-- prixUnitaireHT : prix unitaire HT en euros, nombre décimal (number, 0 si non trouvé)
-- conditionnement : description du conditionnement si visible (ex. "Sac 25 kg", "Rouleau 25 ml", "") (string)
-- corpsEtat : corps d'état le plus probable parmi : GO, CHA, COU, ETA, MEX, MIN, PLA, ISO, CAR, PEI, PLO, ELE, CVC, VRD, DEM, BUR, GEN (string)
+Sois très permissif : extrais tout ce qui ressemble à un produit, matériau, fourniture ou prestation avec une désignation. Même si le prix n'est pas visible, inclus l'article avec prixUnitaireHT = 0.
+
+Pour chaque article, retourne un objet JSON :
+- designation : nom complet de l'article (string, OBLIGATOIRE)
+- reference : référence fournisseur/code article si visible, sinon "" (string)
+- unite : unité de mesure la plus probable (u, m², ml, L, kg, m³, boîte, rouleau, sac, carton, palette, lot) (string)
+- prixUnitaireHT : prix unitaire HT en euros, nombre décimal. Si TTC, déduire la TVA. 0 si absent. (number)
+- conditionnement : ex. "Sac 25 kg", "Rouleau 25 ml", "" si absent (string)
+- corpsEtat : parmi GO, CHA, COU, ETA, MEX, MIN, PLA, ISO, CAR, PEI, PLO, ELE, CVC, VRD, DEM, BUR, GEN. Choisis le plus logique selon la désignation. (string)
 - categorie : MATERIAU, FOURNITURE, OUTILLAGE, EPI ou CONSOMMABLE (string)
-- notes : informations utiles complémentaires (string, peut être vide)
+- notes : conditionnement spécial, marque, norme, infos utiles (string)
 
-Retourne UNIQUEMENT un tableau JSON valide, sans texte autour. Exemple :
-[{"designation":"Tube PER 16/20 mm","reference":"REF123","unite":"ml","prixUnitaireHT":1.25,"conditionnement":"Rouleau 25 ml","corpsEtat":"PLO","categorie":"MATERIAU","notes":""}]
+Retourne UNIQUEMENT le tableau JSON, sans texte avant ou après, sans markdown.
+Exemple : [{"designation":"Tube PER 16/20 mm","reference":"REF123","unite":"ml","prixUnitaireHT":1.25,"conditionnement":"Rouleau 25 ml","corpsEtat":"PLO","categorie":"MATERIAU","notes":""}]
 
-Si aucun article n'est trouvé, retourne [].`;
+Si le document ne contient vraiment aucun produit identifiable, retourne [].`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -110,14 +112,31 @@ export async function POST(req: NextRequest) {
       ? ((response as { content: { type: string; text?: string }[] }).content[0] as { type: string; text: string }).text
       : "";
 
-    // Extraire le JSON de la réponse
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      return NextResponse.json({ articles: [], debug: text.slice(0, 200) });
+    console.log("Claude response (first 500):", text.slice(0, 500));
+
+    // Extraire le JSON — cherche d'abord un bloc ```json ... ```, puis un tableau nu
+    let jsonStr: string | null = null;
+    const codeBlock = text.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+    if (codeBlock) {
+      jsonStr = codeBlock[1];
+    } else {
+      const direct = text.match(/\[[\s\S]*\]/);
+      if (direct) jsonStr = direct[0];
     }
 
-    const articles = JSON.parse(jsonMatch[0]) as ArticleExtrait[];
-    return NextResponse.json({ articles });
+    if (!jsonStr) {
+      return NextResponse.json({ articles: [], debug: `Claude a répondu mais sans JSON détectable. Réponse : ${text.slice(0, 300)}` });
+    }
+
+    try {
+      const articles = JSON.parse(jsonStr) as ArticleExtrait[];
+      if (articles.length === 0) {
+        return NextResponse.json({ articles: [], debug: "Claude a retourné un tableau vide — document non reconnu comme facture/devis fournisseur." });
+      }
+      return NextResponse.json({ articles });
+    } catch {
+      return NextResponse.json({ articles: [], debug: `JSON invalide retourné par Claude : ${jsonStr.slice(0, 200)}` });
+    }
 
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

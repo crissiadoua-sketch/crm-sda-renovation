@@ -110,8 +110,8 @@ export async function POST(req: NextRequest) {
     let parsed: { fournisseurNom?: string; fournisseurId?: string; articles?: ArticleExtrait[] } | null = null;
 
     // 1. Bloc ```json {...}``` ou ```json [...]```
-    const codeBlockObj = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/s);
-    const codeBlockArr = text.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/s);
+    const codeBlockObj = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    const codeBlockArr = text.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
 
     if (codeBlockObj?.[1]) {
       try { parsed = JSON.parse(codeBlockObj[1]); } catch { /* ignore */ }
@@ -122,13 +122,13 @@ export async function POST(req: NextRequest) {
 
     // 2. Objet direct avec clé "articles"
     if (!parsed) {
-      const directObj = text.match(/\{[\s\S]*"articles"[\s\S]*\}/s);
+      const directObj = text.match(/\{[\s\S]*"articles"[\s\S]*\}/);
       if (directObj?.[0]) { try { parsed = JSON.parse(directObj[0]); } catch { /* ignore */ } }
     }
 
     // 3. Tableau direct
     if (!parsed) {
-      const arrMatch = text.match(/\[[\s\S]*\]/s);
+      const arrMatch = text.match(/\[[\s\S]*\]/);
       if (arrMatch?.[0]) { try { parsed = { articles: JSON.parse(arrMatch[0]) }; } catch { /* ignore */ } }
     }
 

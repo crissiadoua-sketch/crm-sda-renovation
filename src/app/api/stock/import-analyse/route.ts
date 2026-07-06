@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { prisma } from "@/lib/prisma";
 
-// Vercel : autoriser jusqu'à 60s (analyse IA peut être lente)
 export const maxDuration = 60;
 
 export type ArticleExtrait = {
@@ -13,36 +13,46 @@ export type ArticleExtrait = {
   corpsEtat:       string;
   categorie:       string;
   notes:           string;
+  doublon?:        boolean; // true si article déjà présent en stock
+  doublonRef?:     string;  // référence de l'article existant
 };
 
-const PROMPT = `Tu es un expert en gestion de stock BTP. Analyse ce document (facture, devis, bon de livraison, catalogue ou liste de prix fournisseur) et extrais TOUS les articles/produits/lignes que tu peux identifier.
+function buildPrompt(fournisseurs: { id: string; nom: string }[]): string {
+  const listeFournisseurs = fournisseurs.length > 0
+    ? `\nFOURNISSEURS CONNUS DANS LE CRM (pour matching) :\n${fournisseurs.map((f) => `- "${f.nom}" → id: ${f.id}`).join("\n")}\n`
+    : "";
 
-Sois très permissif : extrais tout ce qui ressemble à un produit, matériau, fourniture ou prestation avec une désignation. Même si le prix n'est pas visible, inclus l'article avec prixUnitaireHT = 0.
+  return `Tu es un expert en gestion de stock BTP. Analyse ce document (facture, devis, bon de livraison, catalogue ou liste de prix fournisseur).
+${listeFournisseurs}
+ÉTAPE 1 — Identifie le fournisseur émetteur du document (nom de l'entreprise en haut de la facture/devis). Si tu le retrouves dans la liste des fournisseurs CRM ci-dessus, utilise son id exact. Sinon, indique son nom tel qu'écrit dans le document.
 
-EXCLUSIONS STRICTES — N'extrais JAMAIS les lignes suivantes (ce ne sont pas des produits) :
-- Éco-contribution, éco-participation, éco-taxe
-- DEEE (Déchets d'Équipements Électriques et Électroniques)
-- Éco-mobilier, éco-emballage, éco-organisme
-- REP (Responsabilité Élargie du Producteur)
-- Frais de port, frais de livraison, frais de transport
-- Remises, ristournes, escomptes
+ÉTAPE 2 — Extrais TOUS les articles/produits avec désignation identifiable.
+
+EXCLUSIONS STRICTES (ne jamais extraire) :
+- Éco-contribution, éco-participation, VALOBAT, ECOLOGIC, DEEE, REP, contribution environnementale
+- Frais de port, frais de livraison, transport
+- Remises, ristournes, escomptes, avoirs
 - TVA, taxes diverses
-- Toute ligne dont la désignation contient "éco-contribution", "contribution environnementale", "taxe", "REP", "DEEE"
+- Toute ligne dont le montant est une taxe ou contribution environnementale
 
-Pour chaque article, retourne un objet JSON :
-- designation : nom complet de l'article (string, OBLIGATOIRE)
-- reference : référence fournisseur/code article si visible, sinon "" (string)
-- unite : unité de mesure la plus probable (u, m², ml, L, kg, m³, boîte, rouleau, sac, carton, palette, lot) (string)
-- prixUnitaireHT : prix unitaire HT en euros, nombre décimal. Si TTC, déduire la TVA. 0 si absent. (number)
-- conditionnement : ex. "Sac 25 kg", "Rouleau 25 ml", "" si absent (string)
-- corpsEtat : parmi GO, CHA, COU, ETA, MEX, MIN, PLA, ISO, CAR, PEI, PLO, ELE, CVC, VRD, DEM, BUR, GEN. Choisis le plus logique selon la désignation. (string)
-- categorie : MATERIAU, FOURNITURE, OUTILLAGE, EPI ou CONSOMMABLE (string)
-- notes : conditionnement spécial, marque, norme, infos utiles (string)
-
-Retourne UNIQUEMENT le tableau JSON, sans texte avant ou après, sans markdown.
-Exemple : [{"designation":"Tube PER 16/20 mm","reference":"REF123","unite":"ml","prixUnitaireHT":1.25,"conditionnement":"Rouleau 25 ml","corpsEtat":"PLO","categorie":"MATERIAU","notes":""}]
-
-Si le document ne contient vraiment aucun produit identifiable, retourne [].`;
+FORMAT DE RÉPONSE — Retourne UNIQUEMENT ce JSON (sans texte autour) :
+{
+  "fournisseurNom": "nom du fournisseur détecté ou null",
+  "fournisseurId": "id si trouvé dans la liste CRM, sinon null",
+  "articles": [
+    {
+      "designation": "nom complet de l'article",
+      "reference": "référence fournisseur ou code article, sinon vide",
+      "unite": "u, m², ml, L, kg, m³, boîte, rouleau, sac, carton, palette ou lot",
+      "prixUnitaireHT": 0.00,
+      "conditionnement": "ex: Sac 25 kg, ou vide",
+      "corpsEtat": "GO|CHA|COU|ETA|MEX|MIN|PLA|ISO|CAR|PEI|PLO|ELE|CVC|VRD|DEM|BUR|GEN",
+      "categorie": "MATERIAU|FOURNITURE|OUTILLAGE|EPI|CONSOMMABLE",
+      "notes": ""
+    }
+  ]
+}`;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,67 +64,38 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+    const fournisseursJson = formData.get("fournisseurs") as string | null;
+    const fournisseurs: { id: string; nom: string }[] = fournisseursJson ? JSON.parse(fournisseursJson) : [];
 
-    if (!file) {
-      return NextResponse.json({ error: "Aucun fichier fourni" }, { status: 400 });
-    }
-
-    // Limite de taille : 20 Mo
-    if (file.size > 20 * 1024 * 1024) {
-      return NextResponse.json({ error: "Fichier trop volumineux (max 20 Mo)" }, { status: 400 });
-    }
+    if (!file) return NextResponse.json({ error: "Aucun fichier fourni" }, { status: 400 });
+    if (file.size > 20 * 1024 * 1024) return NextResponse.json({ error: "Fichier trop volumineux (max 20 Mo)" }, { status: 400 });
 
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString("base64");
     const mimeType = file.type;
     const isPDF = mimeType === "application/pdf";
+    const prompt = buildPrompt(fournisseurs);
 
     let response;
-
     if (isPDF) {
-      // PDF : utilise le beta PDF support d'Anthropic
       response = await (client.beta.messages.create as Function)({
-        model:      "claude-sonnet-4-6",
-        max_tokens: 4096,
-        betas:      ["pdfs-2024-09-25"],
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type:   "document",
-                source: { type: "base64", media_type: "application/pdf", data: base64 },
-              },
-              { type: "text", text: PROMPT },
-            ],
-          },
-        ],
+        model: "claude-sonnet-4-6", max_tokens: 4096, betas: ["pdfs-2024-09-25"],
+        messages: [{ role: "user", content: [
+          { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } },
+          { type: "text", text: prompt },
+        ]}],
       });
     } else {
-      // Image (JPG, PNG, WEBP, GIF)
       const supportedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
       if (!supportedTypes.includes(mimeType)) {
-        return NextResponse.json({ error: `Format non supporté : ${mimeType}. Utilisez PDF, JPG, PNG ou WEBP.` }, { status: 400 });
+        return NextResponse.json({ error: `Format non supporté : ${mimeType}` }, { status: 400 });
       }
       response = await client.messages.create({
-        model:      "claude-sonnet-4-6",
-        max_tokens: 4096,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type:   "image",
-                source: {
-                  type:       "base64",
-                  media_type: mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
-                  data:       base64,
-                },
-              },
-              { type: "text", text: PROMPT },
-            ],
-          },
-        ],
+        model: "claude-sonnet-4-6", max_tokens: 4096,
+        messages: [{ role: "user", content: [
+          { type: "image", source: { type: "base64", media_type: mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif", data: base64 } },
+          { type: "text", text: prompt },
+        ]}],
       });
     }
 
@@ -124,29 +105,52 @@ export async function POST(req: NextRequest) {
 
     console.log("Claude response (first 500):", text.slice(0, 500));
 
-    // Extraire le JSON — cherche d'abord un bloc ```json ... ```, puis un tableau nu
-    let jsonStr: string | null = null;
-    const codeBlock = text.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-    if (codeBlock) {
-      jsonStr = codeBlock[1];
-    } else {
-      const direct = text.match(/\[[\s\S]*\]/);
-      if (direct) jsonStr = direct[0];
+    // Extraire le JSON objet (pas un tableau direct cette fois)
+    let parsed: { fournisseurNom?: string; fournisseurId?: string; articles?: ArticleExtrait[] } | null = null;
+    const codeBlock = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    const directObj = text.match(/\{[\s\S]*"articles"[\s\S]*\}/);
+    const jsonStr = codeBlock?.[1] ?? directObj?.[0] ?? null;
+
+    if (jsonStr) {
+      try { parsed = JSON.parse(jsonStr); } catch { /* ignore */ }
     }
 
-    if (!jsonStr) {
-      return NextResponse.json({ articles: [], debug: `Claude a répondu mais sans JSON détectable. Réponse : ${text.slice(0, 300)}` });
-    }
-
-    try {
-      const articles = JSON.parse(jsonStr) as ArticleExtrait[];
-      if (articles.length === 0) {
-        return NextResponse.json({ articles: [], debug: "Claude a retourné un tableau vide — document non reconnu comme facture/devis fournisseur." });
+    // Fallback : tableau direct (ancien format)
+    if (!parsed) {
+      const arrMatch = text.match(/\[[\s\S]*\]/);
+      if (arrMatch) {
+        try { parsed = { articles: JSON.parse(arrMatch[0]) }; } catch { /* ignore */ }
       }
-      return NextResponse.json({ articles });
-    } catch {
-      return NextResponse.json({ articles: [], debug: `JSON invalide retourné par Claude : ${jsonStr.slice(0, 200)}` });
     }
+
+    if (!parsed?.articles?.length) {
+      return NextResponse.json({ articles: [], debug: `Aucun article extrait. Réponse Claude : ${text.slice(0, 400)}` });
+    }
+
+    // Détection des doublons dans le stock existant
+    const stockExistant = await prisma.articleStock.findMany({
+      select: { reference: true, designation: true, refFournisseur: true },
+    });
+
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    const articlesAvecDoublons: ArticleExtrait[] = parsed.articles.map((a) => {
+      // Doublon par référence fournisseur
+      if (a.reference) {
+        const byRef = stockExistant.find((s) => s.refFournisseur && normalize(s.refFournisseur) === normalize(a.reference));
+        if (byRef) return { ...a, doublon: true, doublonRef: byRef.reference };
+      }
+      // Doublon par désignation (similarité exacte normalisée)
+      const byDesig = stockExistant.find((s) => normalize(s.designation) === normalize(a.designation));
+      if (byDesig) return { ...a, doublon: true, doublonRef: byDesig.reference };
+      return { ...a, doublon: false };
+    });
+
+    return NextResponse.json({
+      articles:        articlesAvecDoublons,
+      fournisseurNom:  parsed.fournisseurNom ?? null,
+      fournisseurId:   parsed.fournisseurId ?? null,
+    });
 
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

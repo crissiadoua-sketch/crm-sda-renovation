@@ -13,14 +13,38 @@ export default async function ComparerVariantesPage({
 }) {
   const { chantierId } = await params;
 
-  const [chantier, variantes] = await Promise.all([
+  // Ordre de tri : ECONOMIQUE → OPTIMISEE → COMPLETE → autres → par prix
+  function offreRank(objet: string | null): number {
+    const o = (objet ?? "").toUpperCase();
+    if (o.includes("ECONOMIQUE") || o.includes("ECO")) return 1;
+    if (o.includes("OPTIMISEE") || o.includes("OPTIMISE")) return 2;
+    if (o.includes("COMPLETE") || o.includes("PREMIUM")) return 3;
+    return 4;
+  }
+
+  function typeLabel(objet: string | null): { label: string; color: string } {
+    const o = (objet ?? "").toUpperCase();
+    if (o.includes("ECONOMIQUE") || o.includes("ECO")) return { label: "Économique", color: "bg-emerald-100 text-emerald-700" };
+    if (o.includes("OPTIMISEE") || o.includes("OPTIMISE")) return { label: "Optimisée", color: "bg-blue-100 text-blue-700" };
+    if (o.includes("COMPLETE") || o.includes("PREMIUM")) return { label: "Complète", color: "bg-violet-100 text-violet-700" };
+    return { label: "—", color: "bg-slate-100 text-slate-500" };
+  }
+
+  const [chantier, variantesRaw] = await Promise.all([
     prisma.chantier.findUnique({ where: { id: chantierId }, include: { client: true } }),
     prisma.devis.findMany({
       where: { chantierId, statut: "BROUILLON", type: "INITIAL" },
       include: { lignes: { orderBy: { ordre: "asc" } } },
-      orderBy: { dateCreation: "asc" },
+      orderBy: { totalTTC: "asc" },
     }),
   ]);
+
+  // Tri par type d'offre puis par prix
+  const variantes = [...variantesRaw].sort((a, b) => {
+    const rankDiff = offreRank(a.objet) - offreRank(b.objet);
+    if (rankDiff !== 0) return rankDiff;
+    return a.totalTTC - b.totalTTC;
+  });
 
   if (!chantier || variantes.length === 0) notFound();
 
@@ -48,6 +72,7 @@ export default async function ComparerVariantesPage({
     numero: v.numero,
     dateCreation: v.dateCreation.toISOString(),
     objet: v.objet,
+    typeLabel: typeLabel(v.objet),
     totalHT: v.totalHT,
     totalTVA: v.totalTVA,
     totalTTC: v.totalTTC,
@@ -73,12 +98,18 @@ export default async function ComparerVariantesPage({
           <thead>
             <tr className="bg-[#1E2F6E] text-white">
               <th className="px-4 py-3 text-left font-semibold text-xs w-48">Chapitre</th>
-              {variantes.map((v) => (
-                <th key={v.id} className="px-4 py-3 text-right font-semibold text-xs min-w-[150px]">
-                  <div className="font-bold">{v.numero}</div>
-                  <div className="font-normal opacity-75 text-[10px]">{formatDate(v.dateCreation)}</div>
-                </th>
-              ))}
+              {variantes.map((v) => {
+                const tl = typeLabel(v.objet);
+                return (
+                  <th key={v.id} className="px-4 py-3 text-right font-semibold text-xs min-w-[150px]">
+                    <div className="font-bold">{v.numero}</div>
+                    <div className="font-normal opacity-75 text-[10px] mb-1">{formatDate(v.dateCreation)}</div>
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold ${tl.color}`}>
+                      {tl.label}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">

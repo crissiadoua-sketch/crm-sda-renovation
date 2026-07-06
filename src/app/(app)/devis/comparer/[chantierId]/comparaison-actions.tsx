@@ -9,6 +9,7 @@ type Variante = {
   numero: string;
   dateCreation: string;
   objet: string | null;
+  typeLabel?: { label: string; color: string };
   totalHT: number;
   totalTVA: number;
   totalTTC: number;
@@ -193,7 +194,14 @@ export function ComparaisonActions({ variantes, chantierId, tokenExistant, reten
         {variantes.map((v) => (
           <div key={v.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col gap-3">
             <div>
-              <p className="font-bold text-brand-navy">{v.numero}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-bold text-brand-navy">{v.numero}</p>
+                {v.typeLabel && (
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold whitespace-nowrap ${v.typeLabel.color}`}>
+                    {v.typeLabel.label}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400">{formatDate(new Date(v.dateCreation))}</p>
               <p className="mt-1 text-lg font-bold text-[#1E2F6E]">{formatEuros(v.totalTTC)} TTC</p>
               <p className="text-xs text-slate-500">{formatEuros(v.totalHT)} HT + {formatEuros(v.totalTVA)} TVA</p>

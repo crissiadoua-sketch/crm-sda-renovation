@@ -105,22 +105,31 @@ export async function POST(req: NextRequest) {
 
     console.log("Claude response (first 500):", text.slice(0, 500));
 
-    // Extraire le JSON objet (pas un tableau direct cette fois)
+    // Extraire le JSON — supporte objet {articles:[...]} ET tableau direct [...]
+    // dans un bloc ```json ou en texte brut
     let parsed: { fournisseurNom?: string; fournisseurId?: string; articles?: ArticleExtrait[] } | null = null;
-    const codeBlock = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-    const directObj = text.match(/\{[\s\S]*"articles"[\s\S]*\}/);
-    const jsonStr = codeBlock?.[1] ?? directObj?.[0] ?? null;
 
-    if (jsonStr) {
-      try { parsed = JSON.parse(jsonStr); } catch { /* ignore */ }
+    // 1. Bloc ```json {...}``` ou ```json [...]```
+    const codeBlockObj = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/s);
+    const codeBlockArr = text.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/s);
+
+    if (codeBlockObj?.[1]) {
+      try { parsed = JSON.parse(codeBlockObj[1]); } catch { /* ignore */ }
+    }
+    if (!parsed && codeBlockArr?.[1]) {
+      try { parsed = { articles: JSON.parse(codeBlockArr[1]) }; } catch { /* ignore */ }
     }
 
-    // Fallback : tableau direct (ancien format)
+    // 2. Objet direct avec clé "articles"
     if (!parsed) {
-      const arrMatch = text.match(/\[[\s\S]*\]/);
-      if (arrMatch) {
-        try { parsed = { articles: JSON.parse(arrMatch[0]) }; } catch { /* ignore */ }
-      }
+      const directObj = text.match(/\{[\s\S]*"articles"[\s\S]*\}/s);
+      if (directObj?.[0]) { try { parsed = JSON.parse(directObj[0]); } catch { /* ignore */ } }
+    }
+
+    // 3. Tableau direct
+    if (!parsed) {
+      const arrMatch = text.match(/\[[\s\S]*\]/s);
+      if (arrMatch?.[0]) { try { parsed = { articles: JSON.parse(arrMatch[0]) }; } catch { /* ignore */ } }
     }
 
     if (!parsed?.articles?.length) {

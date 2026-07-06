@@ -1196,6 +1196,7 @@ model ArticleStock {
   stockMinimum         Float    @default(0)  // seuil d'alerte de réapprovisionnement
   stockMaximum         Float?
   delaiLivraisonJours  Int?     // délai habituel de livraison fournisseur — alerte visuelle si élevé
+  gammeOffre           String?  // ECO | OPT | COM — gamme d'offre (une offre = un article par gamme)
   notes                String?
   actif                Boolean  @default(true)
   createdAt            DateTime @default(now())

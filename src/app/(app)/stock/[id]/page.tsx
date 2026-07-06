@@ -6,7 +6,7 @@ import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { formatEuros } from "@/lib/format";
-import { CORPS_ETAT, CATEGORIE_LABELS, EMPLACEMENT_LABELS } from "../page";
+import { CORPS_ETAT, CATEGORIE_LABELS, EMPLACEMENT_LABELS, GAMME_LABELS } from "../page";
 import { TrendingUp, TrendingDown, Package, History, Truck } from "lucide-react";
 import { estDelaiLivraisonEleve } from "@/lib/delai-livraison";
 
@@ -331,9 +331,19 @@ export default async function ArticleStockDetailPage({
             </Field>
           </div>
 
-          <Field label="Désignation *" htmlFor="designation">
-            <input id="designation" name="designation" required defaultValue={article.designation} className={inputClasses} />
-          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Désignation *" htmlFor="designation">
+              <input id="designation" name="designation" required defaultValue={article.designation} className={inputClasses} />
+            </Field>
+            <Field label="Gamme d'offre" htmlFor="gammeOffre">
+              <select id="gammeOffre" name="gammeOffre" defaultValue={article.gammeOffre ?? ""} className={inputClasses}>
+                <option value="">— Non classé —</option>
+                {Object.entries(GAMME_LABELS).map(([v, l]) => (
+                  <option key={v} value={v}>{v} — {l}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field label="Unité" htmlFor="unite">

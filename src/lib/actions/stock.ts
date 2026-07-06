@@ -46,6 +46,7 @@ export async function createArticleStock(formData: FormData) {
       delaiLivraisonJours: formData.get("delaiLivraisonJours")
         ? parseInt(formData.get("delaiLivraisonJours") as string, 10) || null
         : null,
+      gammeOffre: (formData.get("gammeOffre") as string | null)?.trim() || null,
       notes: (formData.get("notes") as string | null)?.trim() || null,
     },
   });
@@ -81,6 +82,7 @@ export async function updateArticleStock(id: string, formData: FormData) {
       delaiLivraisonJours: formData.get("delaiLivraisonJours")
         ? parseInt(formData.get("delaiLivraisonJours") as string, 10) || null
         : null,
+      gammeOffre: (formData.get("gammeOffre") as string | null)?.trim() || null,
       notes: (formData.get("notes") as string | null)?.trim() || null,
     },
   });

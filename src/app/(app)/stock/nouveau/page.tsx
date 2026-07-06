@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createArticleStock } from "@/lib/actions/stock";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { CORPS_ETAT, CATEGORIE_LABELS, EMPLACEMENT_LABELS } from "../page";
+import { CORPS_ETAT, CATEGORIE_LABELS, EMPLACEMENT_LABELS, GAMME_LABELS } from "../page";
 
 const INDEX_MATIERES = [
   { value: "", label: "— Aucun suivi cours matière —" },
@@ -65,6 +65,20 @@ export default async function NouvelArticleStockPage() {
                     <option key={v} value={v}>{l}</option>
                   ))}
                 </select>
+              </Field>
+            </div>
+
+            <div className="mt-4">
+              <Field label="Gamme d'offre" htmlFor="gammeOffre">
+                <select id="gammeOffre" name="gammeOffre" className={inputClasses}>
+                  <option value="">— Non classé —</option>
+                  {Object.entries(GAMME_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>{v} — {l}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-slate-400">
+                  Associe cet article à une gamme d&apos;offre (1 article par gamme par corps d&apos;état).
+                </p>
               </Field>
             </div>
 

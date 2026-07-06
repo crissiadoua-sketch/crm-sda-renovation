@@ -21,6 +21,13 @@ import { PdfPreviewModal } from "@/components/ui/pdf-preview-modal";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { prisma } from "@/lib/prisma";
 import { formatEuros, formatDate, clientDisplayName } from "@/lib/format";
+import {
+  ShoppingCart,
+  CalendarClock,
+  GitCompare,
+  Receipt,
+  ArrowRight,
+} from "lucide-react";
 
 const statutTones: Record<string, BadgeTone> = {
   BROUILLON: "gray",
@@ -58,6 +65,10 @@ export default async function DevisDetailPage({
         devisParent: true,
         avenants: { orderBy: { createdAt: "asc" } },
         signature: { select: { nomSignataire: true, dateSignature: true } },
+        factures: {
+          select: { id: true, numero: true, totalTTC: true, statut: true, dateEmission: true },
+          orderBy: { dateEmission: "asc" },
+        },
       },
     }),
     prisma.chantier.findMany({ orderBy: { createdAt: "desc" } }),
@@ -76,6 +87,20 @@ export default async function DevisDetailPage({
   ]);
 
   if (!devis) notFound();
+
+  // Compte les autres variantes INITIAL non expirées sur le même chantier
+  const nbVariantes = await prisma.devis.count({
+    where: { chantierId: devis.chantierId, type: "INITIAL", statut: { notIn: ["REFUSE", "EXPIRE"] }, id: { not: id } },
+  });
+
+  const factureStatutTones: Record<string, BadgeTone> = {
+    BROUILLON: "gray", ENVOYEE: "blue", PAYEE_PARTIELLE: "orange",
+    PAYEE: "green", EN_RETARD: "red", ANNULEE: "gray",
+  };
+  const factureStatutLabels: Record<string, string> = {
+    BROUILLON: "Brouillon", ENVOYEE: "Envoyée", PAYEE_PARTIELLE: "Payée partiellement",
+    PAYEE: "Payée", EN_RETARD: "En retard", ANNULEE: "Annulée",
+  };
 
   return (
     <FullscreenToggle>
@@ -107,6 +132,25 @@ export default async function DevisDetailPage({
               </Link>
             </p>
           )}
+          {/* Raccourcis inter-modules */}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {nbVariantes > 0 && devis.type === "INITIAL" && (
+              <Link
+                href={`/devis/comparer/${devis.chantierId}`}
+                className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition"
+              >
+                <GitCompare className="h-3.5 w-3.5" />
+                {nbVariantes + 1} variantes — Comparer
+              </Link>
+            )}
+            <Link
+              href={`/previsionnel?chantierId=${devis.chantierId}`}
+              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 transition"
+            >
+              <CalendarClock className="h-3.5 w-3.5 text-brand-blue" />
+              Prévisionnel
+            </Link>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-2xl font-bold text-brand-navy">{formatEuros(devis.totalTTC)}</p>
@@ -156,9 +200,28 @@ export default async function DevisDetailPage({
         {devis.statut === "ACCEPTE" && (
           <form action={convertirDevisEnFacture.bind(null, devis.id)}>
             <button type="submit" className={buttonClasses("primary")}>
+              <Receipt className="h-4 w-4" />
               Convertir en facture
             </button>
           </form>
+        )}
+        {devis.statut === "ACCEPTE" && (
+          <Link
+            href={`/bons-commande/nouveau?chantierId=${devis.chantierId}`}
+            className={buttonClasses("secondary")}
+          >
+            <ShoppingCart className="h-4 w-4" />
+            Créer BC matériaux
+          </Link>
+        )}
+        {devis.statut === "ACCEPTE" && (
+          <Link
+            href={`/bons-commande/beton/nouveau?chantierId=${devis.chantierId}`}
+            className={buttonClasses("secondary")}
+          >
+            <ShoppingCart className="h-4 w-4" />
+            Créer BC Béton
+          </Link>
         )}
       </div>
 
@@ -188,6 +251,56 @@ export default async function DevisDetailPage({
           </ul>
         </section>
       )}
+
+      {/* ── Factures liées ── */}
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold text-brand-navy flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-slate-400" />
+            Factures créées depuis ce devis
+          </h3>
+          {devis.factures.length === 0 && devis.statut === "ACCEPTE" && (
+            <form action={convertirDevisEnFacture.bind(null, devis.id)}>
+              <button type="submit" className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">
+                + Créer la facture
+              </button>
+            </form>
+          )}
+        </div>
+        {devis.factures.length === 0 ? (
+          <p className="text-sm text-slate-400">
+            {devis.statut === "ACCEPTE"
+              ? "Aucune facture générée — utilisez \"Convertir en facture\" ci-dessus."
+              : "Aucune facture — le devis doit être Accepté avant de pouvoir facturer."}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {devis.factures.map((facture) => (
+              <li key={facture.id}>
+                <Link
+                  href={`/factures/${facture.id}`}
+                  className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm hover:border-emerald-200 hover:bg-emerald-50/30"
+                >
+                  <div className="flex items-center gap-2">
+                    <Receipt className="h-4 w-4 text-emerald-500 shrink-0" />
+                    <div>
+                      <p className="font-medium text-slate-700">{facture.numero}</p>
+                      <p className="text-xs text-slate-400">{formatDate(facture.dateEmission)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className="font-semibold text-emerald-700">{formatEuros(facture.totalTTC)}</p>
+                    <Badge tone={factureStatutTones[facture.statut] ?? "gray"}>
+                      {factureStatutLabels[facture.statut] ?? facture.statut}
+                    </Badge>
+                    <ArrowRight className="h-4 w-4 text-slate-300" />
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h3 className="mb-3 font-semibold text-brand-navy">Informations générales</h3>

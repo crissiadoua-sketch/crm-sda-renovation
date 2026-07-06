@@ -106,8 +106,16 @@ export default async function DevisPage({
                     </Link>
                   )}
                 </td>
-                <td className="px-4 py-3 text-slate-600">{devis.chantier.nom}</td>
-                <td className="px-4 py-3 text-slate-600">{clientDisplayName(devis.client)}</td>
+                <td className="px-4 py-3">
+                  <Link href={`/chantiers/${devis.chantierId}`} className="text-slate-600 hover:text-brand-blue hover:underline">
+                    {devis.chantier.nom}
+                  </Link>
+                </td>
+                <td className="px-4 py-3">
+                  <Link href={`/clients/${devis.clientId}`} className="text-slate-600 hover:text-brand-blue hover:underline">
+                    {clientDisplayName(devis.client)}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-slate-600">{formatDate(devis.dateCreation)}</td>
                 <td className="px-4 py-3 text-slate-600">{formatEuros(devis.totalTTC)}</td>
                 <td className="px-4 py-3">

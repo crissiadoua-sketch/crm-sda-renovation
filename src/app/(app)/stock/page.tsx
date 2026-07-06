@@ -6,6 +6,7 @@ import { inputClasses } from "@/components/ui/fields";
 import { formatEuros } from "@/lib/format";
 import { estDelaiLivraisonEleve } from "@/lib/delai-livraison";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
+import { EmplacementSwitcher, GammeSwitcher } from "@/components/stock/emplacement-switcher";
 
 export const CORPS_ETAT: Record<string, string> = {
   GO: "Gros Œuvre / Maçonnerie",
@@ -322,7 +323,8 @@ export default async function StockPage({
                           <th className="px-4 py-2">Réf.</th>
                           <th className="px-4 py-2">Désignation</th>
                           <th className="px-4 py-2">Catégorie</th>
-                          <th className="px-4 py-2">Unité</th>
+                          <th className="px-4 py-2">Emplacement</th>
+                          <th className="px-4 py-2">Gamme</th>
                           <th className="px-4 py-2 text-right">PU HT</th>
                           <th className="px-4 py-2 text-right">Stock</th>
                           <th className="px-4 py-2">Fournisseur</th>
@@ -353,7 +355,14 @@ export default async function StockPage({
                                   {CATEGORIE_LABELS[a.categorie] ?? a.categorie}
                                 </span>
                               </td>
-                              <td className="px-4 py-2.5 text-slate-600">{a.unite}</td>
+                              {/* Switcher emplacement inline — D / B / C */}
+                              <td className="px-4 py-2.5">
+                                <EmplacementSwitcher id={a.id} current={a.emplacement} />
+                              </td>
+                              {/* Switcher gamme inline — ECO / OPT / COM */}
+                              <td className="px-4 py-2.5">
+                                <GammeSwitcher id={a.id} current={a.gammeOffre} />
+                              </td>
                               <td className="px-4 py-2.5 text-right font-medium text-slate-700">{formatEuros(a.prixUnitaireHT)}</td>
                               <td className={`px-4 py-2.5 text-right font-bold ${enRupture ? "text-red-600" : enAlerte ? "text-amber-600" : "text-emerald-600"}`}>
                                 {a.stockActuel} {a.unite}

@@ -146,6 +146,22 @@ export async function deleteArticleStock(id: string) {
   redirect("/stock");
 }
 
+export async function updateEmplacementStock(id: string, emplacement: string) {
+  const valid = ["DEPOT", "BUREAU", "CHANTIER"];
+  if (!valid.includes(emplacement)) return;
+  await prisma.articleStock.update({ where: { id }, data: { emplacement } });
+  revalidatePath("/stock");
+  revalidatePath(`/stock/${id}`);
+}
+
+export async function updateGammeStock(id: string, gamme: string) {
+  const valid = ["ECO", "OPT", "COM", ""];
+  if (!valid.includes(gamme)) return;
+  await prisma.articleStock.update({ where: { id }, data: { gammeOffre: gamme || null } });
+  revalidatePath("/stock");
+  revalidatePath(`/stock/${id}`);
+}
+
 export type ImportArticle = {
   designation:     string;
   reference:       string;

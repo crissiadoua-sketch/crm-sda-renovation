@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatEuros } from "@/lib/format";
-import { ajouterDepensePrevisionnelle } from "@/lib/actions/depenses";
 import { DepensePrevRow } from "@/components/previsionnel/depense-prev-row";
+import { PrevToolbar } from "@/components/previsionnel/prev-toolbar";
+import { PrevFormAutoFill } from "@/components/previsionnel/prev-form-autofill";
 import {
   TrendingUp,
   TrendingDown,
   Scale,
-  Plus,
   AlertTriangle,
   CalendarClock,
   BarChart3,
@@ -51,7 +51,7 @@ export default async function PrevisionelPage({
   const now = new Date();
   const nowKey = monthKey(now);
 
-  const [factures, bcs, bcbs, bcfs, depensesPrev, chantiers, fournisseurs, chantiersMarges] =
+  const [factures, bcs, bcbs, bcfs, depensesPrev, chantiers, fournisseurs, chantiersMarges, depensesRecentes] =
     await Promise.all([
       // Factures non entièrement payées
       prisma.facture.findMany({
@@ -94,6 +94,7 @@ export default async function PrevisionelPage({
       // Fournisseurs (formulaire)
       prisma.fournisseur.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
       // Chantiers actifs avec données financières (marge)
+
       prisma.chantier.findMany({
         where: {
           statut: { not: "ANNULE" },
@@ -126,6 +127,13 @@ export default async function PrevisionelPage({
           depenses: { select: { montant: true, type: true } },
         },
         orderBy: { createdAt: "desc" },
+      }),
+      // Dépenses réelles récentes pour auto-fill
+      prisma.depense.findMany({
+        where: { type: "REEL" },
+        select: { id: true, libelle: true, montant: true, categorie: true, chantierId: true, fournisseurId: true },
+        orderBy: { date: "desc" },
+        take: 30,
       }),
     ]);
 
@@ -278,10 +286,13 @@ export default async function PrevisionelPage({
     <div className="flex flex-col gap-6">
 
       {/* ── En-tête ── */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-brand-navy">Prévisionnel — Flux & Rentabilité</h2>
-          <p className="mt-1 text-sm text-slate-500">Encaissements, décaissements et marges sur 7 mois</p>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-brand-navy">Prévisionnel — Flux & Rentabilité</h2>
+            <p className="mt-1 text-sm text-slate-500">Encaissements, décaissements et marges sur 7 mois</p>
+          </div>
+          <PrevToolbar exportUrl={`/api/previsionnel/export-excel${chantierId ? `?chantierId=${chantierId}` : ""}`} />
         </div>
         <form method="get" className="flex gap-2">
           <select name="chantierId" defaultValue={chantierId ?? ""}
@@ -618,68 +629,11 @@ export default async function PrevisionelPage({
       </div>
 
       {/* ── Ajouter une dépense prévisionnelle ── */}
-      <div className="overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white shadow-sm">
-        <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
-          <div className="flex items-center gap-2 text-slate-600">
-            <Plus className="h-4 w-4" />
-            <span className="text-sm font-semibold">Ajouter une dépense prévisionnelle</span>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">Planifiez une dépense future — elle apparaîtra dans la timeline et le calcul de marge</p>
-        </div>
-        <form action={ajouterDepensePrevisionnelle} className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <label className="block text-xs font-medium text-slate-600 mb-1">Libellé *</label>
-            <input name="libelle" required placeholder="Ex : Béton 2e dalle — VICAT"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Montant HT (€) *</label>
-            <input name="montant" type="number" step="0.01" min="0" required placeholder="0.00"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Date prévue *</label>
-            <input name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Catégorie</label>
-            <select name="categorie" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <option value="MATERIAUX">Matériaux</option>
-              <option value="SOUS_TRAITANCE">Sous-traitance</option>
-              <option value="MAIN_OEUVRE">Main d'œuvre</option>
-              <option value="TRANSPORT">Transport</option>
-              <option value="ADMINISTRATIF">Administratif</option>
-              <option value="AUTRE">Autre</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Chantier</label>
-            <select name="chantierId" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <option value="">— Aucun —</option>
-              {chantiers.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Fournisseur</label>
-            <select name="fournisseurId" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <option value="">— Aucun —</option>
-              {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
-            </select>
-          </div>
-          <div className="lg:col-span-2">
-            <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
-            <input name="notes" placeholder="Précisions, références devis…"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30" />
-          </div>
-          <div className="flex items-end">
-            <button type="submit"
-              className="w-full rounded-lg bg-brand-orange px-4 py-2 text-sm font-semibold text-white hover:bg-brand-orange-dark transition">
-              + Ajouter
-            </button>
-          </div>
-        </form>
-      </div>
+      <PrevFormAutoFill
+        depensesRecentes={depensesRecentes}
+        chantiers={chantiers}
+        fournisseurs={fournisseurs}
+      />
 
     </div>
   );

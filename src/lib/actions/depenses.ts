@@ -166,6 +166,28 @@ export async function convertirDepensePrevisionnelle(id: string): Promise<void> 
   redirect("/previsionnel");
 }
 
+export async function reconduireDepense(id: string): Promise<void> {
+  const source = await prisma.depense.findUnique({ where: { id } });
+  if (!source) redirect("/depenses");
+  const nextMonth = new Date(source.date);
+  nextMonth.setMonth(nextMonth.getMonth() + 1);
+  await prisma.depense.create({
+    data: {
+      libelle:       source.libelle,
+      montant:       source.montant,
+      date:          nextMonth,
+      categorie:     source.categorie,
+      type:          "PREVISIONNEL",
+      chantierId:    source.chantierId,
+      fournisseurId: source.fournisseurId,
+      notes:         source.notes,
+    },
+  });
+  revalidatePath("/previsionnel");
+  revalidatePath("/depenses");
+  redirect("/previsionnel");
+}
+
 // Variante sans retour pour <form action> direct (Server Component)
 export async function ajouterDepensePrevisionnelle(formData: FormData): Promise<void> {
   const validated = depensePrevSchema.safeParse(Object.fromEntries(formData.entries()));

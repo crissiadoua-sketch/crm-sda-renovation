@@ -20,6 +20,7 @@ export async function depensesFiltrees(moisFilter?: string, categorie?: string) 
   return prisma.depense.findMany({
     where: {
       date: { gte: debut, lte: fin },
+      type: "REEL",
       ...(categorie ? { categorie } : {}),
     },
     include: {

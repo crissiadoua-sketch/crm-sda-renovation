@@ -416,6 +416,7 @@ export default async function ChantierDetailPage({
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-semibold text-brand-navy">Approvisionnements &amp; livraisons</h3>
             <div className="flex gap-2">
+              <Link href={`/previsionnel?chantierId=${chantier.id}`} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-brand-blue hover:bg-blue-50">Prévisionnel →</Link>
               <Link href={`/bons-commande/beton/nouveau?chantierId=${chantier.id}`} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">+ BC Béton</Link>
               <Link href={`/bons-commande/nouveau?chantierId=${chantier.id}`} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">+ BC</Link>
             </div>

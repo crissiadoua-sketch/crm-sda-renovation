@@ -9,8 +9,10 @@ import {
   Paperclip,
   FileSpreadsheet,
   FileText,
+  CalendarClock,
 } from "lucide-react";
 import { depensesFiltrees } from "@/lib/depenses-filtre";
+import { reconduireDepense } from "@/lib/actions/depenses";
 import { formatEuros, urlFichier } from "@/lib/format";
 import { LinkButton } from "@/components/ui/button";
 import { SelectRedirect } from "@/components/ui/select-redirect";
@@ -202,6 +204,7 @@ export default async function DepensesPage({
                   <th className="px-5 py-3">Chantier</th>
                   <th className="px-5 py-3">Fournisseur</th>
                   <th className="px-5 py-3 text-right">Montant</th>
+                  <th className="px-3 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -258,6 +261,17 @@ export default async function DepensesPage({
                     <td className="px-5 py-2.5 text-right font-semibold text-red-600 whitespace-nowrap">
                       {formatEuros(d.montant)}
                     </td>
+                    <td className="px-3 py-2.5 text-right">
+                      <form action={reconduireDepense.bind(null, d.id)}>
+                        <button
+                          type="submit"
+                          title="Reconduire en dépense prévisionnelle (mois suivant)"
+                          className="rounded p-1 text-slate-300 hover:bg-orange-50 hover:text-brand-orange transition-colors"
+                        >
+                          <CalendarClock className="h-4 w-4" />
+                        </button>
+                      </form>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -267,6 +281,7 @@ export default async function DepensesPage({
                   <td className="px-5 py-2.5 text-right text-sm font-bold text-red-700">
                     {formatEuros(total)}
                   </td>
+                  <td />
                 </tr>
               </tfoot>
             </table>

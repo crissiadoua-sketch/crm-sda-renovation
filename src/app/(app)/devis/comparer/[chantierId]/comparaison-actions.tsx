@@ -163,15 +163,24 @@ export function ComparaisonActions({ variantes, chantierId, tokenExistant, reten
                 const v = variantes.find((x) => x.id === id);
                 if (!v) return null;
                 return (
-                  <a
-                    key={id}
-                    href={`/apercu/devis/${id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition"
-                  >
-                    📄 PDF {v.numero}
-                  </a>
+                  <div key={id} className="flex gap-2">
+                    <a
+                      href={`/apercu/devis/${id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition"
+                    >
+                      📄 {v.numero}
+                    </a>
+                    <a
+                      href={`/apercu/devis/${id}?descriptif=1`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition"
+                    >
+                      📄 Descriptif
+                    </a>
+                  </div>
                 );
               })}
             </div>
@@ -203,7 +212,15 @@ export function ComparaisonActions({ variantes, chantierId, tokenExistant, reten
                 rel="noreferrer"
                 className="rounded-lg border border-slate-200 px-3 py-2 text-center text-xs font-medium text-slate-600 hover:bg-slate-50 transition"
               >
-                📄 Aperçu PDF
+                📄 Aperçu PDF complet
+              </a>
+              <a
+                href={`/apercu/devis/${v.id}?descriptif=1`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-slate-200 px-3 py-2 text-center text-xs font-medium text-slate-600 hover:bg-slate-50 transition"
+              >
+                📄 Descriptif + totaux
               </a>
               <form action={retenirAction.bind(null, v.id, chantierId)}>
                 <button

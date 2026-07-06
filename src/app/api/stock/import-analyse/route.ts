@@ -4,8 +4,6 @@ import Anthropic from "@anthropic-ai/sdk";
 // Vercel : autoriser jusqu'à 60s (analyse IA peut être lente)
 export const maxDuration = 60;
 
-const client = new Anthropic();
-
 export type ArticleExtrait = {
   designation:     string;
   reference:       string;
@@ -36,6 +34,12 @@ Si aucun article n'est trouvé, retourne [].`;
 
 export async function POST(req: NextRequest) {
   try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "Clé API Anthropic non configurée (ANTHROPIC_API_KEY manquante)." }, { status: 503 });
+    }
+    const client = new Anthropic({ apiKey });
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
 

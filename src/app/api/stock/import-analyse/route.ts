@@ -19,6 +19,16 @@ const PROMPT = `Tu es un expert en gestion de stock BTP. Analyse ce document (fa
 
 Sois très permissif : extrais tout ce qui ressemble à un produit, matériau, fourniture ou prestation avec une désignation. Même si le prix n'est pas visible, inclus l'article avec prixUnitaireHT = 0.
 
+EXCLUSIONS STRICTES — N'extrais JAMAIS les lignes suivantes (ce ne sont pas des produits) :
+- Éco-contribution, éco-participation, éco-taxe
+- DEEE (Déchets d'Équipements Électriques et Électroniques)
+- Éco-mobilier, éco-emballage, éco-organisme
+- REP (Responsabilité Élargie du Producteur)
+- Frais de port, frais de livraison, frais de transport
+- Remises, ristournes, escomptes
+- TVA, taxes diverses
+- Toute ligne dont la désignation contient "éco-contribution", "contribution environnementale", "taxe", "REP", "DEEE"
+
 Pour chaque article, retourne un objet JSON :
 - designation : nom complet de l'article (string, OBLIGATOIRE)
 - reference : référence fournisseur/code article si visible, sinon "" (string)

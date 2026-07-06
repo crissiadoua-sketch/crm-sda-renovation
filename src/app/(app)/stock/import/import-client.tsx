@@ -33,7 +33,7 @@ export function ImportStockClient({ fournisseurs }: { fournisseurs: { id: string
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch("/api/stock/import-analyse", { method: "POST", body: fd });
-      const data = await res.json() as { articles?: ImportArticle[]; error?: string };
+      const data = await res.json() as { articles?: ImportArticle[]; error?: string; debug?: string };
       if (data.error) { setError(data.error); return; }
       if (!data.articles?.length) { setError("Aucun article détecté dans ce document."); return; }
       setArticles(data.articles.map((a, i) => ({ ...a, fournisseurId, selected: true, key: `${i}-${a.designation}` })));

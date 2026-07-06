@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+// Vercel : autoriser jusqu'à 60s (analyse IA peut être lente)
+export const maxDuration = 60;
+
 const client = new Anthropic();
 
 export type ArticleExtrait = {
@@ -27,7 +30,7 @@ Pour chaque article, retourne un objet JSON avec :
 - notes : informations utiles complémentaires (string, peut être vide)
 
 Retourne UNIQUEMENT un tableau JSON valide, sans texte autour. Exemple :
-[{"designation":"Tube PER 16/20 mm","reference":"REF123","unite":"ml","prixUnitaireHT":1.25,"conditionnement":"Rouleau 25 ml","corpsEtat":"PLO","categorie":"MATERIAU","notes":""},...]
+[{"designation":"Tube PER 16/20 mm","reference":"REF123","unite":"ml","prixUnitaireHT":1.25,"conditionnement":"Rouleau 25 ml","corpsEtat":"PLO","categorie":"MATERIAU","notes":""}]
 
 Si aucun article n'est trouvé, retourne [].`;
 
@@ -40,47 +43,81 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Aucun fichier fourni" }, { status: 400 });
     }
 
+    // Limite de taille : 20 Mo
+    if (file.size > 20 * 1024 * 1024) {
+      return NextResponse.json({ error: "Fichier trop volumineux (max 20 Mo)" }, { status: 400 });
+    }
+
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString("base64");
-    const mimeType = file.type as "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "application/pdf";
+    const mimeType = file.type;
+    const isPDF = mimeType === "application/pdf";
 
-    // Utilise les blocs document pour PDF, image pour les autres
-    const contentBlock = mimeType === "application/pdf"
-      ? {
-          type: "document" as const,
-          source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 },
-        }
-      : {
-          type: "image" as const,
-          source: { type: "base64" as const, media_type: mimeType, data: base64 },
-        };
+    let response;
 
-    const response = await client.messages.create({
-      model:      "claude-sonnet-4-6",
-      max_tokens: 4096,
-      messages: [
-        {
-          role: "user",
-          content: [
-            contentBlock,
-            { type: "text", text: PROMPT },
-          ],
-        },
-      ],
-    });
+    if (isPDF) {
+      // PDF : utilise le beta PDF support d'Anthropic
+      response = await (client.beta.messages.create as Function)({
+        model:      "claude-sonnet-4-6",
+        max_tokens: 4096,
+        betas:      ["pdfs-2024-09-25"],
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type:   "document",
+                source: { type: "base64", media_type: "application/pdf", data: base64 },
+              },
+              { type: "text", text: PROMPT },
+            ],
+          },
+        ],
+      });
+    } else {
+      // Image (JPG, PNG, WEBP, GIF)
+      const supportedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+      if (!supportedTypes.includes(mimeType)) {
+        return NextResponse.json({ error: `Format non supporté : ${mimeType}. Utilisez PDF, JPG, PNG ou WEBP.` }, { status: 400 });
+      }
+      response = await client.messages.create({
+        model:      "claude-sonnet-4-6",
+        max_tokens: 4096,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type:   "image",
+                source: {
+                  type:       "base64",
+                  media_type: mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+                  data:       base64,
+                },
+              },
+              { type: "text", text: PROMPT },
+            ],
+          },
+        ],
+      });
+    }
 
-    const text = response.content[0].type === "text" ? response.content[0].text : "";
+    const text = (response as { content: { type: string; text?: string }[] }).content[0]?.type === "text"
+      ? ((response as { content: { type: string; text?: string }[] }).content[0] as { type: string; text: string }).text
+      : "";
 
     // Extraire le JSON de la réponse
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      return NextResponse.json({ articles: [] });
+      return NextResponse.json({ articles: [], debug: text.slice(0, 200) });
     }
 
     const articles = JSON.parse(jsonMatch[0]) as ArticleExtrait[];
     return NextResponse.json({ articles });
-  } catch (err) {
-    console.error("Erreur analyse stock:", err);
-    return NextResponse.json({ error: "Erreur lors de l'analyse" }, { status: 500 });
+
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Erreur analyse stock:", message);
+    return NextResponse.json({ error: `Erreur : ${message}` }, { status: 500 });
   }
 }

@@ -56,6 +56,42 @@ export async function mettreAJourContrat(id: string, formData: FormData): Promis
   revalidatePath(`/contrats-sous-traitance/${id}`);
 }
 
+export async function creerContratDepuisOrdreMission(ordreMissionId: string): Promise<void> {
+  const om = await prisma.ordreMission.findUnique({
+    where: { id: ordreMissionId },
+    include: { sousTraitant: true, chantier: true },
+  });
+  if (!om || !om.chantierId) return;
+
+  // Vérifier qu'un contrat n'existe pas déjà pour ce ST sur ce chantier
+  const existing = await prisma.contratSousTraitance.findFirst({
+    where: { sousTraitantId: om.sousTraitantId, chantierId: om.chantierId },
+  });
+  if (existing) {
+    redirect(`/contrats-sous-traitance/${existing.id}`);
+    return;
+  }
+
+  const numero = await nextNumeroContrat();
+  const signatureToken = randomBytes(32).toString("hex");
+
+  const contrat = await prisma.contratSousTraitance.create({
+    data: {
+      numero,
+      sousTraitantId: om.sousTraitantId,
+      chantierId:     om.chantierId,
+      signatureToken,
+      objet:          om.titre,
+      lot:            om.sousTraitant.specialite ?? null,
+      dateDebut:      om.dateDebut,
+      dateFin:        om.dateFin ?? null,
+    },
+  });
+
+  revalidatePath("/contrats-sous-traitance");
+  redirect(`/contrats-sous-traitance/${contrat.id}`);
+}
+
 export async function supprimerContrat(id: string): Promise<void> {
   await prisma.contratSousTraitance.delete({ where: { id } });
   revalidatePath("/contrats-sous-traitance");

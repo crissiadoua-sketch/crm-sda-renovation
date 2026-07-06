@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { clientDisplayName } from "@/lib/format";
 import { LivretAccueilForm } from "./livret-form";
+import { creerContratDepuisOrdreMission } from "@/lib/actions/contrats-sous-traitance";
 
 export default async function LivretAccueilEditPage({
   params,
@@ -22,6 +23,7 @@ export default async function LivretAccueilEditPage({
         orderBy: { createdAt: "asc" },
       },
       sousTraitants: { include: { sousTraitant: true } },
+      contrats: { select: { id: true, sousTraitantId: true, numero: true, statut: true } },
     },
   });
 
@@ -82,6 +84,53 @@ export default async function LivretAccueilEditPage({
           👁 Aperçu / Imprimer
         </a>
       </div>
+
+      {/* Section contrats de sous-traitance */}
+      {chantier.ordresMission.length > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="mb-1 font-semibold text-brand-navy">Contrats de sous-traitance</h3>
+          <p className="mb-4 text-xs text-slate-500">
+            Générez automatiquement un contrat pré-rempli pour chaque sous-traitant depuis ses ordres de mission.
+          </p>
+          <div className="flex flex-col gap-2">
+            {chantier.ordresMission
+              .filter((om, i, arr) => arr.findIndex((x) => x.sousTraitantId === om.sousTraitantId) === i)
+              .map((om) => {
+                const contratExistant = chantier.contrats.find((c) => c.sousTraitantId === om.sousTraitantId);
+                return (
+                  <div key={om.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">
+                        {om.sousTraitant.specialite || om.sousTraitant.nom}
+                      </p>
+                      <p className="text-xs text-slate-400">{om.titre}</p>
+                    </div>
+                    {contratExistant ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-emerald-600 font-medium">✓ {contratExistant.numero}</span>
+                        <Link
+                          href={`/contrats-sous-traitance/${contratExistant.id}`}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition"
+                        >
+                          Ouvrir →
+                        </Link>
+                      </div>
+                    ) : (
+                      <form action={creerContratDepuisOrdreMission.bind(null, om.id)}>
+                        <button
+                          type="submit"
+                          className="rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-blue-dark transition"
+                        >
+                          ⚡ Générer le contrat
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
 
       <LivretAccueilForm
         chantierId={id}

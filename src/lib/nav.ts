@@ -45,6 +45,7 @@ import {
   GanttChart,
   Ruler,
   Landmark,
+  CalendarClock,
   type LucideIcon,
 } from "lucide-react";
 import { canAccess } from "@/lib/permissions";
@@ -158,6 +159,7 @@ export const navGroups: NavGroup[] = [
     label: "Finance & Comptabilité",
     items: [
       { href: "/depenses", label: "Dépenses", icon: TrendingDown },
+      { href: "/previsionnel", label: "Prévisionnel des flux", icon: CalendarClock },
       { href: "/tresorerie", label: "Trésorerie & P&L", icon: PiggyBank },
       { href: "/finances", label: "Tableau des achats", icon: Wallet },
       { href: "/finances/rapport-mensuel", label: "Rapport mensuel Dirigeant", icon: FileBarChart },

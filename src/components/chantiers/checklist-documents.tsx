@@ -107,6 +107,12 @@ const PHASES_REQUIS: Array<{ label: string; docs: DocDef[] }> = [
     label: "Phase chantier",
     docs: [
       {
+        cle: "LIVRET_ACCUEIL",
+        label: "Livret d'accueil chantier",
+        description: "Livret remis aux sous-traitants et intervenants avant démarrage",
+        mode: "AUTO",
+      },
+      {
         cle: "PLAN_PREVENTION",
         label: "Plan de prévention / PPSPS",
         description: "Plan particulier de sécurité et de protection de la santé",
@@ -205,6 +211,7 @@ type ChantierData = {
   contrats: Array<{ id: string; numero: string; statut: string }>;
   ordresMission: Array<{ id: string; numero: string; statut: string }>;
   sousTraitants: Array<unknown>;
+  livretAccueil?: { id: string } | null;
   checklistDocuments: Array<{
     cle: string;
     statut: string;
@@ -330,6 +337,15 @@ function resolveAuto(
         statut: bl ? "PRESENT" : "NON_APPLICABLE",
         lien: bl ? `/bons-livraison/${bl.id}` : undefined,
         libelleLink: bl?.numero,
+      };
+    }
+    case "LIVRET_ACCUEIL": {
+      const l = chantier.livretAccueil;
+      return {
+        ...def,
+        statut: l ? "PRESENT" : "MANQUANT",
+        lien: `/chantiers/${chantier.id}/livret-accueil`,
+        libelleLink: l ? "Voir le livret d'accueil" : "Créer le livret d'accueil",
       };
     }
     default:

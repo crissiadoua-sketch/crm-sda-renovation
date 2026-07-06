@@ -156,6 +156,7 @@ model Chantier {
   bonsCommande          BonCommande[]
   bonsLivraison         BonLivraison[]
   bonsCommandeBeton     BonCommandeBeton[]
+  bonsCommandeFournitures BonCommandeFournitures[]
   reservationsPompe     BonReservationPompe[]
   pvsReception          PvReception[]
   documents             Document[]
@@ -594,7 +595,9 @@ model BonCommandeBeton {
 
   // Commande
   qteTotale     Float   @default(0)  // m³ total
-  prixM3        Float?              // € HT/m³ (rendu chantier)
+  prixM3        Float?              // € HT/m³ béton seul (hors transport, contributions)
+  totalHT       Float   @default(0) // total HT toutes prestations (béton + transport + contributions + REP…)
+  totalTTC      Float   @default(0)
   betonPompe    Boolean @default(false)
   essaisBeton   Boolean @default(false)
   ajoutEau      Boolean @default(false) // NF EN 206/CN NA.7.5 — interdit si false
@@ -646,6 +649,10 @@ model BonCommandeFournitures {
   // Fournisseur
   fournisseurId   String
   fournisseur     Fournisseur @relation(fields: [fournisseurId], references: [id])
+
+  // Chantier (optionnel)
+  chantierId      String?
+  chantier        Chantier?   @relation(fields: [chantierId], references: [id])
 
   // Service demandeur
   service         String   @default("ADMINISTRATION") // ADMINISTRATION / DIRECTION / PRODUCTION / COMMERCIAL / AUTRE
@@ -930,6 +937,7 @@ model Depense {
   notes         String?
   factureUrl    String? // facture d'achat scannée/PDF jointe
   factureNom    String? // nom de fichier original, pour l'affichage
+  type          String   @default("REEL") // REEL | PREVISIONNEL
 
   createdAt DateTime @default(now())
 

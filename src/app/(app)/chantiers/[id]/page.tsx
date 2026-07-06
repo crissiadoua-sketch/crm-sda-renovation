@@ -78,6 +78,7 @@ export default async function ChantierDetailPage({
         factures: { orderBy: { dateEmission: "desc" } },
         bonsCommande: { orderBy: { createdAt: "desc" } },
         bonsLivraison: { orderBy: { createdAt: "desc" } },
+        bonsCommandeBeton: { orderBy: { createdAt: "desc" } },
         documents: { orderBy: { createdAt: "desc" } },
         evenements: { orderBy: { dateDebut: "asc" } },
         depenses: { orderBy: { date: "desc" } },
@@ -85,6 +86,7 @@ export default async function ChantierDetailPage({
         contrats: { orderBy: { createdAt: "desc" } },
         ordresMission: { orderBy: { createdAt: "desc" } },
         checklistDocuments: true,
+        livretAccueil: { select: { id: true } },
       },
     }),
     prisma.client.findMany({ orderBy: { createdAt: "desc" } }),
@@ -98,6 +100,13 @@ export default async function ChantierDetailPage({
   const totalEncaisse = chantier.factures.reduce((sum, f) => sum + f.montantPaye, 0);
   const resteAEncaisser = totalFactureTTC - totalEncaisse;
   const totalDepenses = chantier.depenses.reduce((sum, d) => sum + d.montant, 0);
+  // Coût des approvisionnements engagés (BC + BCB)
+  const totalBC = chantier.bonsCommande.reduce((sum, bc) => sum + bc.totalHT, 0);
+  const totalBCB = chantier.bonsCommandeBeton.reduce(
+    (sum, bcb) => sum + (bcb.prixM3 != null ? bcb.prixM3 * bcb.qteTotale : 0),
+    0,
+  );
+  const totalCommandes = totalBC + totalBCB;
   const margeBrute = totalFactureHT - totalDepenses;
   const margePourcentage = totalFactureHT > 0 ? (margeBrute / totalFactureHT) * 100 : null;
 
@@ -154,7 +163,7 @@ export default async function ChantierDetailPage({
       )}
 
       {/* Synthèse financière */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-7">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Budget estimé</p>
           <p className="mt-1 text-lg font-bold text-brand-navy">
@@ -174,6 +183,11 @@ export default async function ChantierDetailPage({
           <p className={`mt-1 text-lg font-bold ${resteAEncaisser > 0 ? "text-brand-orange-dark" : "text-brand-navy"}`}>
             {formatEuros(resteAEncaisser)}
           </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Commandes HT</p>
+          <p className="mt-1 text-lg font-bold text-brand-navy">{formatEuros(totalCommandes)}</p>
+          <p className="text-[10px] text-slate-400">BC + BCB engagés</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Dépenses</p>
@@ -399,18 +413,43 @@ export default async function ChantierDetailPage({
 
         {/* Bons de commande / livraison */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-3 font-semibold text-brand-navy">Bons de commande &amp; livraison</h3>
-          {chantier.bonsCommande.length === 0 && chantier.bonsLivraison.length === 0 ? (
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-brand-navy">Approvisionnements &amp; livraisons</h3>
+            <div className="flex gap-2">
+              <Link href={`/bons-commande/beton/nouveau?chantierId=${chantier.id}`} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">+ BC Béton</Link>
+              <Link href={`/bons-commande/nouveau?chantierId=${chantier.id}`} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">+ BC</Link>
+            </div>
+          </div>
+          {chantier.bonsCommande.length === 0 && chantier.bonsLivraison.length === 0 && chantier.bonsCommandeBeton.length === 0 ? (
             <p className="text-sm text-slate-400">Aucun bon de commande ni de livraison.</p>
           ) : (
             <ul className="flex flex-col gap-2">
+              {chantier.bonsCommandeBeton.map((bcb) => (
+                <li key={bcb.id}>
+                  <Link
+                    href={`/bons-commande/beton/${bcb.id}`}
+                    className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm hover:border-brand-blue/40 hover:bg-slate-50"
+                  >
+                    <div>
+                      <p className="font-medium text-slate-700">🧱 {bcb.numero}</p>
+                      <p className="text-xs text-slate-400">{bcb.classeResistance ?? "Béton"}{bcb.qteTotale ? ` · ${bcb.qteTotale} m³` : ""}</p>
+                    </div>
+                    <div className="text-right">
+                      {bcb.prixM3 != null && bcb.qteTotale ? (
+                        <p className="font-medium text-slate-700">{formatEuros(bcb.prixM3 * bcb.qteTotale)}</p>
+                      ) : null}
+                      <Badge tone="blue">{bcb.statut}</Badge>
+                    </div>
+                  </Link>
+                </li>
+              ))}
               {chantier.bonsCommande.map((bc) => (
                 <li key={bc.id}>
                   <Link
                     href={`/bons-commande/${bc.id}`}
                     className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm hover:border-brand-blue/40 hover:bg-slate-50"
                   >
-                    <p className="font-medium text-slate-700">Commande {bc.numero}</p>
+                    <p className="font-medium text-slate-700">🛒 Commande {bc.numero}</p>
                     <div className="text-right">
                       <p className="font-medium text-slate-700">{formatEuros(bc.totalTTC)}</p>
                       <Badge tone="blue">{bc.statut}</Badge>
@@ -424,7 +463,7 @@ export default async function ChantierDetailPage({
                     href={`/bons-livraison/${bl.id}`}
                     className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm hover:border-brand-blue/40 hover:bg-slate-50"
                   >
-                    <p className="font-medium text-slate-700">Livraison {bl.numero}</p>
+                    <p className="font-medium text-slate-700">🚚 Livraison {bl.numero}</p>
                     <Badge tone="blue">{bl.statut}</Badge>
                   </Link>
                 </li>

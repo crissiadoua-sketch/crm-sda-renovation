@@ -157,8 +157,8 @@ function emptyRow(): TaskRow {
 }
 
 const ROW_HEIGHT = 64;
-const TABLE_WIDTH = 1010;
-const TABLE_GRID_COLUMNS = "1.5fr 0.6fr 0.5fr 0.9fr 0.8fr 1.1fr 1.1fr 1.3fr 0.5fr";
+const TABLE_WIDTH = 1150;
+const TABLE_GRID_COLUMNS = "1.3fr 0.5fr 1.0fr 0.5fr 0.9fr 0.8fr 1.0fr 1.0fr 1.2fr 0.5fr";
 
 type VueGantt = "SEMAINE" | "MOIS" | "TROIS_MOIS" | "SIX_MOIS" | "NEUF_MOIS" | "DOUZE_MOIS";
 
@@ -537,6 +537,7 @@ export function GanttClient({
             >
               <span>Nom</span>
               <span>Durée</span>
+              <span>Date début → fin</span>
               <span>Av. %</span>
               <span>Statut</span>
               <span>Priorité</span>
@@ -574,6 +575,20 @@ export function GanttClient({
                       onChange={(e) => update(row.key, { duree: e.target.value })}
                       className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm"
                     />
+                    <div className="flex flex-col gap-0.5">
+                      <input
+                        type="date"
+                        value={row.dateDebut}
+                        onChange={(e) => update(row.key, { dateDebut: e.target.value })}
+                        title={row.predecesseurKeys.length > 0 ? "Date d'ancrage (repoussée par les prédécesseurs si nécessaire)" : "Date de début"}
+                        className="w-full rounded-md border border-slate-200 px-1 py-1 text-xs"
+                      />
+                      {sched && (
+                        <span className="text-center text-[9px] text-slate-400">
+                          → {format(sched.dateFin, "d/MM/yy", { locale: fr })}
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="number" min={0} max={100}
                       value={row.avancement}

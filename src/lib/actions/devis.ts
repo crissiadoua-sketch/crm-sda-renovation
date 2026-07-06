@@ -200,13 +200,14 @@ export async function genererLienVariantes(chantierId: string): Promise<string> 
 export async function clientSelectionneVariante(token: string, devisId: string): Promise<void> {
   const chantier = await prisma.chantier.findUnique({ where: { tokenVariantes: token } });
   if (!chantier) return;
-  await prisma.devis.update({ where: { id: devisId }, data: { statut: "ACCEPTE" } });
+  const devis = await prisma.devis.update({ where: { id: devisId }, data: { statut: "ACCEPTE" } });
   await prisma.devis.updateMany({
     where: { chantierId: chantier.id, statut: { in: ["BROUILLON", "ENVOYE"] }, id: { not: devisId }, type: "INITIAL" },
     data: { statut: "EXPIRE" },
   });
   await prisma.chantier.update({ where: { id: chantier.id }, data: { tokenVariantes: null } });
   revalidatePath("/devis");
+  redirect(`/selection-variante/confirme?numero=${encodeURIComponent(devis.numero)}&chantier=${encodeURIComponent(chantier.nom)}`);
 }
 
 // ---------------------------------------------------------------------------

@@ -125,10 +125,20 @@ export default async function ChantierDetailPage({
             {chantier.ville ? ` · ${chantier.ville}` : ""}
           </p>
         </div>
-        <DeleteButton
-          action={deleteChantier.bind(null, chantier.id)}
-          confirmMessage={`Supprimer le chantier « ${chantier.nom} » ? Cette action est irréversible.`}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/apercu/livret-accueil/${chantier.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+          >
+            📋 Livret d&apos;accueil sous-traitants
+          </a>
+          <DeleteButton
+            action={deleteChantier.bind(null, chantier.id)}
+            confirmMessage={`Supprimer le chantier « ${chantier.nom} » ? Cette action est irréversible.`}
+          />
+        </div>
       </div>
 
       {erreur === "suppression" && (

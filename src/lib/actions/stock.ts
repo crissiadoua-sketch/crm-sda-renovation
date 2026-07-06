@@ -143,3 +143,52 @@ export async function deleteArticleStock(id: string) {
   revalidatePath("/stock");
   redirect("/stock");
 }
+
+export type ImportArticle = {
+  designation:     string;
+  reference:       string;
+  unite:           string;
+  prixUnitaireHT:  number;
+  conditionnement: string;
+  corpsEtat:       string;
+  categorie:       string;
+  notes:           string;
+  fournisseurId?:  string;
+};
+
+export async function importerArticlesStock(articles: ImportArticle[]): Promise<{ created: number; errors: string[] }> {
+  let created = 0;
+  const errors: string[] = [];
+
+  for (const a of articles) {
+    try {
+      const corpsEtat = a.corpsEtat || "GEN";
+      const categorie = a.categorie || "MATERIAU";
+      const reference = await nextStockRef(corpsEtat, categorie);
+
+      await prisma.articleStock.create({
+        data: {
+          reference,
+          designation:      a.designation.trim(),
+          corpsEtat,
+          categorie,
+          emplacement:      "DEPOT",
+          unite:            a.unite || "u",
+          conditionnement:  a.conditionnement || null,
+          prixUnitaireHT:   a.prixUnitaireHT || 0,
+          refFournisseur:   a.reference || null,
+          fournisseurId:    a.fournisseurId || null,
+          notes:            a.notes || null,
+          stockActuel:      0,
+          stockMinimum:     0,
+        },
+      });
+      created++;
+    } catch (e) {
+      errors.push(`${a.designation}: ${String(e)}`);
+    }
+  }
+
+  revalidatePath("/stock");
+  return { created, errors };
+}

@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Plus, Search, AlertTriangle, Package, TrendingUp, BarChart2, Truck } from "lucide-react";
+import { Plus, Search, AlertTriangle, Package, TrendingUp, BarChart2, Truck, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { LinkButton } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/fields";
 import { formatEuros } from "@/lib/format";
 import { estDelaiLivraisonEleve } from "@/lib/delai-livraison";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 export const CORPS_ETAT: Record<string, string> = {
   GO: "Gros Œuvre / Maçonnerie",
@@ -110,6 +111,7 @@ export default async function StockPage({
   }, {});
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-5">
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -213,10 +215,16 @@ export default async function StockPage({
           </Link>
         </div>
 
-        <LinkButton href="/stock/nouveau">
-          <Plus className="h-4 w-4" />
-          Nouvel article
-        </LinkButton>
+        <div className="flex gap-2">
+          <LinkButton href="/stock/import" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600">
+            <Upload className="h-4 w-4" />
+            Importer facture/devis
+          </LinkButton>
+          <LinkButton href="/stock/nouveau">
+            <Plus className="h-4 w-4" />
+            Nouvel article
+          </LinkButton>
+        </div>
       </div>
 
       {/* Tableau groupé par corps d'état */}
@@ -316,5 +324,6 @@ export default async function StockPage({
         ))
       )}
     </div>
+    </FullscreenToggle>
   );
 }

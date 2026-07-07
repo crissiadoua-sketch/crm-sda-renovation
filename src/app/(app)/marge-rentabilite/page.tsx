@@ -75,6 +75,7 @@ export default async function MargeRentabilitePage() {
 
   const data = chantiers.map((c) => {
     const caPrévu = c.devis.reduce((s, d) => s + d.totalHT, 0);
+    const dsPrévu = c.devis.reduce((s, d) => s + d.totalDS, 0);
     const caFacturé = c.factures.reduce((s, f) => s + f.totalHT, 0);
     const montantEncaissé = c.factures.reduce((s, f) => s + f.montantPaye, 0);
 
@@ -89,6 +90,7 @@ export default async function MargeRentabilitePage() {
     const margePrevisionnelle = caPrévu - coutsEngagés;
     const rentabilité = caFacturé > 0 ? (margeBrute / caFacturé) * 100 : null;
     const dérive = caPrévu > 0 && coutsEngagés > caPrévu;
+    const écartDS = dsPrévu > 0 ? coutsEngagés - dsPrévu : null;
 
     return {
       id: c.id,
@@ -97,6 +99,7 @@ export default async function MargeRentabilitePage() {
       statut: c.statut,
       budgetEstime: c.budgetEstime,
       caPrévu,
+      dsPrévu,
       caFacturé,
       montantEncaissé,
       coutsEngagés,
@@ -109,6 +112,7 @@ export default async function MargeRentabilitePage() {
       margePrevisionnelle,
       rentabilité,
       dérive,
+      écartDS,
     };
   });
 
@@ -123,13 +127,14 @@ export default async function MargeRentabilitePage() {
   });
 
   // KPIs globaux (chantiers EN_COURS + TERMINE uniquement pour les chiffres réels)
-  const actifs = data.filter((d) => ["EN_COURS", "TERMINE"].includes(d.statut));
   const totalCaPrévu = data.reduce((s, d) => s + d.caPrévu, 0);
+  const totalDSPrévu = data.reduce((s, d) => s + d.dsPrévu, 0);
   const totalCaFacturé = data.reduce((s, d) => s + d.caFacturé, 0);
   const totalCouts = data.reduce((s, d) => s + d.coutsEngagés, 0);
   const totalMarge = totalCaFacturé - totalCouts;
   const rentabilitéGlobale = totalCaFacturé > 0 ? (totalMarge / totalCaFacturé) * 100 : 0;
   const nbEnDérive = data.filter((d) => d.dérive).length;
+  const totalÉcartDS = totalDSPrévu > 0 ? totalCouts - totalDSPrévu : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -149,13 +154,23 @@ export default async function MargeRentabilitePage() {
       </div>
 
       {/* KPIs globaux */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <KpiCard label="CA prévu (devis acceptés)" value={formatEuros(totalCaPrévu)} />
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <KpiCard label="CA prévu (devis)" value={formatEuros(totalCaPrévu)} />
         <KpiCard label="CA facturé" value={formatEuros(totalCaFacturé)} />
         <KpiCard
-          label="Coûts engagés (DS réel)"
+          label="DS prévu (devis)"
+          value={totalDSPrévu > 0 ? formatEuros(totalDSPrévu) : "—"}
+          tone="neutral"
+        />
+        <KpiCard
+          label="DS réel (coûts engagés)"
           value={formatEuros(totalCouts)}
           tone={totalCouts > totalCaPrévu ? "bad" : "neutral"}
+        />
+        <KpiCard
+          label="Écart DS réel − prévu"
+          value={totalÉcartDS !== null ? `${totalÉcartDS >= 0 ? "+" : ""}${formatEuros(totalÉcartDS)}` : "—"}
+          tone={totalÉcartDS === null ? "neutral" : totalÉcartDS > 0 ? "bad" : "good"}
         />
         <KpiCard
           label="Marge brute globale"
@@ -168,8 +183,9 @@ export default async function MargeRentabilitePage() {
       {/* Légende DS */}
       <div className="flex flex-wrap items-center gap-4 rounded-lg border border-slate-100 bg-slate-50 px-4 py-2.5 text-xs text-slate-500">
         <Info className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-        <span><strong className="text-slate-600">Coûts engagés (DS réel)</strong> = BCs matériaux + BC Béton + Contrats sous-traitance + Dépenses + Pompage</span>
-        <span><strong className="text-slate-600">Marge</strong> = CA facturé − Coûts engagés</span>
+        <span><strong className="text-slate-600">DS prévu</strong> = somme des déboursés secs des devis acceptés (coût de revient budgété)</span>
+        <span><strong className="text-slate-600">DS réel</strong> = BCs matériaux + BC Béton + Sous-traitance + Dépenses + Pompage</span>
+        <span><strong className="text-slate-600">Marge</strong> = CA facturé − DS réel</span>
         <span><strong className="text-slate-600">Rentabilité</strong> = Marge ÷ CA facturé</span>
       </div>
 
@@ -182,8 +198,10 @@ export default async function MargeRentabilitePage() {
               <th className="px-4 py-3">Statut</th>
               <th className="px-4 py-3 text-right">CA prévu</th>
               <th className="px-4 py-3 text-right">CA facturé</th>
-              <th className="px-4 py-3 text-right">Coûts engagés</th>
-              <th className="px-4 py-3 min-w-[160px]">Avancement coûts</th>
+              <th className="px-4 py-3 text-right">DS prévu</th>
+              <th className="px-4 py-3 text-right">DS réel</th>
+              <th className="px-4 py-3 text-right">Écart DS</th>
+              <th className="px-4 py-3 min-w-[160px]">Avancement</th>
               <th className="px-4 py-3 text-right">Marge HT</th>
               <th className="px-4 py-3 text-right">Rentabilité</th>
               <th className="px-4 py-3"></th>
@@ -223,14 +241,26 @@ export default async function MargeRentabilitePage() {
                   <td className="px-4 py-3 text-right font-mono text-sm text-slate-700">
                     {row.caFacturé > 0 ? formatEuros(row.caFacturé) : <span className="text-slate-300">—</span>}
                   </td>
+                  <td className="px-4 py-3 text-right font-mono text-sm text-amber-700">
+                    {row.dsPrévu > 0 ? formatEuros(row.dsPrévu) : <span className="text-slate-300">—</span>}
+                  </td>
                   <td className="px-4 py-3 text-right font-mono text-sm">
                     <span className={alerteDérive ? "font-semibold text-red-600" : "text-slate-700"}>
                       {row.coutsEngagés > 0 ? formatEuros(row.coutsEngagés) : <span className="text-slate-300">—</span>}
                     </span>
                     {alerteDérive && (
                       <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-500">
-                        <AlertTriangle className="h-3 w-3" /> dérive
+                        <AlertTriangle className="h-3 w-3" /> dérive CA
                       </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-sm">
+                    {row.écartDS !== null ? (
+                      <span className={row.écartDS > 0 ? "font-semibold text-red-600" : "font-semibold text-green-600"}>
+                        {row.écartDS > 0 ? "+" : ""}{formatEuros(row.écartDS)}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -296,7 +326,7 @@ export default async function MargeRentabilitePage() {
             })}
             {data.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-slate-400">
+                <td colSpan={12} className="px-4 py-10 text-center text-slate-400">
                   Aucun chantier actif.
                 </td>
               </tr>
@@ -310,7 +340,17 @@ export default async function MargeRentabilitePage() {
                 </td>
                 <td className="px-4 py-3 text-right font-mono">{formatEuros(totalCaPrévu)}</td>
                 <td className="px-4 py-3 text-right font-mono">{formatEuros(totalCaFacturé)}</td>
+                <td className="px-4 py-3 text-right font-mono text-amber-700">
+                  {totalDSPrévu > 0 ? formatEuros(totalDSPrévu) : "—"}
+                </td>
                 <td className="px-4 py-3 text-right font-mono">{formatEuros(totalCouts)}</td>
+                <td className="px-4 py-3 text-right font-mono">
+                  {totalÉcartDS !== null ? (
+                    <span className={totalÉcartDS > 0 ? "text-red-600" : "text-green-600"}>
+                      {totalÉcartDS > 0 ? "+" : ""}{formatEuros(totalÉcartDS)}
+                    </span>
+                  ) : "—"}
+                </td>
                 <td className="px-4 py-3"></td>
                 <td className="px-4 py-3 text-right font-mono">
                   <span className={totalMarge >= 0 ? "text-green-600" : "text-red-600"}>

@@ -77,6 +77,7 @@ export default async function MargeRentabiliteDetailPage({
   if (!chantier) notFound();
 
   const caPrévu = chantier.devis.reduce((s, d) => s + d.totalHT, 0);
+  const dsPrévu = chantier.devis.reduce((s, d) => s + d.totalDS, 0);
   const caFacturé = chantier.factures.reduce((s, f) => s + f.totalHT, 0);
   const montantEncaissé = chantier.factures.reduce((s, f) => s + f.montantPaye, 0);
   const coutBC = chantier.bonsCommande.reduce((s, bc) => s + bc.totalHT, 0);
@@ -90,15 +91,28 @@ export default async function MargeRentabiliteDetailPage({
   const rentabilité = caFacturé > 0 ? (margeBrute / caFacturé) * 100 : null;
   const dérive = caPrévu > 0 && coutsEngagés > caPrévu;
   const référence = caPrévu || caFacturé || coutsEngagés;
+  const écartDS = dsPrévu > 0 ? coutsEngagés - dsPrévu : null;
+  const coeffKPrévu = dsPrévu > 0 && caPrévu > 0 ? caPrévu / dsPrévu : null;
+  const margePrevisionnelleDS = dsPrévu > 0 ? caPrévu - dsPrévu : null;
 
   const kpis = [
     { label: "CA prévu (devis accepté)", value: formatEuros(caPrévu), color: "text-brand-navy" },
     { label: "CA facturé", value: formatEuros(caFacturé), color: "text-brand-navy" },
     { label: "Encaissé", value: formatEuros(montantEncaissé), color: "text-green-600" },
     {
-      label: "Coûts engagés (DS réel)",
+      label: "DS prévu (devis)",
+      value: dsPrévu > 0 ? formatEuros(dsPrévu) : "Non renseigné",
+      color: dsPrévu > 0 ? "text-amber-700" : "text-slate-400",
+    },
+    {
+      label: "DS réel (coûts engagés)",
       value: formatEuros(coutsEngagés),
       color: dérive ? "text-red-600 font-bold" : "text-slate-700",
+    },
+    {
+      label: "Écart DS réel − prévu",
+      value: écartDS !== null ? `${écartDS >= 0 ? "+" : ""}${formatEuros(écartDS)}` : "—",
+      color: écartDS === null ? "text-slate-400" : écartDS > 0 ? "text-red-600 font-bold" : "text-green-600",
     },
     {
       label: caFacturé > 0 ? "Marge brute réelle" : "Marge prévisionnelle",
@@ -160,7 +174,7 @@ export default async function MargeRentabiliteDetailPage({
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
         {kpis.map((k) => (
           <div key={k.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-[11px] font-medium text-slate-500">{k.label}</p>
@@ -214,6 +228,70 @@ export default async function MargeRentabiliteDetailPage({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Comparaison DS prévu vs DS réel */}
+      {dsPrévu > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-5 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold text-amber-800">DS Prévisionnel (devis) vs DS Réel (coûts engagés)</h2>
+          <div className="flex flex-col gap-3">
+            {/* Barre DS prévu */}
+            <div className="flex items-center gap-3">
+              <div className="w-40 shrink-0 text-xs text-amber-700 font-medium">DS prévu</div>
+              <div className="h-4 flex-1 overflow-hidden rounded-full bg-amber-100">
+                <div className="h-full rounded-full bg-amber-400" style={{ width: "100%" }} />
+              </div>
+              <div className="w-36 shrink-0 text-right font-mono text-xs font-semibold text-amber-800">
+                {formatEuros(dsPrévu)}
+              </div>
+            </div>
+            {/* Barre DS réel */}
+            <div className="flex items-center gap-3">
+              <div className="w-40 shrink-0 text-xs text-slate-700 font-medium">DS réel engagé</div>
+              <div className="h-4 flex-1 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className={`h-full rounded-full ${écartDS !== null && écartDS > 0 ? "bg-red-500" : "bg-green-500"}`}
+                  style={{ width: `${Math.min(150, (coutsEngagés / dsPrévu) * 100).toFixed(1)}%` }}
+                />
+              </div>
+              <div className={`w-36 shrink-0 text-right font-mono text-xs font-semibold ${écartDS !== null && écartDS > 0 ? "text-red-700" : "text-green-700"}`}>
+                {formatEuros(coutsEngagés)}
+                <span className="ml-1 font-normal text-[10px] text-slate-500">
+                  ({((coutsEngagés / dsPrévu) * 100).toFixed(0)}%)
+                </span>
+              </div>
+            </div>
+            {/* Récap écart */}
+            <div className="mt-1 flex flex-wrap gap-6 border-t border-amber-200 pt-3 text-xs">
+              <div>
+                <span className="text-amber-600">Écart DS</span>
+                <span className={`ml-2 font-semibold ${écartDS! > 0 ? "text-red-600" : "text-green-600"}`}>
+                  {écartDS! >= 0 ? "+" : ""}{formatEuros(écartDS!)}
+                  {" "}({écartDS! >= 0 ? "+" : ""}{((écartDS! / dsPrévu) * 100).toFixed(1)}%)
+                </span>
+              </div>
+              {coeffKPrévu !== null && (
+                <div>
+                  <span className="text-amber-600">Coefficient K prévu (CA÷DS)</span>
+                  <span className="ml-2 font-semibold text-amber-800">{coeffKPrévu.toFixed(2)}</span>
+                </div>
+              )}
+              {margePrevisionnelleDS !== null && (
+                <div>
+                  <span className="text-amber-600">Marge prévisionnelle (CA−DS prévu)</span>
+                  <span className={`ml-2 font-semibold ${margePrevisionnelleDS >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {margePrevisionnelleDS >= 0 ? "+" : ""}{formatEuros(margePrevisionnelleDS)}
+                    {caPrévu > 0 && (
+                      <span className="ml-1 font-normal text-[10px] text-slate-500">
+                        ({((margePrevisionnelleDS / caPrévu) * 100).toFixed(1)}%)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

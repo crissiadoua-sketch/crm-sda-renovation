@@ -13,10 +13,15 @@ export default async function ComparerVariantesPage({
 }) {
   const { chantierId } = await params;
 
+  // Normalise en supprimant les accents + uppercase pour comparaisons robustes
+  function norm(s: string | null): string {
+    return (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+  }
+
   // Ordre de tri : ECONOMIQUE → OPTIMISEE → COMPLETE → PREMIUM → autres → par prix
   function offreRank(objet: string | null): number {
-    const o = (objet ?? "").toUpperCase();
-    if (o.includes("ECONOMIQUE") || o.includes("ECO")) return 1;
+    const o = norm(objet);
+    if (o.includes("ECONOMIQUE")) return 1;
     if (o.includes("OPTIMISEE") || o.includes("OPTIMISE")) return 2;
     if (o.includes("COMPLETE")) return 3;
     if (o.includes("PREMIUM")) return 4;
@@ -24,8 +29,8 @@ export default async function ComparerVariantesPage({
   }
 
   function typeLabel(objet: string | null): { label: string; color: string } {
-    const o = (objet ?? "").toUpperCase();
-    if (o.includes("ECONOMIQUE") || o.includes("ECO")) return { label: "Économique", color: "bg-emerald-100 text-emerald-700" };
+    const o = norm(objet);
+    if (o.includes("ECONOMIQUE")) return { label: "Économique", color: "bg-emerald-100 text-emerald-700" };
     if (o.includes("OPTIMISEE") || o.includes("OPTIMISE")) return { label: "Optimisée", color: "bg-blue-100 text-blue-700" };
     if (o.includes("COMPLETE")) return { label: "Complète", color: "bg-violet-100 text-violet-700" };
     if (o.includes("PREMIUM")) return { label: "Premium ✦", color: "bg-amber-100 text-amber-700" };
@@ -72,37 +77,73 @@ export default async function ComparerVariantesPage({
   // ── Mode lignes plates (pas de CHAPITRE) ──────────────────────────────────
   const hasChapitres = allChapitres.length > 0;
 
-  type LigneComp = { designation: string; montantsParVariante: (number | null)[] };
+  type LigneComp = {
+    designation: string;
+    montantsParVariante: (number | null)[];
+    descParVariante?: (string | null)[]; // si les familles diffèrent
+    isMixed?: boolean;
+  };
   let flatLignesVariables: LigneComp[] = [];
   let flatCommunTotal = 0;
+  let isMixedFamilies = false;
 
   if (!hasChapitres) {
-    // Collecter tous les ordres de lignes (LIGNE uniquement)
-    const ordres = Array.from(
-      new Set(
-        variantes.flatMap((v) =>
-          v.lignes.filter((l) => l.type === "LIGNE").map((l) => l.ordre)
-        )
-      )
-    ).sort((a, b) => a - b);
+    // Détecter si les variantes ont des familles de matériaux différentes (ligne 2)
+    const mat2Desigs = variantes.map(
+      (v) => v.lignes.find((l) => l.ordre === 2 && l.type === "LIGNE")?.designation?.split("\n")[0]?.trim() ?? ""
+    );
+    isMixedFamilies = new Set(mat2Desigs).size > 1;
 
-    for (const ordre of ordres) {
-      const montants = variantes.map(
-        (v) => v.lignes.find((l) => l.ordre === ordre && l.type === "LIGNE")?.totalHT ?? null
+    if (isMixedFamilies) {
+      // Mode résumé par famille : matériau | fixe | gestion
+      const ORD_MAT = 2;
+      const ORD_GESTION = Math.max(...variantes[0].lignes.filter(l => l.type === "LIGNE").map(l => l.ordre));
+
+      // Ligne matériaux (avec sous-désignation par variante)
+      const matMontants = variantes.map(v => v.lignes.find(l => l.ordre === ORD_MAT && l.type === "LIGNE")?.totalHT ?? null);
+      const matDescs = variantes.map(v => {
+        const l = v.lignes.find(ll => ll.ordre === ORD_MAT && ll.type === "LIGNE");
+        return l?.designation?.split("\n")[0]?.replace(/<[^>]*>/g, "").trim().slice(0, 55) ?? null;
+      });
+      flatLignesVariables.push({ designation: "Fourniture des matériaux principaux", montantsParVariante: matMontants, descParVariante: matDescs, isMixed: true });
+
+      // Ligne coûts fixes (toutes lignes LIGNE sauf mat et gestion)
+      const fixesMontants = variantes.map(v =>
+        v.lignes.filter(l => l.type === "LIGNE" && l.ordre !== ORD_MAT && l.ordre !== ORD_GESTION).reduce((s, l) => s + (l.totalHT ?? 0), 0)
       );
-      const refMontant = montants[0];
-      const allSame = montants.every((m) => m === refMontant);
-      const desig =
-        variantes[0].lignes
-          .find((l) => l.ordre === ordre && l.type === "LIGNE")
-          ?.designation?.split("\n")[0]
-          ?.replace(/<[^>]*>/g, "")
-          .trim() ?? `Ligne ${ordre}`;
+      flatLignesVariables.push({ designation: "Prestations fixes (main d'œuvre, pose, livraison, logistique…)", montantsParVariante: fixesMontants });
 
-      if (allSame) {
-        flatCommunTotal += refMontant ?? 0;
-      } else {
-        flatLignesVariables.push({ designation: desig, montantsParVariante: montants });
+      // Ligne gestion
+      const gestionMontants = variantes.map(v => v.lignes.find(l => l.ordre === ORD_GESTION && l.type === "LIGNE")?.totalHT ?? null);
+      flatLignesVariables.push({ designation: "Encadrement, gestion, garantie décennale", montantsParVariante: gestionMontants });
+    } else {
+      // Mode standard : comparaison ligne par ligne par ordre
+      const ordres = Array.from(
+        new Set(
+          variantes.flatMap((v) =>
+            v.lignes.filter((l) => l.type === "LIGNE").map((l) => l.ordre)
+          )
+        )
+      ).sort((a, b) => a - b);
+
+      for (const ordre of ordres) {
+        const montants = variantes.map(
+          (v) => v.lignes.find((l) => l.ordre === ordre && l.type === "LIGNE")?.totalHT ?? null
+        );
+        const refMontant = montants[0];
+        const allSame = montants.every((m) => m === refMontant);
+        const desig =
+          variantes[0].lignes
+            .find((l) => l.ordre === ordre && l.type === "LIGNE")
+            ?.designation?.split("\n")[0]
+            ?.replace(/<[^>]*>/g, "")
+            .trim() ?? `Ligne ${ordre}`;
+
+        if (allSame) {
+          flatCommunTotal += refMontant ?? 0;
+        } else {
+          flatLignesVariables.push({ designation: desig, montantsParVariante: montants });
+        }
       }
     }
   }
@@ -171,8 +212,8 @@ export default async function ComparerVariantesPage({
             ) : (
               // ── Mode lignes plates ─────────────────────────────────────────
               <>
-                {/* Prestations communes (identiques sur toutes les variantes) */}
-                {flatCommunTotal > 0 && (
+                {/* Prestations communes (identiques, affiché seulement en mode non-mixte) */}
+                {!isMixedFamilies && flatCommunTotal > 0 && (
                   <tr className="bg-slate-50/80">
                     <td className="px-4 py-2.5 text-xs font-medium text-slate-500 italic">
                       Prestations communes (main d'œuvre, pose, fixation, logistique…)
@@ -184,15 +225,22 @@ export default async function ComparerVariantesPage({
                     ))}
                   </tr>
                 )}
-                {/* Lignes variables (différentes entre variantes) */}
+                {/* Lignes variables */}
                 {flatLignesVariables.map((ligne, i) => (
                   <tr key={i} className="hover:bg-violet-50/20 bg-white">
                     <td className="px-4 py-2.5 text-xs font-semibold text-slate-700 max-w-[240px]">
                       <span className="line-clamp-2">{ligne.designation}</span>
                     </td>
                     {ligne.montantsParVariante.map((m, vi) => (
-                      <td key={vi} className="px-4 py-2.5 text-right text-xs font-semibold text-violet-700">
-                        {m !== null ? formatEuros(m) : <span className="text-slate-300">—</span>}
+                      <td key={vi} className="px-4 py-2.5 text-right text-xs align-top">
+                        <span className="block font-semibold text-violet-700">
+                          {m !== null ? formatEuros(m) : <span className="text-slate-300">—</span>}
+                        </span>
+                        {ligne.isMixed && ligne.descParVariante?.[vi] && (
+                          <span className="block text-[10px] text-slate-400 leading-tight mt-0.5 text-right">
+                            {ligne.descParVariante[vi]}
+                          </span>
+                        )}
                       </td>
                     ))}
                   </tr>

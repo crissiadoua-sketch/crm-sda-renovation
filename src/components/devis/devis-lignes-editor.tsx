@@ -23,6 +23,7 @@ type LigneRow = {
   unite: string;
   quantite: string;
   prixUnitaireHT: string;
+  coutUnitaireDS: string; // Déboursé sec unitaire — interne, non visible dans le PDF
   remise: string;
   tauxTVA: string;
   styleTexte: string; // JSON StyleTexte
@@ -65,6 +66,9 @@ function toRow(ligne: DevisLigne): LigneRow {
     unite: ligne.unite ?? "",
     quantite: ligne.quantite != null ? String(ligne.quantite) : "",
     prixUnitaireHT: ligne.prixUnitaireHT != null ? String(ligne.prixUnitaireHT) : "",
+    coutUnitaireDS: (ligne as DevisLigne & { coutUnitaireDS?: number | null }).coutUnitaireDS != null
+      ? String((ligne as DevisLigne & { coutUnitaireDS?: number | null }).coutUnitaireDS)
+      : "",
     remise: ligne.remise != null ? String(ligne.remise) : "0",
     tauxTVA: ligne.tauxTVA != null ? String(ligne.tauxTVA) : "20",
     styleTexte: (ligne as DevisLigne & { styleTexte?: string }).styleTexte ?? "{}",
@@ -79,7 +83,7 @@ function toRow(ligne: DevisLigne): LigneRow {
 function emptyRow(type: LigneType): LigneRow {
   return {
     key: newKey(), type, codeArticle: "", designation: "",
-    unite: "", quantite: "", prixUnitaireHT: "", remise: "0", tauxTVA: "20",
+    unite: "", quantite: "", prixUnitaireHT: "", coutUnitaireDS: "", remise: "0", tauxTVA: "20",
     styleTexte: "{}", clausesReserves: "[]", sousTotalMasque: false, sousTotalManuel: "",
   };
 }
@@ -94,6 +98,7 @@ function rowFromOuvrage(o: OuvrageRow, offreKey: "eco" | "opt" | "prem" = "opt")
     unite: o.unite,
     quantite: "1",
     prixUnitaireHT: String(prix),
+    coutUnitaireDS: "",
     remise: "0",
     tauxTVA: String(o.tauxTVA),
     styleTexte: o.styleTexte ?? "{}",
@@ -110,6 +115,20 @@ function lineTotal(row: LigneRow) {
   const remise = parseFloat(row.remise);
   const facteurRemise = Number.isNaN(remise) ? 1 : 1 - remise / 100;
   return Math.round(q * pu * facteurRemise * 100) / 100;
+}
+
+function lineDS(row: LigneRow) {
+  const q = parseFloat(row.quantite);
+  const ds = parseFloat(row.coutUnitaireDS);
+  if (Number.isNaN(q) || Number.isNaN(ds)) return 0;
+  return Math.round(q * ds * 100) / 100;
+}
+
+function lineMarge(row: LigneRow) {
+  const pv = lineTotal(row);
+  const ds = lineDS(row);
+  if (pv === 0 && ds === 0) return null;
+  return Math.round((pv - ds) * 100) / 100;
 }
 
 function computeSubtotals(rows: LigneRow[]) {
@@ -363,6 +382,7 @@ export function DevisLignesEditor({
   const [savePopoverRow, setSavePopoverRow] = useState<LigneRow | null>(null);
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
   const [clausesOpen, setClausesOpen] = useState<Set<string>>(new Set());
+  const [showDS, setShowDS] = useState(false);
 
   function toggleClauses(key: string) {
     setClausesOpen((prev) => {
@@ -432,6 +452,7 @@ export function DevisLignesEditor({
   const subtotals = computeSubtotals(rows);
 
   let totalHT = 0;
+  let totalDS = 0;
   const tvaParTaux = new Map<string, { base: number; tva: number }>();
   rows.forEach((row) => {
     if (row.type === "LIGNE") {
@@ -444,9 +465,13 @@ export function DevisLignesEditor({
         entry.tva += total * (parseFloat(taux) / 100);
         tvaParTaux.set(taux, entry);
       }
+      totalDS += lineDS(row);
     }
   });
   totalHT = Math.round(totalHT * 100) / 100;
+  totalDS = Math.round(totalDS * 100) / 100;
+  const margeGlobale = Math.round((totalHT - totalDS) * 100) / 100;
+  const coefficientK = totalDS > 0 ? Math.round((totalHT / totalDS) * 100) / 100 : null;
   const totalTVA = Math.round(Array.from(tvaParTaux.values()).reduce((s, v) => s + v.tva, 0) * 100) / 100;
   const totalTTC = Math.round((totalHT + totalTVA) * 100) / 100;
 
@@ -458,6 +483,7 @@ export function DevisLignesEditor({
       unite: row.type === "LIGNE" && row.unite ? row.unite : null,
       quantite: row.type === "LIGNE" && row.quantite !== "" ? Number(row.quantite) : null,
       prixUnitaireHT: row.type === "LIGNE" && row.prixUnitaireHT !== "" ? Number(row.prixUnitaireHT) : null,
+      coutUnitaireDS: row.type === "LIGNE" && row.coutUnitaireDS !== "" ? Number(row.coutUnitaireDS) : null,
       remise: row.type === "LIGNE" && row.remise !== "" ? Number(row.remise) : null,
       tauxTVA: row.type === "LIGNE" && row.tauxTVA !== "" ? Number(row.tauxTVA) : null,
       styleTexte: row.styleTexte,
@@ -502,6 +528,17 @@ export function DevisLignesEditor({
                 <th className="w-24 whitespace-nowrap px-3 py-2">Unité</th>
                 <th className="w-28 whitespace-nowrap px-3 py-2">Quantité</th>
                 <th className="w-32 whitespace-nowrap px-3 py-2">PU HT €</th>
+                <th className="w-32 whitespace-nowrap px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDS((v) => !v)}
+                    title={showDS ? "Masquer les déboursés secs" : "Afficher les déboursés secs (DS)"}
+                    className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-brand-navy transition"
+                  >
+                    {showDS ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                    DS €
+                  </button>
+                </th>
                 <th className="w-24 whitespace-nowrap px-3 py-2">Remise %</th>
                 <th className="w-24 whitespace-nowrap px-3 py-2">TVA %</th>
                 <th className="w-32 px-3 py-2 text-right">Prix de vente HT</th>
@@ -599,6 +636,25 @@ export function DevisLignesEditor({
                             className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                           />
                         </td>
+                        {showDS ? (
+                          <td className="px-3 py-2 align-top" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="number" step="0.01"
+                              value={row.coutUnitaireDS}
+                              onChange={(e) => update(row.key, { coutUnitaireDS: e.target.value })}
+                              placeholder="DS/u"
+                              title="Déboursé sec unitaire (coût de revient interne — non imprimé)"
+                              className="w-full rounded-md border border-amber-300 bg-amber-50/60 px-2 py-2 text-sm placeholder:text-amber-300"
+                            />
+                            {lineMarge(row) !== null && (
+                              <div className={`mt-0.5 text-right text-[10px] font-medium ${lineMarge(row)! >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                                marge {lineMarge(row)! >= 0 ? "+" : ""}{formatEuros(lineMarge(row)!)}
+                              </div>
+                            )}
+                          </td>
+                        ) : (
+                          <td className="px-3 py-2 align-top"></td>
+                        )}
                         <td className="px-3 py-2 align-top">
                           <input
                             type="number" step="0.1"
@@ -622,10 +678,10 @@ export function DevisLignesEditor({
                         </td>
                       </>
                     ) : row.type === "CLAUSE_RESERVE" ? (
-                      <td className="px-3 py-2" colSpan={6}></td>
+                      <td className="px-3 py-2" colSpan={7}></td>
                     ) : (
                       <>
-                        <td className="px-3 py-2" colSpan={5}></td>
+                        <td className="px-3 py-2" colSpan={6}></td>
                         <td className="px-3 py-2 align-top" onClick={(e) => e.stopPropagation()}>
                           {!row.sousTotalMasque && (
                             <div className="flex items-center justify-end gap-1.5">
@@ -713,7 +769,7 @@ export function DevisLignesEditor({
                   {/* ── Panneau CLAUSES ET RÉSERVES ── */}
                   {clausesOpen.has(row.key) && (
                       <tr className="bg-red-50/60 border-b border-red-100">
-                        <td colSpan={11} className="px-4 py-3">
+                        <td colSpan={12} className="px-4 py-3">
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between">
                               <p className="text-[11px] font-bold uppercase tracking-widest text-red-700">
@@ -823,6 +879,30 @@ export function DevisLignesEditor({
             <span>Total TTC</span>
             <span>{formatEuros(totalTTC)}</span>
           </div>
+          {totalDS > 0 && (
+            <div className="mt-3 w-full max-w-xs rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 flex flex-col gap-1">
+              <div className="flex justify-between text-xs text-amber-700">
+                <span>Total DS (déboursé sec)</span>
+                <span className="font-semibold">{formatEuros(totalDS)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-amber-700">
+                <span>Marge brute</span>
+                <span className={`font-semibold ${margeGlobale >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+                  {margeGlobale >= 0 ? "+" : ""}{formatEuros(margeGlobale)}{" "}
+                  {totalHT > 0 && (
+                    <span className="font-normal text-[10px]">({Math.round((margeGlobale / totalHT) * 1000) / 10} %)</span>
+                  )}
+                </span>
+              </div>
+              {coefficientK !== null && (
+                <div className="flex justify-between text-xs text-amber-700">
+                  <span>Coefficient K (PV/DS)</span>
+                  <span className="font-semibold">{coefficientK.toFixed(2)}</span>
+                </div>
+              )}
+              <p className="text-[10px] text-amber-500 italic mt-0.5">Données internes — non imprimées sur le devis client</p>
+            </div>
+          )}
         </div>
 
         {state?.error && <p className="text-sm text-brand-orange-dark">{state.error}</p>}

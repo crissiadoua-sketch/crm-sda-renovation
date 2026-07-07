@@ -221,6 +221,7 @@ const ligneInputSchema = z.object({
   unite: z.string().nullable().optional(),
   quantite: z.number().nullable().optional(),
   prixUnitaireHT: z.number().nullable().optional(),
+  coutUnitaireDS: z.number().nullable().optional(),
   remise: z.number().nullable().optional(),
   tauxTVA: z.number().nullable().optional(),
   styleTexte: z.string().optional(),
@@ -257,6 +258,7 @@ export async function updateDevisLignes(
 
   let totalHT = 0;
   let totalTVA = 0;
+  let totalDS = 0;
   const lignesData = result.data.map((ligne, index) => {
     const remise = ligne.remise ?? 0;
     const total =
@@ -268,6 +270,9 @@ export async function updateDevisLignes(
       totalHT += total;
       totalTVA += total * ((ligne.tauxTVA ?? 20) / 100);
     }
+    if (ligne.type === "LIGNE" && ligne.quantite != null && ligne.coutUnitaireDS != null) {
+      totalDS += Math.round(ligne.quantite * ligne.coutUnitaireDS * 100) / 100;
+    }
 
     return {
       ordre: index + 1,
@@ -277,6 +282,7 @@ export async function updateDevisLignes(
       unite: ligne.unite ?? null,
       quantite: ligne.quantite ?? null,
       prixUnitaireHT: ligne.prixUnitaireHT ?? null,
+      coutUnitaireDS: ligne.coutUnitaireDS ?? null,
       remise: ligne.remise ?? null,
       tauxTVA: ligne.tauxTVA ?? null,
       totalHT: total,
@@ -289,6 +295,7 @@ export async function updateDevisLignes(
 
   totalHT = Math.round(totalHT * 100) / 100;
   totalTVA = Math.round(totalTVA * 100) / 100;
+  totalDS = Math.round(totalDS * 100) / 100;
   const totalTTC = Math.round((totalHT + totalTVA) * 100) / 100;
 
   await prisma.$transaction([
@@ -299,6 +306,7 @@ export async function updateDevisLignes(
         totalHT,
         totalTVA,
         totalTTC,
+        totalDS,
         version: { increment: 1 },
         lignes: { create: lignesData },
       },

@@ -13,6 +13,7 @@ const CAT_LABELS: Record<string, string> = {
 const STATUT_LABELS: Record<string, string> = {
   facture: "Facture client", bc: "BC Matériaux",
   bcb: "BC Béton", bcf: "BC Fournitures", depense_prev: "Dépense prévisionnelle",
+  devis_accepte: "CA à facturer", cst: "Sous-traitance", ndf: "Note de frais",
 };
 
 export async function GET(req: NextRequest) {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   const chantierId = req.nextUrl.searchParams.get("chantierId") ?? undefined;
 
-  const [factures, bcs, bcbs, bcfs, depensesPrev, chantiersMarges] = await Promise.all([
+  const [factures, bcs, bcbs, bcfs, depensesPrev, devisAcceptes, csts, notesFrais, chantiersMarges] = await Promise.all([
     prisma.facture.findMany({
       where: { statut: { in: ["ENVOYEE", "PAYEE_PARTIELLE", "EN_RETARD"] }, ...(chantierId ? { chantierId } : {}) },
       include: { chantier: { select: { nom: true } }, client: { select: { nom: true, prenom: true, raisonSociale: true } } },
@@ -44,6 +45,23 @@ export async function GET(req: NextRequest) {
     prisma.depense.findMany({
       where: { type: "PREVISIONNEL", ...(chantierId ? { chantierId } : {}) },
       include: { chantier: { select: { nom: true } }, fournisseur: { select: { nom: true } } },
+      orderBy: { date: "asc" },
+    }),
+    prisma.devis.findMany({
+      where: { statut: "ACCEPTE", ...(chantierId ? { chantierId } : {}) },
+      include: {
+        chantier: { select: { nom: true } },
+        client: { select: { nom: true, prenom: true, raisonSociale: true } },
+        factures: { where: { statut: { not: "ANNULEE" } }, select: { totalTTC: true } },
+      },
+    }),
+    prisma.contratSousTraitance.findMany({
+      where: { statut: "SIGNE", montantHT: { gt: 0 }, ...(chantierId ? { chantierId } : {}) },
+      include: { sousTraitant: { select: { nom: true } }, chantier: { select: { nom: true } } },
+    }),
+    prisma.noteDeFrais.findMany({
+      where: { statut: { in: ["EN_ATTENTE", "VALIDEE"] }, ...(chantierId ? { chantierId } : {}) },
+      include: { chantier: { select: { nom: true } } },
       orderBy: { date: "asc" },
     }),
     prisma.chantier.findMany({
@@ -133,6 +151,46 @@ export async function GET(req: NextRequest) {
       "Date échéance": new Date(dep.date).toLocaleDateString("fr-FR"),
       Statut: CAT_LABELS[dep.categorie] ?? dep.categorie,
       "Montant (€)": dep.montant,
+    });
+  }
+  for (const dv of devisAcceptes) {
+    const dejaFactureTTC = dv.factures.reduce((s: number, f: { totalTTC: number }) => s + f.totalTTC, 0);
+    const resteAFacturer = dv.totalTTC - dejaFactureTTC;
+    if (resteAFacturer <= 0) continue;
+    const client = dv.client.raisonSociale ?? `${dv.client.prenom ?? ""} ${dv.client.nom}`.trim();
+    fluxRows.push({
+      Type: STATUT_LABELS["devis_accepte"],
+      Sens: "Encaissement",
+      Référence: dv.numero,
+      Libellé: client,
+      Chantier: dv.chantier?.nom ?? "",
+      "Date échéance": "",
+      Statut: "ACCEPTE",
+      "Montant (€)": Number(resteAFacturer.toFixed(2)),
+    });
+  }
+  for (const cst of csts) {
+    fluxRows.push({
+      Type: STATUT_LABELS["cst"],
+      Sens: "Décaissement",
+      Référence: cst.numero,
+      Libellé: cst.sousTraitant.nom,
+      Chantier: cst.chantier?.nom ?? "",
+      "Date échéance": cst.dateFin ? new Date(cst.dateFin).toLocaleDateString("fr-FR") : "",
+      Statut: cst.statut,
+      "Montant (€)": cst.montantHT ?? 0,
+    });
+  }
+  for (const ndf of notesFrais) {
+    fluxRows.push({
+      Type: STATUT_LABELS["ndf"],
+      Sens: "Décaissement",
+      Référence: "",
+      Libellé: ndf.description || ndf.fournisseur || "Note de frais",
+      Chantier: ndf.chantier?.nom ?? "",
+      "Date échéance": new Date(ndf.date).toLocaleDateString("fr-FR"),
+      Statut: ndf.statut,
+      "Montant (€)": ndf.montant,
     });
   }
 

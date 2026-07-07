@@ -51,7 +51,7 @@ export default async function PrevisionelPage({
   const now = new Date();
   const nowKey = monthKey(now);
 
-  const [factures, bcs, bcbs, bcfs, depensesPrev, chantiers, fournisseurs, chantiersMarges, depensesRecentes] =
+  const [factures, bcs, bcbs, bcfs, depensesPrev, chantiers, fournisseurs, chantiersMarges, depensesRecentes, devisAcceptes, csts, notesFrais] =
     await Promise.all([
       // Factures non entièrement payées
       prisma.facture.findMany({
@@ -135,6 +135,29 @@ export default async function PrevisionelPage({
         orderBy: { date: "desc" },
         take: 30,
       }),
+      // Devis acceptés non entièrement facturés (CA restant à facturer)
+      prisma.devis.findMany({
+        where: { statut: "ACCEPTE", ...(chantierId ? { chantierId } : {}) },
+        include: {
+          chantier: { select: { id: true, nom: true } },
+          client: { select: { nom: true, prenom: true, raisonSociale: true } },
+          factures: { where: { statut: { not: "ANNULEE" } }, select: { totalTTC: true } },
+        },
+      }),
+      // Contrats de sous-traitance signés non terminés
+      prisma.contratSousTraitance.findMany({
+        where: { statut: "SIGNE", montantHT: { gt: 0 }, ...(chantierId ? { chantierId } : {}) },
+        include: {
+          sousTraitant: { select: { nom: true } },
+          chantier: { select: { id: true, nom: true } },
+        },
+      }),
+      // Notes de frais en attente de remboursement
+      prisma.noteDeFrais.findMany({
+        where: { statut: { in: ["EN_ATTENTE", "VALIDEE"] }, ...(chantierId ? { chantierId } : {}) },
+        include: { chantier: { select: { id: true, nom: true } } },
+        orderBy: { date: "asc" },
+      }),
     ]);
 
   // ── Calculs de marge par chantier ─────────────────────────────────────────
@@ -176,7 +199,7 @@ export default async function PrevisionelPage({
   const allFlowItems: Array<{
     id: string; label: string; montant: number;
     sens: "encaissement" | "decaissement";
-    sous_type: "facture" | "bc" | "bcb" | "bcf" | "depense_prev";
+    sous_type: "facture" | "bc" | "bcb" | "bcf" | "depense_prev" | "devis_accepte" | "cst" | "ndf";
     lien?: string; chantier?: string | null; tiers?: string | null;
     statut?: string; enRetard?: boolean; monthKey: string;
     dateISO?: string; // uniquement pour depense_prev (édition inline)
@@ -236,6 +259,35 @@ export default async function PrevisionelPage({
       dateISO: dep.date.toISOString().slice(0, 10),
     });
   }
+  for (const dv of devisAcceptes) {
+    const dejaFactureTTC = dv.factures.reduce((s: number, f: { totalTTC: number }) => s + f.totalTTC, 0);
+    const resteAFacturer = dv.totalTTC - dejaFactureTTC;
+    if (resteAFacturer <= 0) continue;
+    const clientNom = dv.client.raisonSociale ?? `${dv.client.prenom ?? ""} ${dv.client.nom}`.trim();
+    allFlowItems.push({
+      id: dv.id, label: `${dv.numero} — ${clientNom}`, montant: resteAFacturer,
+      sens: "encaissement", sous_type: "devis_accepte",
+      lien: `/devis/${dv.id}`, chantier: dv.chantier?.nom, tiers: clientNom,
+      statut: "CA_RESTANT", monthKey: nowKey,
+    });
+  }
+  for (const cst of csts) {
+    allFlowItems.push({
+      id: cst.id, label: `${cst.numero} — ${cst.sousTraitant.nom}`, montant: cst.montantHT ?? 0,
+      sens: "decaissement", sous_type: "cst",
+      lien: `/contrats-sous-traitance/${cst.id}`, chantier: cst.chantier?.nom, tiers: cst.sousTraitant.nom,
+      statut: cst.statut, monthKey: nowKey,
+    });
+  }
+  for (const ndf of notesFrais) {
+    const ndfKey = monthKey(ndf.date);
+    allFlowItems.push({
+      id: ndf.id, label: ndf.description || ndf.fournisseur || "Note de frais", montant: ndf.montant,
+      sens: "decaissement", sous_type: "ndf",
+      chantier: ndf.chantier?.nom, tiers: ndf.fournisseur || undefined,
+      statut: ndf.statut, monthKey: ndfKey < nowKey ? nowKey : ndfKey,
+    });
+  }
 
   const totalEncaissements = allFlowItems.filter(i => i.sens === "encaissement").reduce((s, i) => s + i.montant, 0);
   const totalDecaissements = allFlowItems.filter(i => i.sens === "decaissement").reduce((s, i) => s + i.montant, 0);
@@ -267,6 +319,9 @@ export default async function PrevisionelPage({
     bcb:          { icon: "🧱",  badge: "bg-blue-100 text-blue-700",      label: "BC Béton" },
     bcf:          { icon: "📦",  badge: "bg-amber-100 text-amber-700",    label: "BC Fournitures" },
     depense_prev: { icon: "📋",  badge: "bg-orange-100 text-orange-700",  label: "Prévisionnel" },
+    devis_accepte: { icon: "✅", badge: "bg-teal-100 text-teal-700",      label: "CA à facturer" },
+    cst:          { icon: "👷",  badge: "bg-indigo-100 text-indigo-700",  label: "Sous-traitance" },
+    ndf:          { icon: "🧾",  badge: "bg-pink-100 text-pink-700",      label: "Note de frais" },
   } as const;
 
   // ── Couleur rentabilité ───────────────────────────────────────────────────
@@ -315,7 +370,10 @@ export default async function PrevisionelPage({
             <span className="text-xs font-semibold uppercase tracking-wide">Encaissements à venir</span>
           </div>
           <p className="mt-2 text-2xl font-bold text-emerald-700">{formatEuros(totalEncaissements)}</p>
-          <p className="mt-0.5 text-xs text-emerald-600">{factures.length} facture{factures.length > 1 ? "s" : ""} en attente</p>
+          <p className="mt-0.5 text-xs text-emerald-600">
+            {factures.length} facture{factures.length > 1 ? "s" : ""} en attente
+            {devisAcceptes.length > 0 && ` · ${devisAcceptes.length} devis accepté${devisAcceptes.length > 1 ? "s" : ""} à facturer`}
+          </p>
         </div>
         <div className="rounded-xl border border-red-200 bg-red-50 p-4">
           <div className="flex items-center gap-2 text-red-700">
@@ -324,7 +382,10 @@ export default async function PrevisionelPage({
           </div>
           <p className="mt-2 text-2xl font-bold text-red-700">{formatEuros(totalDecaissements)}</p>
           <p className="mt-0.5 text-xs text-red-600">
-            {bcs.length + bcbs.length + bcfs.length} commande{bcs.length + bcbs.length + bcfs.length > 1 ? "s" : ""} + {depensesPrev.length} prévis.
+            {bcs.length + bcbs.length + bcfs.length} commande{bcs.length + bcbs.length + bcfs.length > 1 ? "s" : ""}
+            {depensesPrev.length > 0 && ` · ${depensesPrev.length} prévis.`}
+            {csts.length > 0 && ` · ${csts.length} CST`}
+            {notesFrais.length > 0 && ` · ${notesFrais.length} NdF`}
           </p>
         </div>
         <div className={`rounded-xl border p-4 ${soldeNet >= 0 ? "border-brand-blue/30 bg-brand-blue/5" : "border-orange-200 bg-orange-50"}`}>

@@ -13,20 +13,22 @@ export default async function ComparerVariantesPage({
 }) {
   const { chantierId } = await params;
 
-  // Ordre de tri : ECONOMIQUE → OPTIMISEE → COMPLETE → autres → par prix
+  // Ordre de tri : ECONOMIQUE → OPTIMISEE → COMPLETE → PREMIUM → autres → par prix
   function offreRank(objet: string | null): number {
     const o = (objet ?? "").toUpperCase();
     if (o.includes("ECONOMIQUE") || o.includes("ECO")) return 1;
     if (o.includes("OPTIMISEE") || o.includes("OPTIMISE")) return 2;
-    if (o.includes("COMPLETE") || o.includes("PREMIUM")) return 3;
-    return 4;
+    if (o.includes("COMPLETE")) return 3;
+    if (o.includes("PREMIUM")) return 4;
+    return 5;
   }
 
   function typeLabel(objet: string | null): { label: string; color: string } {
     const o = (objet ?? "").toUpperCase();
     if (o.includes("ECONOMIQUE") || o.includes("ECO")) return { label: "Économique", color: "bg-emerald-100 text-emerald-700" };
     if (o.includes("OPTIMISEE") || o.includes("OPTIMISE")) return { label: "Optimisée", color: "bg-blue-100 text-blue-700" };
-    if (o.includes("COMPLETE") || o.includes("PREMIUM")) return { label: "Complète", color: "bg-violet-100 text-violet-700" };
+    if (o.includes("COMPLETE")) return { label: "Complète", color: "bg-violet-100 text-violet-700" };
+    if (o.includes("PREMIUM")) return { label: "Premium ✦", color: "bg-amber-100 text-amber-700" };
     return { label: "—", color: "bg-slate-100 text-slate-500" };
   }
 

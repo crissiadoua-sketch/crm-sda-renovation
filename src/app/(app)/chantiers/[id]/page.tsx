@@ -224,10 +224,29 @@ export default async function ChantierDetailPage({
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-semibold text-brand-navy">Devis</h3>
-            <LinkButton href={`/devis/nouveau?chantierId=${chantier.id}`} variant="secondary" className="px-2.5 py-1 text-xs">
-              + Nouveau devis
-            </LinkButton>
+            <div className="flex items-center gap-2">
+              <LinkButton href={`/devis/nouveau?chantierId=${chantier.id}`} variant="secondary" className="px-2.5 py-1 text-xs">
+                + Nouveau devis
+              </LinkButton>
+            </div>
           </div>
+
+          {/* Bandeau comparaison automatique dès 2 variantes en brouillon */}
+          {(() => {
+            const brouillons = chantier.devis.filter((d) => d.statut === "BROUILLON" && d.type === "INITIAL");
+            if (brouillons.length < 2) return null;
+            return (
+              <Link
+                href={`/devis/comparer/${chantier.id}`}
+                className="mb-3 flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2.5 text-sm font-semibold text-violet-700 hover:bg-violet-100 transition"
+              >
+                <span className="text-base">🔀</span>
+                <span>Comparer les {brouillons.length} variantes en brouillon</span>
+                <span className="ml-auto text-xs font-normal text-violet-500">Tableau comparatif →</span>
+              </Link>
+            );
+          })()}
+
           {chantier.devis.length === 0 ? (
             <p className="text-sm text-slate-400">Aucun devis.</p>
           ) : (

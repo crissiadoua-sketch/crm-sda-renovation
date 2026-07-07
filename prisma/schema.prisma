@@ -320,6 +320,7 @@ model Devis {
   totalHT  Float @default(0)
   totalTVA Float @default(0)
   totalTTC Float @default(0)
+  totalDS  Float @default(0) // Total déboursés secs (somme coutUnitaireDS × quantite par ligne)
 
   signatureToken    String? @unique
   mentionsLibres    String? // texte libre ajouté manuellement avant envoi (visible dans le PDF)
@@ -399,6 +400,7 @@ model DevisLigne {
   unite          String?
   quantite       Float?
   prixUnitaireHT Float?
+  coutUnitaireDS Float? // Déboursé sec unitaire (coût de revient) — non visible dans le PDF client
   remise         Float?
   tauxTVA        Float?
   totalHT        Float?

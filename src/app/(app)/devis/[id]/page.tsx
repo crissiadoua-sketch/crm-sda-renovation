@@ -9,10 +9,10 @@ import {
   updateDevisLignes,
   deleteDevis,
   creerAvenant,
-  convertirDevisEnFacture,
   updateMentionsDevis,
   genererLienSignature,
 } from "@/lib/actions/devis";
+import { PlanificationFacturationModal } from "@/components/devis/planification-facturation-modal";
 import { SignatureSection } from "@/components/devis/signature-section";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { buttonClasses } from "@/components/ui/button";
@@ -66,7 +66,7 @@ export default async function DevisDetailPage({
         avenants: { orderBy: { createdAt: "asc" } },
         signature: { select: { nomSignataire: true, dateSignature: true } },
         factures: {
-          select: { id: true, numero: true, totalTTC: true, statut: true, dateEmission: true },
+          select: { id: true, numero: true, totalHT: true, totalTTC: true, statut: true, type: true, dateEmission: true },
           orderBy: { dateEmission: "asc" },
         },
       },
@@ -198,12 +198,13 @@ export default async function DevisDetailPage({
           </form>
         )}
         {devis.statut === "ACCEPTE" && (
-          <form action={convertirDevisEnFacture.bind(null, devis.id)}>
-            <button type="submit" className={buttonClasses("primary")}>
-              <Receipt className="h-4 w-4" />
-              Convertir en facture
-            </button>
-          </form>
+          <PlanificationFacturationModal
+            devisId={devis.id}
+            devisNumero={devis.numero}
+            totalHT={devis.totalHT}
+            totalTTC={devis.totalTTC}
+            montantDéjàFacturéHT={devis.factures.reduce((s, f) => s + f.totalHT, 0)}
+          />
         )}
         {devis.statut === "ACCEPTE" && (
           <Link
@@ -259,18 +260,20 @@ export default async function DevisDetailPage({
             <Receipt className="h-4 w-4 text-slate-400" />
             Factures créées depuis ce devis
           </h3>
-          {devis.factures.length === 0 && devis.statut === "ACCEPTE" && (
-            <form action={convertirDevisEnFacture.bind(null, devis.id)}>
-              <button type="submit" className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">
-                + Créer la facture
-              </button>
-            </form>
+          {devis.statut === "ACCEPTE" && (
+            <PlanificationFacturationModal
+              devisId={devis.id}
+              devisNumero={devis.numero}
+              totalHT={devis.totalHT}
+              totalTTC={devis.totalTTC}
+              montantDéjàFacturéHT={devis.factures.reduce((s, f) => s + f.totalHT, 0)}
+            />
           )}
         </div>
         {devis.factures.length === 0 ? (
           <p className="text-sm text-slate-400">
             {devis.statut === "ACCEPTE"
-              ? "Aucune facture générée — utilisez \"Convertir en facture\" ci-dessus."
+              ? "Aucune facture générée — utilisez \"Planifier la facturation\" ci-dessus."
               : "Aucune facture — le devis doit être Accepté avant de pouvoir facturer."}
           </p>
         ) : (
@@ -284,12 +287,27 @@ export default async function DevisDetailPage({
                   <div className="flex items-center gap-2">
                     <Receipt className="h-4 w-4 text-emerald-500 shrink-0" />
                     <div>
-                      <p className="font-medium text-slate-700">{facture.numero}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-slate-700">{facture.numero}</p>
+                        {facture.type !== "STANDARD" && (
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            facture.type === "ACOMPTE" ? "bg-blue-100 text-blue-700" :
+                            facture.type === "SITUATION" ? "bg-orange-100 text-orange-700" :
+                            facture.type === "SOLDE" ? "bg-green-100 text-green-700" :
+                            "bg-slate-100 text-slate-600"
+                          }`}>
+                            {facture.type === "ACOMPTE" ? "Acompte" : facture.type === "SITUATION" ? "Situation" : facture.type === "SOLDE" ? "Solde" : facture.type}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-400">{formatDate(facture.dateEmission)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className="font-semibold text-emerald-700">{formatEuros(facture.totalTTC)}</p>
+                    <div className="text-right">
+                      <p className="font-semibold text-emerald-700">{formatEuros(facture.totalTTC)}</p>
+                      <p className="text-xs text-slate-400">{formatEuros(facture.totalHT)} HT</p>
+                    </div>
                     <Badge tone={factureStatutTones[facture.statut] ?? "gray"}>
                       {factureStatutLabels[facture.statut] ?? facture.statut}
                     </Badge>

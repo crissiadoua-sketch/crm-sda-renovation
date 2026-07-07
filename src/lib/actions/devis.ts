@@ -436,6 +436,76 @@ export async function convertirDevisEnFacture(devisId: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Facturation par tranches (acompte / situation / solde)
+// ---------------------------------------------------------------------------
+
+export async function creerTranchesFacturation(
+  devisId: string,
+  tranches: Array<{ type: string; libelle: string; pourcentage: number }>,
+): Promise<{ error?: string; chantierId?: string }> {
+  if (tranches.length === 0) return { error: "Aucune tranche définie." };
+
+  const total = tranches.reduce((s, t) => s + t.pourcentage, 0);
+  if (total > 100.01) {
+    return { error: `Total des pourcentages (${total.toFixed(1)} %) dépasse 100 %.` };
+  }
+
+  const devis = await prisma.devis.findUnique({ where: { id: devisId } });
+  if (!devis) return { error: "Devis introuvable." };
+
+  const numerosExistants = (await prisma.facture.findMany({ select: { numero: true } })).map(
+    (f) => f.numero,
+  );
+
+  const tauxTVAMoyen =
+    devis.totalHT > 0 ? Math.round((devis.totalTVA / devis.totalHT) * 100) : 20;
+
+  for (const tranche of tranches) {
+    const coeff = tranche.pourcentage / 100;
+    const totalHT = Math.round(devis.totalHT * coeff * 100) / 100;
+    const totalTVA = Math.round(devis.totalTVA * coeff * 100) / 100;
+    const totalTTC = Math.round(devis.totalTTC * coeff * 100) / 100;
+
+    const numero = await prochainNumeroDocument("FAC", numerosExistants);
+    numerosExistants.push(numero);
+
+    await prisma.facture.create({
+      data: {
+        numero,
+        chantierId: devis.chantierId,
+        clientId: devis.clientId,
+        devisId: devis.id,
+        statut: "BROUILLON",
+        type: tranche.type,
+        totalHT,
+        totalTVA,
+        totalTTC,
+        lignes: {
+          create: [
+            {
+              ordre: 1,
+              type: "LIGNE",
+              designation: tranche.libelle,
+              unite: "Fft",
+              quantite: 1,
+              prixUnitaireHT: totalHT,
+              remise: 0,
+              tauxTVA: tauxTVAMoyen,
+              totalHT,
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  revalidatePath(`/devis/${devisId}`);
+  revalidatePath("/factures");
+  revalidatePath(`/chantiers/${devis.chantierId}`);
+  return { chantierId: devis.chantierId };
+}
+
+// ---------------------------------------------------------------------------
 // Signature électronique
 // ---------------------------------------------------------------------------
 

@@ -46,6 +46,7 @@ import {
   Ruler,
   Landmark,
   CalendarClock,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import { canAccess } from "@/lib/permissions";
@@ -158,6 +159,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Finance & Comptabilité",
     items: [
+      { href: "/marge-rentabilite", label: "Marge & Rentabilité", icon: TrendingUp },
       { href: "/depenses", label: "Dépenses", icon: TrendingDown },
       { href: "/previsionnel", label: "Prévisionnel des flux", icon: CalendarClock },
       { href: "/tresorerie", label: "Trésorerie & P&L", icon: PiggyBank },

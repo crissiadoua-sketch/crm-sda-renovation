@@ -156,9 +156,9 @@ function emptyRow(): TaskRow {
   };
 }
 
-const ROW_HEIGHT = 64;
+const ROW_HEIGHT = 76;
 const TABLE_WIDTH = 1150;
-const TABLE_GRID_COLUMNS = "1.3fr 0.5fr 1.0fr 0.5fr 0.9fr 0.8fr 1.0fr 1.0fr 1.2fr 0.5fr";
+const TABLE_GRID_COLUMNS = "1.3fr 0.5fr 1.4fr 0.5fr 0.9fr 0.8fr 1.0fr 1.0fr 0.8fr 0.5fr";
 
 type VueGantt = "SEMAINE" | "MOIS" | "TROIS_MOIS" | "SIX_MOIS" | "NEUF_MOIS" | "DOUZE_MOIS";
 
@@ -537,7 +537,7 @@ export function GanttClient({
             >
               <span>Nom</span>
               <span>Durée</span>
-              <span>Date début → fin</span>
+              <span>Début / Fin réelle</span>
               <span>Av. %</span>
               <span>Statut</span>
               <span>Priorité</span>
@@ -580,14 +580,29 @@ export function GanttClient({
                         type="date"
                         value={row.dateDebut}
                         onChange={(e) => update(row.key, { dateDebut: e.target.value })}
-                        title={row.predecesseurKeys.length > 0 ? "Date d'ancrage (repoussée par les prédécesseurs si nécessaire)" : "Date de début"}
-                        className="w-full rounded-md border border-slate-200 px-1 py-1 text-xs"
+                        title={
+                          row.predecesseurKeys.length > 0
+                            ? "Début planifié (repoussé par les prédécesseurs si nécessaire)"
+                            : sched
+                              ? `Début planifié — fin théorique : ${format(sched.dateFin, "d/MM/yy", { locale: fr })}`
+                              : "Début planifié"
+                        }
+                        className="w-full rounded-md border border-slate-200 px-1 py-0.5 text-xs"
                       />
-                      {sched && (
-                        <span className="text-center text-[9px] text-slate-400">
-                          → {format(sched.dateFin, "d/MM/yy", { locale: fr })}
-                        </span>
-                      )}
+                      <input
+                        type="date"
+                        value={row.dateDebutReelle}
+                        onChange={(e) => update(row.key, { dateDebutReelle: e.target.value })}
+                        title="Début réel"
+                        className="w-full rounded-md border border-green-200 bg-green-50/40 px-1 py-0.5 text-xs"
+                      />
+                      <input
+                        type="date"
+                        value={row.dateFinReelle}
+                        onChange={(e) => update(row.key, { dateFinReelle: e.target.value })}
+                        title="Fin réelle"
+                        className="w-full rounded-md border border-green-200 bg-green-50/40 px-1 py-0.5 text-xs"
+                      />
                     </div>
                     <input
                       type="number" min={0} max={100}
@@ -760,29 +775,9 @@ export function GanttClient({
                       />
                       {sched && (
                         <p className="mt-1 text-[10px] text-slate-400">
-                          Théorique : {format(sched.dateDebut, "d MMM yyyy", { locale: fr })} → {format(sched.dateFin, "d MMM yyyy", { locale: fr })}
+                          Planifié : {format(sched.dateDebut, "d MMM yyyy", { locale: fr })} → {format(sched.dateFin, "d MMM yyyy", { locale: fr })}
                         </p>
                       )}
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
-                          Début réel
-                          <input
-                            type="date"
-                            value={row.dateDebutReelle}
-                            onChange={(e) => update(row.key, { dateDebutReelle: e.target.value })}
-                            className="rounded-md border border-slate-200 px-2 py-1 text-xs"
-                          />
-                        </label>
-                        <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
-                          Fin réelle
-                          <input
-                            type="date"
-                            value={row.dateFinReelle}
-                            onChange={(e) => update(row.key, { dateFinReelle: e.target.value })}
-                            className="rounded-md border border-slate-200 px-2 py-1 text-xs"
-                          />
-                        </label>
-                      </div>
                       {(() => {
                         const ecart = getEcartJours(row);
                         if (!ecart) return null;

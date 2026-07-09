@@ -88,62 +88,56 @@ export default async function ComparerVariantesPage({
   let isMixedFamilies = false;
 
   if (!hasChapitres) {
-    // Détecter si les variantes ont des familles de matériaux différentes (ligne 2)
+    // Détecter si les variantes ont des familles de matériaux différentes (ligne ordre=2)
     const mat2Desigs = variantes.map(
       (v) => v.lignes.find((l) => l.ordre === 2 && l.type === "LIGNE")?.designation?.split("\n")[0]?.trim() ?? ""
     );
     isMixedFamilies = new Set(mat2Desigs).size > 1;
 
-    if (isMixedFamilies) {
-      // Mode résumé par famille : matériau | fixe | gestion
-      const ORD_MAT = 2;
-      const ORD_GESTION = Math.max(...variantes[0].lignes.filter(l => l.type === "LIGNE").map(l => l.ordre));
+    // Comparaison ligne par ligne (tous modes) — les lignes identiques sur toutes
+    // les variantes sont regroupées dans flatCommunTotal, les autres affichées individuellement.
+    const ordres = Array.from(
+      new Set(variantes.flatMap((v) => v.lignes.filter((l) => l.type === "LIGNE").map((l) => l.ordre)))
+    ).sort((a, b) => a - b);
 
-      // Ligne matériaux (avec sous-désignation par variante)
-      const matMontants = variantes.map(v => v.lignes.find(l => l.ordre === ORD_MAT && l.type === "LIGNE")?.totalHT ?? null);
-      const matDescs = variantes.map(v => {
-        const l = v.lignes.find(ll => ll.ordre === ORD_MAT && ll.type === "LIGNE");
-        return l?.designation?.split("\n")[0]?.replace(/<[^>]*>/g, "").trim().slice(0, 55) ?? null;
-      });
-      flatLignesVariables.push({ designation: "Fourniture des matériaux principaux", montantsParVariante: matMontants, descParVariante: matDescs, isMixed: true });
+    const lastOrdre = ordres[ordres.length - 1];
 
-      // Ligne coûts fixes (toutes lignes LIGNE sauf mat et gestion)
-      const fixesMontants = variantes.map(v =>
-        v.lignes.filter(l => l.type === "LIGNE" && l.ordre !== ORD_MAT && l.ordre !== ORD_GESTION).reduce((s, l) => s + (l.totalHT ?? 0), 0)
+    for (const ordre of ordres) {
+      const lignesAtOrdre = variantes.map(
+        (v) => v.lignes.find((l) => l.ordre === ordre && l.type === "LIGNE") ?? null
       );
-      flatLignesVariables.push({ designation: "Prestations fixes (main d'œuvre, pose, livraison, logistique…)", montantsParVariante: fixesMontants });
+      const montants = lignesAtOrdre.map((l) => l?.totalHT ?? null);
+      const refMontant = montants[0];
+      const allSame = refMontant !== null && montants.every((m) => m === refMontant);
 
-      // Ligne gestion
-      const gestionMontants = variantes.map(v => v.lignes.find(l => l.ordre === ORD_GESTION && l.type === "LIGNE")?.totalHT ?? null);
-      flatLignesVariables.push({ designation: "Encadrement, gestion, garantie décennale", montantsParVariante: gestionMontants });
-    } else {
-      // Mode standard : comparaison ligne par ligne par ordre
-      const ordres = Array.from(
-        new Set(
-          variantes.flatMap((v) =>
-            v.lignes.filter((l) => l.type === "LIGNE").map((l) => l.ordre)
+      // Désignation de la ligne (depuis variantes[0])
+      // En mode familles mixtes, les lignes matériau et gestion reçoivent un libellé générique
+      let desig =
+        variantes[0].lignes
+          .find((l) => l.ordre === ordre && l.type === "LIGNE")
+          ?.designation?.split("\n")[0]
+          ?.replace(/<[^>]*>/g, "")
+          .trim() ?? `Ligne ${ordre}`;
+      if (isMixedFamilies && ordre === 2) desig = "Fourniture des matériaux principaux";
+      if (isMixedFamilies && ordre === lastOrdre) desig = "Encadrement, gestion, garantie décennale";
+
+      // La ligne matériau en mode mixte affiche la désignation réelle par variante en sous-texte
+      const showDescPerVariant = isMixedFamilies && ordre === 2;
+      const descParVariante = showDescPerVariant
+        ? lignesAtOrdre.map((l) =>
+            l?.designation?.split("\n")[0]?.replace(/<[^>]*>/g, "").trim().slice(0, 55) ?? null
           )
-        )
-      ).sort((a, b) => a - b);
+        : undefined;
 
-      for (const ordre of ordres) {
-        const montants = variantes.map(
-          (v) => v.lignes.find((l) => l.ordre === ordre && l.type === "LIGNE")?.totalHT ?? null
-        );
-        const refMontant = montants[0];
-        const allSame = montants.every((m) => m === refMontant);
-        const desig =
-          variantes[0].lignes
-            .find((l) => l.ordre === ordre && l.type === "LIGNE")
-            ?.designation?.split("\n")[0]
-            ?.replace(/<[^>]*>/g, "")
-            .trim() ?? `Ligne ${ordre}`;
-
-        if (allSame) {
-          flatCommunTotal += refMontant ?? 0;
-        } else {
-          flatLignesVariables.push({ designation: desig, montantsParVariante: montants });
-        }
+      if (allSame && !isMixedFamilies) {
+        flatCommunTotal += refMontant;
+      } else {
+        flatLignesVariables.push({
+          designation: desig,
+          montantsParVariante: montants,
+          descParVariante,
+          isMixed: showDescPerVariant,
+        });
       }
     }
   }

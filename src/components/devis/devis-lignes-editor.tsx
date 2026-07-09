@@ -125,9 +125,9 @@ function lineDS(row: LigneRow) {
 }
 
 function lineMarge(row: LigneRow) {
+  if (row.coutUnitaireDS === "") return null;
   const pv = lineTotal(row);
   const ds = lineDS(row);
-  if (pv === 0 && ds === 0) return null;
   return Math.round((pv - ds) * 100) / 100;
 }
 
@@ -382,7 +382,9 @@ export function DevisLignesEditor({
   const [savePopoverRow, setSavePopoverRow] = useState<LigneRow | null>(null);
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
   const [clausesOpen, setClausesOpen] = useState<Set<string>>(new Set());
-  const [showDS, setShowDS] = useState(false);
+  const [showDS, setShowDS] = useState(() => {
+    try { return localStorage.getItem("devis-showDS") === "1"; } catch { return false; }
+  });
 
   function toggleClauses(key: string) {
     setClausesOpen((prev) => {
@@ -531,7 +533,11 @@ export function DevisLignesEditor({
                 <th className="w-32 whitespace-nowrap px-3 py-2">
                   <button
                     type="button"
-                    onClick={() => setShowDS((v) => !v)}
+                    onClick={() => setShowDS((v) => {
+                      const next = !v;
+                      try { localStorage.setItem("devis-showDS", next ? "1" : "0"); } catch {}
+                      return next;
+                    })}
                     title={showDS ? "Masquer les déboursés secs" : "Afficher les déboursés secs (DS)"}
                     className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-brand-navy transition"
                   >

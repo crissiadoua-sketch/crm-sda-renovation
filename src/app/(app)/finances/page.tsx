@@ -16,6 +16,8 @@ import {
   PackageCheck,
   ArrowRight,
   Scale,
+  BarChart3,
+  Settings2,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatEuros, formatDate } from "@/lib/format";
@@ -318,6 +320,32 @@ export default async function FinancesPage({
           </Link>
         ))}
         <span className="ml-2 text-sm font-medium text-brand-navy">{periodeLabel}</span>
+      </div>
+
+      {/* Liens modules rentabilité */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Link
+          href={`/finances/rentabilite?annee=${now.getFullYear()}`}
+          className="flex items-center gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-700 hover:bg-violet-100 transition"
+        >
+          <BarChart3 className="h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-semibold">Rentabilité société</p>
+            <p className="text-xs text-violet-500">P&L, MCV, seuil de rentabilité {now.getFullYear()}</p>
+          </div>
+          <ChevronRight className="ml-auto h-4 w-4" />
+        </Link>
+        <Link
+          href={`/finances/charges?annee=${now.getFullYear()}`}
+          className="flex items-center gap-3 rounded-xl border border-brand-blue/20 bg-brand-blue/5 px-4 py-3 text-sm text-brand-blue hover:bg-brand-blue/10 transition"
+        >
+          <Settings2 className="h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-semibold">Budget des charges</p>
+            <p className="text-xs text-brand-blue/70">Charges fixes et variables {now.getFullYear()}</p>
+          </div>
+          <ChevronRight className="ml-auto h-4 w-4" />
+        </Link>
       </div>
 
       {/* KPIs */}

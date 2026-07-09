@@ -159,7 +159,9 @@ export const navGroups: NavGroup[] = [
   {
     label: "Finance & Comptabilité",
     items: [
-      { href: "/marge-rentabilite", label: "Marge & Rentabilité", icon: TrendingUp },
+      { href: "/finances/rentabilite", label: "Rentabilité société", icon: BarChart3 },
+      { href: "/finances/charges", label: "Budget des charges", icon: Settings2 },
+      { href: "/marge-rentabilite", label: "Marge & Rentabilité chantiers", icon: TrendingUp },
       { href: "/depenses", label: "Dépenses", icon: TrendingDown },
       { href: "/previsionnel", label: "Prévisionnel des flux", icon: CalendarClock },
       { href: "/tresorerie", label: "Trésorerie & P&L", icon: PiggyBank },

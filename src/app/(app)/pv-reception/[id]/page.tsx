@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getUser } from "@/lib/dal";
 import { PvReceptionEditor } from "./pv-editor";
 
 export default async function PvReceptionDetailPage({
@@ -9,7 +10,8 @@ export default async function PvReceptionDetailPage({
 }) {
   const { id } = await params;
 
-  const [pvr, fournisseurs, chantiers, clients] = await Promise.all([
+  const [user, pvr, fournisseurs, chantiers, clients] = await Promise.all([
+    getUser(),
     prisma.pvReception.findUnique({
       where: { id },
       include: {
@@ -20,7 +22,10 @@ export default async function PvReceptionDetailPage({
         reserves:    { orderBy: { ordre: "asc" } },
       },
     }),
-    prisma.fournisseur.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+    prisma.fournisseur.findMany({
+      orderBy: { nom: "asc" },
+      select: { id: true, nom: true, email: true, telephone: true, contact: true },
+    }),
     prisma.chantier.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, nom: true, adresse: true } }),
     prisma.client.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, raisonSociale: true } }),
   ]);
@@ -28,6 +33,14 @@ export default async function PvReceptionDetailPage({
   if (!pvr) notFound();
 
   const toDateStr = (d: Date | null) => d?.toISOString().slice(0, 10) ?? null;
+
+  const ROLE_LABELS: Record<string, string> = {
+    DIRIGEANT: "Dirigeant",
+    CONDUCTEUR_TRAVAUX: "Conducteur de travaux",
+    RESPONSABLE_COMMERCIAL: "Responsable commercial",
+    ASSISTANT_DIRECTION: "Assistante de Direction",
+    ADMIN: "Administrateur",
+  };
 
   return (
     <PvReceptionEditor
@@ -46,6 +59,11 @@ export default async function PvReceptionDetailPage({
       fournisseurs={fournisseurs}
       chantiers={chantiers}
       clients={clients}
+      currentUser={{
+        name: user.name,
+        role: ROLE_LABELS[user.role] ?? user.role,
+        email: user.email,
+      }}
     />
   );
 }

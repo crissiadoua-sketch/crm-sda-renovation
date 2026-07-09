@@ -948,6 +948,19 @@ model Depense {
   ligneReleve LigneReleveBancaire?
 }
 
+model BudgetChargesSociete {
+  id            String   @id @default(cuid())
+  annee         Int
+  label         String
+  // LOYER | ASSURANCE | SALAIRES | AMORTISSEMENT | ADMINISTRATIF | IMPOT_TAXE
+  // MATERIAUX | SOUS_TRAITANCE | TRANSPORT | MAIN_OEUVRE | INTERIM | INVESTISSEMENT | AUTRE
+  categorie     String
+  type          String   // FIXE | VARIABLE
+  montantAnnuel Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 // ---------------------------------------------------------------------------
 // Rapprochement bancaire
 // ---------------------------------------------------------------------------
@@ -1762,9 +1775,10 @@ model Conversation {
 }
 
 model ConversationParticipant {
-  id             String @id @default(cuid())
+  id             String    @id @default(cuid())
   conversationId String
   userId         String
+  luAt           DateTime? // timestamp de la dernière ouverture de la conversation
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)

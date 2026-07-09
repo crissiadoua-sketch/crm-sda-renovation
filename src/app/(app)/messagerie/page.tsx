@@ -1,27 +1,8 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/dal";
 import { NouvelleConversationForm } from "@/components/messagerie/nouvelle-conversation-form";
-import { MessageSquare, Plus, Users, Lock, Clock } from "lucide-react";
-
-function formatRelative(date: Date) {
-  const diffMs = Date.now() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "À l'instant";
-  if (diffMins < 60) return `il y a ${diffMins} min`;
-  const diffH = Math.floor(diffMins / 60);
-  if (diffH < 24) return `il y a ${diffH}h`;
-  const diffD = Math.floor(diffH / 24);
-  if (diffD === 1) return "Hier";
-  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-}
-
-const SUPPRESSION_LABELS: Record<string, string> = {
-  JAMAIS: "∞",
-  "7_JOURS": "7j",
-  "30_JOURS": "30j",
-  "90_JOURS": "90j",
-};
+import { ConversationCard } from "@/components/messagerie/conversation-card";
+import { MessageSquare, Plus } from "lucide-react";
 
 export default async function MessagerieListPage() {
   const user = await getUser();
@@ -31,11 +12,19 @@ export default async function MessagerieListPage() {
       participants: { some: { userId: user.id } },
     },
     include: {
-      participants: { include: { user: { select: { id: true, name: true } } } },
+      participants: {
+        include: { user: { select: { id: true, name: true } } },
+      },
       messages: {
         orderBy: { createdAt: "desc" },
         take: 1,
-        select: { texte: true, createdAt: true, sender: { select: { name: true } }, piecesJointes: { select: { nom: true } } },
+        select: {
+          texte: true,
+          createdAt: true,
+          senderId: true,
+          sender: { select: { name: true } },
+          piecesJointes: { select: { nom: true }, take: 1 },
+        },
       },
     },
     orderBy: { updatedAt: "desc" },
@@ -71,51 +60,39 @@ export default async function MessagerieListPage() {
               <p className="text-sm text-slate-500">Aucune conversation — créez-en une à droite</p>
             </div>
           ) : conversations.map(conv => {
+            const meParticipant = conv.participants.find(p => p.userId === user.id);
             const others = conv.participants.filter(p => p.userId !== user.id).map(p => p.user);
             const lastMsg = conv.messages[0];
-            const nom = conv.nom || (conv.type === "DIRECT" && others[0]?.name) || others.map(u => u.name).join(", ");
+
+            // Badge non-lu : dernier message d'un autre utilisateur après ma dernière lecture
+            const luAt = meParticipant?.luAt;
+            const unread = !!(
+              lastMsg &&
+              lastMsg.senderId !== user.id &&
+              (!luAt || new Date(lastMsg.createdAt) > luAt)
+            );
 
             return (
-              <Link
+              <ConversationCard
                 key={conv.id}
-                href={`/messagerie/${conv.id}`}
-                className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-brand-blue/40 hover:shadow-md transition-all"
-              >
-                {/* Avatar */}
-                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${conv.type === "DIRECT" ? "bg-brand-blue" : "bg-brand-orange"}`}>
-                  {conv.type === "DIRECT"
-                    ? others[0]?.name?.charAt(0)?.toUpperCase() ?? "?"
-                    : <Users className="h-5 w-5" />
-                  }
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-slate-700 truncate">{nom}</p>
-                    {conv.type === "DIRECT" && <Lock className="h-3 w-3 text-slate-300 shrink-0" />}
-                    {conv.suppressionAuto !== "JAMAIS" && (
-                      <span className="ml-auto shrink-0 flex items-center gap-0.5 text-[10px] text-slate-400">
-                        <Clock className="h-2.5 w-2.5" />
-                        {SUPPRESSION_LABELS[conv.suppressionAuto]}
-                      </span>
-                    )}
-                  </div>
-                  {lastMsg ? (
-                    <p className="text-xs text-slate-400 truncate">
-                      <span className="font-medium">{lastMsg.sender.name} : </span>
-                      {lastMsg.texte ?? (lastMsg.piecesJointes[0]?.nom ? `📎 ${lastMsg.piecesJointes[0].nom}` : "…")}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">Conversation vide</p>
-                  )}
-                </div>
-
-                {lastMsg && (
-                  <p className="shrink-0 text-[11px] text-slate-400">
-                    {formatRelative(new Date(lastMsg.createdAt))}
-                  </p>
-                )}
-              </Link>
+                conv={{
+                  id: conv.id,
+                  type: conv.type,
+                  nom: conv.nom,
+                  suppressionAuto: conv.suppressionAuto,
+                  otherName: conv.type === "DIRECT" ? (others[0]?.name ?? null) : others.map(u => u.name).join(", "),
+                  otherInitial: (conv.type === "DIRECT" ? others[0]?.name : null)?.charAt(0)?.toUpperCase() ?? "?",
+                  lastMsg: lastMsg
+                    ? {
+                        texte: lastMsg.texte,
+                        senderName: lastMsg.sender.name,
+                        createdAt: lastMsg.createdAt.toISOString(),
+                        pjNom: lastMsg.piecesJointes[0]?.nom ?? null,
+                      }
+                    : null,
+                  unread,
+                }}
+              />
             );
           })}
         </div>

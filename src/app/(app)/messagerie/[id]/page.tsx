@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/dal";
-import { cleanupExpiredMessages } from "@/lib/actions/messagerie";
+import { cleanupExpiredMessages, marquerCommeLu } from "@/lib/actions/messagerie";
 import { MessageThread } from "@/components/messagerie/message-thread";
 import { MessageSquare, ChevronLeft, Users, Lock, Clock } from "lucide-react";
 
@@ -21,8 +21,8 @@ export default async function ConversationPage({
   const { id } = await params;
   const user = await getUser();
 
-  // Déclencher le nettoyage automatique
-  await cleanupExpiredMessages(id);
+  // Déclencher le nettoyage automatique + marquer comme lu
+  await Promise.all([cleanupExpiredMessages(id), marquerCommeLu(id)]);
 
   const conv = await prisma.conversation.findUnique({
     where: { id },

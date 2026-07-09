@@ -77,12 +77,13 @@ const STATUT_LABELS: Record<string, string> = {
 };
 
 export function PvReceptionEditor({
-  pvr, fournisseurs, chantiers, clients,
+  pvr, fournisseurs, chantiers, clients, currentUser,
 }: {
   pvr: PVR;
-  fournisseurs: { id: string; nom: string }[];
+  fournisseurs: { id: string; nom: string; email?: string | null; telephone?: string | null; contact?: string | null }[];
   chantiers:    { id: string; nom: string; adresse?: string | null }[];
   clients:      { id: string; nom: string; raisonSociale?: string | null }[];
+  currentUser:  { name: string; role: string; email: string };
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved]               = useState(false);
@@ -150,6 +151,31 @@ export function PvReceptionEditor({
   );
 
   const set = (f: string, v: string | boolean) => setForm(p => ({ ...p, [f]: v }));
+
+  // ── Auto-remplissage ──────────────────────────────────────────────────────
+
+  // Remplir la section "Représentant MO" avec l'utilisateur connecté
+  const autoFillRepMO = () => {
+    setForm(p => ({
+      ...p,
+      repMO: p.repMO || currentUser.name,
+      fonctionRepMO: p.fonctionRepMO || currentUser.role,
+      emailRepMO: p.emailRepMO || currentUser.email,
+    }));
+  };
+
+  // Quand le prestataire change : remplir les champs prestataire si vides
+  const handleFournisseurChange = (fournisseurId: string) => {
+    set("fournisseurId", fournisseurId);
+    if (!fournisseurId) return;
+    const f = fournisseurs.find(x => x.id === fournisseurId);
+    if (!f) return;
+    setForm(p => ({
+      ...p,
+      repPrestataire: p.repPrestataire || f.contact || "",
+      emailPrestataire: p.emailPrestataire || f.email || "",
+    }));
+  };
 
   // ── Lignes helpers ────────────────────────────────────────────────────────
   const addLigne = () => setLignes(l => [...l, { designation: "", reference: "", quantite: "", unite: "", conformite: "CONFORME", observations: "" }]);
@@ -404,7 +430,7 @@ export function PvReceptionEditor({
                 </select>
               </Field>
               <Field label="Prestataire (CRM)">
-                <select value={form.fournisseurId} onChange={e => set("fournisseurId", e.target.value)} className={inp}>
+                <select value={form.fournisseurId} onChange={e => handleFournisseurChange(e.target.value)} className={inp}>
                   <option value="">— aucun —</option>
                   {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
                 </select>
@@ -415,6 +441,15 @@ export function PvReceptionEditor({
           {/* Représentants maître d'ouvrage */}
           <Section title="Représentant — Maître d'ouvrage (SDA Rénovation)" icon="🏢">
             <div className="flex flex-col gap-3">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={autoFillRepMO}
+                  className="flex items-center gap-1.5 rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/10 transition"
+                >
+                  ✨ Remplir avec mon profil
+                </button>
+              </div>
               <Field label="Nom et prénom *">
                 <input value={form.repMO} onChange={e => set("repMO", e.target.value)}
                   className={inp} placeholder="Ex: Jean DUPONT" />

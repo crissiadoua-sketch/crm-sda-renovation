@@ -117,6 +117,19 @@ export async function deleteConversation(conversationId: string) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Marquer une conversation comme lue (met à jour luAt)               */
+/* ------------------------------------------------------------------ */
+
+export async function marquerCommeLu(conversationId: string) {
+  const session = await verifySession();
+  await prisma.conversationParticipant.update({
+    where: { conversationId_userId: { conversationId, userId: session.userId } },
+    data: { luAt: new Date() },
+  });
+  revalidatePath("/messagerie");
+}
+
+/* ------------------------------------------------------------------ */
 /*  Nettoyage automatique — appelé à l'ouverture d'une conv            */
 /* ------------------------------------------------------------------ */
 

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatEuros } from "@/lib/format";
+import { RentabiliteActions } from "@/components/finances/rentabilite-actions";
 
 function computeIS(r: number) {
   if (r <= 0) return 0;
@@ -179,10 +180,27 @@ export default async function RentabilitePage({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Styles d'impression */}
+      <style>{`
+        @media print {
+          @page { size: A4 portrait; margin: 15mm 12mm; }
+          body { font-size: 11px !important; }
+          .print-hide { display: none !important; }
+          .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          tr { break-inside: avoid; }
+          h2, h3 { break-after: avoid; }
+        }
+        #main-content:fullscreen {
+          overflow-y: auto;
+          background: #f8fafc;
+          padding: 2rem;
+        }
+      `}</style>
+
       {/* En-tête */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+          <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-1 print:hidden">
             <Link href="/finances" className="hover:text-brand-blue">Finances</Link>
             <ChevronRight className="h-3 w-3" />
             <span className="text-slate-600">Tableau de rentabilité</span>
@@ -196,26 +214,31 @@ export default async function RentabilitePage({
           </p>
         </div>
 
-        {/* Sélecteur année */}
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm">
-            {years.map((y) => (
-              <Link
-                key={y}
-                href={`/finances/rentabilite?annee=${y}`}
-                className={`px-3 py-1.5 text-sm font-medium transition ${
-                  y === annee ? "bg-brand-navy text-white" : "text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {y}
-              </Link>
-            ))}
+        <div className="flex flex-col items-end gap-2">
+          {/* Boutons impression / plein écran */}
+          <RentabiliteActions />
+
+          {/* Sélecteur année */}
+          <div className="flex items-center gap-2 print:hidden">
+            <div className="flex rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm">
+              {years.map((y) => (
+                <Link
+                  key={y}
+                  href={`/finances/rentabilite?annee=${y}`}
+                  className={`px-3 py-1.5 text-sm font-medium transition ${
+                    y === annee ? "bg-brand-navy text-white" : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {y}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Liens inter-modules */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 print:hidden">
         {[
           { href: "/tresorerie", label: "Trésorerie", icon: Wallet },
           { href: "/finances", label: "Dépenses", icon: TrendingDown },
@@ -249,7 +272,7 @@ export default async function RentabilitePage({
       )}
 
       {/* ── KPI CARDS ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="kpi-grid grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
           title="Chiffre d'affaires"
           value={formatEuros(caHT)}
@@ -433,7 +456,7 @@ export default async function RentabilitePage({
       </div>
 
       {/* Lien vers budget */}
-      <div className="flex justify-center">
+      <div className="flex justify-center print:hidden">
         <Link
           href={`/finances/charges?annee=${annee}`}
           className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm hover:border-brand-blue/40 hover:text-brand-blue transition"

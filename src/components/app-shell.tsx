@@ -111,7 +111,7 @@ export function AppShell({
   return (
     <div className="flex min-h-screen">
       {/* Sidebar — desktop */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col bg-gradient-to-b from-brand-blue to-brand-navy">
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col bg-gradient-to-b from-brand-blue to-brand-navy print:hidden">
         <div className="flex items-center px-6 py-6">
           <Logo variant="light" size="md" />
         </div>
@@ -148,8 +148,8 @@ export function AppShell({
       )}
 
       {/* Contenu principal */}
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-72">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-200 bg-white px-4 sm:px-6">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-72 print:pl-0">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-200 bg-white px-4 sm:px-6 print:hidden">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
@@ -163,7 +163,7 @@ export function AppShell({
           </div>
         </header>
         {banner}
-        <main className="min-w-0 flex-1 overflow-x-hidden bg-slate-50 p-4 sm:p-6">{children}</main>
+        <main id="main-content" className="min-w-0 flex-1 overflow-x-hidden bg-slate-50 p-4 sm:p-6 print:bg-white print:p-0">{children}</main>
       </div>
     </div>
   );

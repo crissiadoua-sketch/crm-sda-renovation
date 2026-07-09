@@ -497,12 +497,18 @@ function DataRow({
   link?: string;
   inverse?: boolean;
 }) {
-  const content = (
+  return (
     <tr className="hover:bg-slate-50/50 border-b border-slate-50">
-      <td className="px-5 py-2 text-slate-600 flex items-center gap-2">
-        {icon}
-        {label}
-        {link && <ArrowRight className="ml-auto h-3 w-3 text-slate-300 group-hover:text-brand-blue" />}
+      <td className="px-5 py-2 text-slate-600">
+        {link ? (
+          <Link href={link} className="flex items-center gap-2 hover:text-brand-blue group">
+            {icon}
+            {label}
+            <ArrowRight className="ml-auto h-3 w-3 text-slate-300 group-hover:text-brand-blue" />
+          </Link>
+        ) : (
+          <span className="flex items-center gap-2">{icon}{label}</span>
+        )}
       </td>
       {hasBudget && (
         <td className="px-4 py-2 text-right text-slate-400 text-xs">
@@ -522,12 +528,6 @@ function DataRow({
       )}
     </tr>
   );
-
-  return link ? (
-    <tr className="group hover:bg-slate-50/50 border-b border-slate-50 cursor-pointer" onClick={() => {}}>
-      {content.props.children}
-    </tr>
-  ) : content;
 }
 
 function TotalRow({

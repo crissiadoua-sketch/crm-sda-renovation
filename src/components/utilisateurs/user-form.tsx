@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
 import {
@@ -39,8 +39,13 @@ export function UserForm({ action, defaultValues, isEdit }: UserFormProps) {
     new Set(defaultPerms),
   );
 
-  // Recalcule les permissions par défaut quand le rôle change
+  // Recalcule les permissions par défaut uniquement quand le rôle CHANGE (pas au premier rendu)
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     if (!isFullAccessRole(role)) {
       setCheckedPerms(new Set(getDefaultPermissions(role)));
     } else {

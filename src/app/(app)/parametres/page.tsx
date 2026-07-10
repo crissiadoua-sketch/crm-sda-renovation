@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Settings2 } from "lucide-react";
+import { Settings2, Mail } from "lucide-react";
 import { ParametresForm } from "@/components/parametres/parametres-form";
 import { updateParametres } from "@/lib/actions/parametres";
 import { prisma } from "@/lib/prisma";
@@ -21,13 +21,22 @@ export default async function ParametresPage() {
             documents.
           </p>
         </div>
-        <Link
-          href="/parametres/codifications"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 shrink-0"
-        >
-          <Settings2 className="h-4 w-4 text-brand-blue" />
-          Codifications
-        </Link>
+        <div className="flex gap-2 shrink-0">
+          <Link
+            href="/parametres/email"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Mail className="h-4 w-4 text-brand-blue" />
+            Messagerie
+          </Link>
+          <Link
+            href="/parametres/codifications"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Settings2 className="h-4 w-4 text-brand-blue" />
+            Codifications
+          </Link>
+        </div>
       </div>
 
       <ParametresForm parametres={parametres} action={updateParametres} />

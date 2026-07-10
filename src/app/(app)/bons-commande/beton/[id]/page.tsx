@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { BonCommandeBetonEditor } from "./bcb-editor";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerBcBetonParEmail } from "@/lib/actions/email-documents";
 
 export default async function BonCommandeBetonPage({
   params,
@@ -26,6 +28,14 @@ export default async function BonCommandeBetonPage({
   if (!bcb) notFound();
 
   return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-2 pt-2">
+        <EnvoyerEmailModal
+          action={envoyerBcBetonParEmail.bind(null, id)}
+          defaultTo={bcb.fournisseur?.email ?? ""}
+          documentLabel={`BC Béton ${bcb.numero}`}
+        />
+      </div>
     <BonCommandeBetonEditor
       bcb={{
         ...bcb,
@@ -38,5 +48,6 @@ export default async function BonCommandeBetonPage({
       fournisseurs={fournisseurs}
       chantiers={chantiers}
     />
+    </div>
   );
 }

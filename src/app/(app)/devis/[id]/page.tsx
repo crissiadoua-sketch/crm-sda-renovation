@@ -28,6 +28,8 @@ import {
   Receipt,
   ArrowRight,
 } from "lucide-react";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerDevisParEmail } from "@/lib/actions/email-documents";
 
 const statutTones: Record<string, BadgeTone> = {
   BROUILLON: "gray",
@@ -170,6 +172,11 @@ export default async function DevisDetailPage({
       )}
 
       <div className="flex flex-wrap gap-2">
+        <EnvoyerEmailModal
+          action={envoyerDevisParEmail.bind(null, devis.id)}
+          defaultTo={devis.client.email ?? ""}
+          documentLabel={`devis ${devis.numero}`}
+        />
         <PdfPreviewModal
           href={`/apercu/devis/${devis.id}`}
           label={`Aperçu PDF — ${devis.numero}`}

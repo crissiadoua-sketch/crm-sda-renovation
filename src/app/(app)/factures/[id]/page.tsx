@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updateMentionsFacture, deleteFacture, ajouterPaiement } from "@/lib/actions/factures";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerFactureParEmail } from "@/lib/actions/email-documents";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Field, inputClasses } from "@/components/ui/fields";
@@ -142,6 +144,11 @@ export default async function FactureDetailPage({
             )}
           </div>
           <div className="flex items-center gap-2">
+            <EnvoyerEmailModal
+              action={envoyerFactureParEmail.bind(null, facture.id)}
+              defaultTo={facture.client.email ?? ""}
+              documentLabel={`facture ${facture.numero}`}
+            />
             <PdfPreviewModal
               href={`/apercu/facture/${facture.id}`}
               label={`Aperçu PDF — ${facture.numero}`}

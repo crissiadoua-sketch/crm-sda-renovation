@@ -61,12 +61,14 @@ export default async function DashboardPage() {
       where: { date: { gte: debutMois } },
       _sum: { montant: true },
     }),
-    prisma.evenement.findMany({
-      where: { dateDebut: { gte: now } },
-      orderBy: { dateDebut: "asc" },
-      take: 5,
-      include: { chantier: { select: { nom: true, reference: true } } },
-    }),
+    user?.role === "EXPERT_COMPTABLE"
+      ? Promise.resolve([])
+      : prisma.evenement.findMany({
+          where: { dateDebut: { gte: now } },
+          orderBy: { dateDebut: "asc" },
+          take: 5,
+          include: { chantier: { select: { nom: true, reference: true } } },
+        }),
     prisma.ficheIntervention.count({
       where: { statut: { in: ["EN_COURS", "BROUILLON"] } },
     }),
@@ -240,39 +242,41 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-4 flex items-center gap-2">
-          <CalendarClock className="h-5 w-5 text-brand-blue" />
-          <h3 className="font-semibold text-brand-navy">Prochains rendez-vous</h3>
+      {user?.role !== "EXPERT_COMPTABLE" && (
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <CalendarClock className="h-5 w-5 text-brand-blue" />
+            <h3 className="font-semibold text-brand-navy">Prochains rendez-vous</h3>
+          </div>
+          {prochainsEvenements.length === 0 ? (
+            <p className="text-sm text-slate-500">Aucun événement à venir.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {prochainsEvenements.map((evt) => (
+                <li key={evt.id} className="flex items-center justify-between py-2.5 text-sm">
+                  <div>
+                    <p className="font-medium text-slate-700">{evt.titre}</p>
+                    {evt.chantier && (
+                      <p className="text-xs text-slate-400">
+                        {evt.chantier.reference} — {evt.chantier.nom}
+                      </p>
+                    )}
+                  </div>
+                  <span className="shrink-0 rounded-full bg-brand-blue/10 px-3 py-1 text-xs font-medium text-brand-blue-dark">
+                    {formatDate(evt.dateDebut)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link
+            href="/planning"
+            className="mt-3 inline-block text-sm font-medium text-brand-blue hover:underline"
+          >
+            Voir le planning complet →
+          </Link>
         </div>
-        {prochainsEvenements.length === 0 ? (
-          <p className="text-sm text-slate-500">Aucun événement à venir.</p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {prochainsEvenements.map((evt) => (
-              <li key={evt.id} className="flex items-center justify-between py-2.5 text-sm">
-                <div>
-                  <p className="font-medium text-slate-700">{evt.titre}</p>
-                  {evt.chantier && (
-                    <p className="text-xs text-slate-400">
-                      {evt.chantier.reference} — {evt.chantier.nom}
-                    </p>
-                  )}
-                </div>
-                <span className="shrink-0 rounded-full bg-brand-blue/10 px-3 py-1 text-xs font-medium text-brand-blue-dark">
-                  {formatDate(evt.dateDebut)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <Link
-          href="/planning"
-          className="mt-3 inline-block text-sm font-medium text-brand-blue hover:underline"
-        >
-          Voir le planning complet →
-        </Link>
-      </div>
+      )}
     </div>
   );
 }

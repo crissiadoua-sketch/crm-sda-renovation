@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/prisma";
 import { creerFactureLibre } from "@/lib/actions/factures";
 import { Field, inputClasses } from "@/components/ui/fields";

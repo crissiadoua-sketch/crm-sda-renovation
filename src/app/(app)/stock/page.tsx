@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { Plus, Search, AlertTriangle, Package, TrendingUp, BarChart2, Truck, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";

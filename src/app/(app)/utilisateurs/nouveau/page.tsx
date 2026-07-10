@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { UserForm } from "@/components/utilisateurs/user-form";
 import { createUser } from "@/lib/actions/utilisateurs";

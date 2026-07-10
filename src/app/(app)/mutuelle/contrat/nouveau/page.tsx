@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { createContratMutuelle } from "@/lib/actions/mutuelle";
 import { ContratMutuellForm } from "@/components/mutuelle/contrat-mutuelle-form";

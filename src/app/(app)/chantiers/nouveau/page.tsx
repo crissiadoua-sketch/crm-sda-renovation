@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { ChantierForm } from "@/components/chantiers/chantier-form";
 import { createChantier, getNextChantierReference } from "@/lib/actions/chantiers";
 import { prisma } from "@/lib/prisma";

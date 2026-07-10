@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { MeteoDashboard } from "@/components/meteo/meteo-dashboard";
 import { Cloud } from "lucide-react";
 

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { createFicheTechnique } from "@/lib/actions/fiches-techniques";
 import { SubmitButton } from "@/components/ui/submit-button";

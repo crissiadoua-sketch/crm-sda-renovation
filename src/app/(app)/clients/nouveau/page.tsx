@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { ClientForm } from "@/components/clients/client-form";
 import { createClient } from "@/lib/actions/clients";
 

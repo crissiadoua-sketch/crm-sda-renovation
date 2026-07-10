@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { FileSpreadsheet, FileText } from "lucide-react";
 import { calculerBilan } from "@/lib/bilan-template";
 import { formatEuros } from "@/lib/format";

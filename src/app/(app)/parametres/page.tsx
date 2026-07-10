@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { Settings2, Mail } from "lucide-react";
 import { ParametresForm } from "@/components/parametres/parametres-form";

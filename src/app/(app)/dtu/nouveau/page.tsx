@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { createDtu } from "@/lib/actions/dtu";
 import { SubmitButton } from "@/components/ui/submit-button";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getUser } from "@/lib/dal";
 import { AppShell } from "@/components/app-shell";
 import { AlbaAylaChat } from "@/components/alba-ayla/chat";

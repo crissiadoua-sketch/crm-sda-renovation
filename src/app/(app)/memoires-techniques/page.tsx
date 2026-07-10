@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { BookMarked, Plus, FileText, Building2, Calendar, Euro } from "lucide-react";
 import { prisma } from "@/lib/prisma";

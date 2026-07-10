@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { SousTraitantForm } from "@/components/sous-traitants/sous-traitant-form";
 import { createSousTraitant } from "@/lib/actions/sous-traitants";
 

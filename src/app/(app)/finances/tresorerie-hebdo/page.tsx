@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { ChevronRight, TrendingDown, TrendingUp, Calendar, Wallet, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";

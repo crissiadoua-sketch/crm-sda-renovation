@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { ChevronRight, Download, FileText, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import { FecDownloadButton } from "./fec-download-button";

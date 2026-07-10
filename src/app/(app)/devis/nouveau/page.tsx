@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { DevisForm } from "@/components/devis/devis-form";
 import { createDevis } from "@/lib/actions/devis";
 import { prisma } from "@/lib/prisma";

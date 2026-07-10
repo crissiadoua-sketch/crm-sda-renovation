@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { FournisseurForm } from "@/components/fournisseurs/fournisseur-form";
 import { createFournisseur } from "@/lib/actions/fournisseurs";
 

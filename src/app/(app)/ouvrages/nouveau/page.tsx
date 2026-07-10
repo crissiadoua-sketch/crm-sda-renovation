@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { OuvrageForm } from "@/components/ouvrages/ouvrage-form";
 import { createOuvrage } from "@/lib/actions/ouvrages";

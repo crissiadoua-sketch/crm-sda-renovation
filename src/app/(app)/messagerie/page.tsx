@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/dal";
 import { NouvelleConversationForm } from "@/components/messagerie/nouvelle-conversation-form";

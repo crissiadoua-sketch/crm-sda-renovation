@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { EtatReservesForm } from "@/components/etats-reserves/etat-form";
 import { createEtatReserves } from "@/lib/actions/etats-reserves";

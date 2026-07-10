@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import {
   TrendingUp, TrendingDown, ChevronRight, BarChart3, Settings2,

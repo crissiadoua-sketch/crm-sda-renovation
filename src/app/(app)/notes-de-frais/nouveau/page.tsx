@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { NoteForm } from "@/components/notes-de-frais/note-form";
 import { createNote } from "@/lib/actions/notes-de-frais";

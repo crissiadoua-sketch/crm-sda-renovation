@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { SalarieForm } from "@/components/rh/salarie-form";
 import { createSalarie } from "@/lib/actions/rh";

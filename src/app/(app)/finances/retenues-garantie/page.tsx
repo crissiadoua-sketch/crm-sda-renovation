@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { ChevronRight, ShieldCheck, AlertTriangle, CheckCircle2, Clock, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronUp, ChevronDown, Paperclip, X, FileText } from "lucide-react";

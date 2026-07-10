@@ -74,6 +74,21 @@ export async function updateFicheTechnique(id: string, formData: FormData): Prom
   redirect(`/fiches-techniques/${id}`);
 }
 
+export async function uploadPdfFicheTechnique(id: string, formData: FormData): Promise<void> {
+  const file = formData.get("fichierPdf");
+  if (!(file instanceof File) || file.size === 0) return;
+
+  const existing = await prisma.ficheTechnique.findUnique({ where: { id }, select: { fichierPdf: true } });
+  if (existing?.fichierPdf) await supprimerFichierStocke(existing.fichierPdf);
+
+  const { url } = await stockerFichier(file, "fiches-techniques");
+  await prisma.ficheTechnique.update({ where: { id }, data: { fichierPdf: url } });
+
+  revalidatePath("/fiches-techniques");
+  revalidatePath(`/fiches-techniques/${id}`);
+  revalidatePath("/fiches-techniques/import-pdf");
+}
+
 export async function deleteFicheTechnique(id: string): Promise<void> {
   const fiche = await prisma.ficheTechnique.findUnique({ where: { id }, select: { fichierPdf: true } });
   await supprimerFichierStocke(fiche?.fichierPdf);

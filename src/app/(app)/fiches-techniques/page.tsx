@@ -103,6 +103,12 @@ export default async function FichesTechniquesPage({
             {total} fiche{total !== 1 ? "s" : ""} au catalogue
           </p>
         </div>
+        {sansPdf > 0 && (
+          <LinkButton href="/fiches-techniques/import-pdf" variant="secondary">
+            <Upload className="h-4 w-4" />
+            Import PDF en lot ({sansPdf})
+          </LinkButton>
+        )}
         <LinkButton href="/fiches-techniques/nouveau">
           <Plus className="h-4 w-4" />
           Ajouter une fiche

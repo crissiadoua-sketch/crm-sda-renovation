@@ -1,12 +1,14 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { FileText, ExternalLink, Plus, Search } from "lucide-react";
+import { FileText, ExternalLink, Plus, Search, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { LinkButton } from "@/components/ui/button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { inputClasses } from "@/components/ui/fields";
 import { urlFichier } from "@/lib/format";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerFicheTechniqueParEmail } from "@/lib/actions/email-documents";
 import {
   CORPS_ETAT_CODES,
   CORPS_ETAT_LABELS,
@@ -75,11 +77,13 @@ export default async function FichesTechniquesPage({
     }),
     prisma.ficheTechnique.findMany({
       where: { actif: true },
-      select: { corpsEtat: true, categorie: true },
+      select: { corpsEtat: true, categorie: true, fichierPdf: true },
     }),
   ]);
 
   const total = await prisma.ficheTechnique.count({ where: { actif: true } });
+  const avecPdf = allFiches.filter((f) => f.fichierPdf != null).length;
+  const sansPdf = total - avecPdf;
 
   // KPIs par corps d'état
   const corpsEtatCounts = CORPS_ETAT_CODES.reduce<Record<string, number>>((acc, code) => {
@@ -106,7 +110,7 @@ export default async function FichesTechniquesPage({
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Total fiches</p>
           <p className="mt-1 text-2xl font-bold text-brand-navy">{total}</p>
@@ -121,6 +125,15 @@ export default async function FichesTechniquesPage({
             </p>
           </div>
         ))}
+        <div className={`rounded-xl border p-4 shadow-sm ${sansPdf > 0 ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+            {sansPdf > 0 ? "Sans PDF" : "Avec PDF"}
+          </p>
+          <p className={`mt-1 text-2xl font-bold ${sansPdf > 0 ? "text-amber-700" : "text-emerald-700"}`}>
+            {sansPdf > 0 ? sansPdf : avecPdf}
+          </p>
+          <p className="text-xs text-slate-400 mt-0.5">{avecPdf} avec PDF</p>
+        </div>
       </div>
 
       {/* Corps d'état counts */}
@@ -260,27 +273,43 @@ export default async function FichesTechniquesPage({
                 )}
 
                 {/* Actions */}
-                <div className="mt-auto flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
-                  {fiche.fichierPdf && (
-                    <a
-                      href={urlFichier(fiche.fichierPdf)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm text-brand-blue hover:underline"
+                <div className="mt-auto flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100">
+                  {fiche.fichierPdf ? (
+                    <>
+                      <a
+                        href={urlFichier(fiche.fichierPdf)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-blue/10 px-3 py-1.5 text-sm font-medium text-brand-blue hover:bg-brand-blue/20 transition"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Voir PDF
+                      </a>
+                      <EnvoyerEmailModal
+                        action={envoyerFicheTechniqueParEmail.bind(null, fiche.id)}
+                        defaultTo=""
+                        documentLabel={`fiche technique ${fiche.designation}`}
+                        buttonVariant="small"
+                      />
+                    </>
+                  ) : (
+                    <Link
+                      href={`/fiches-techniques/${fiche.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition"
                     >
-                      <FileText className="h-4 w-4" />
-                      Voir la fiche PDF
-                    </a>
+                      <Upload className="h-4 w-4" />
+                      Importer PDF
+                    </Link>
                   )}
                   {fiche.lienUrl && (
                     <a
                       href={fiche.lienUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm text-brand-blue hover:underline"
+                      className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-brand-blue transition"
                     >
-                      <ExternalLink className="h-4 w-4" />
-                      Lien
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Lien fab.
                     </a>
                   )}
                   <Link

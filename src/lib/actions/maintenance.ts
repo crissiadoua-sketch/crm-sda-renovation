@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/dal";
+import { envoyerEmail } from "@/lib/email";
+import { formatEuros } from "@/lib/format";
 import path from "path";
 import fs from "fs";
 
@@ -280,6 +282,87 @@ Structure obligatoire :
 }
 
 // ---------------------------------------------------------------------------
+// Envoi du rapport de maintenance par email
+// ---------------------------------------------------------------------------
+
+export async function envoyerRapportMaintenanceEmail(formData: FormData): Promise<{ ok: boolean; message: string }> {
+  const destinataire = (formData.get("to") as string)?.trim();
+  if (!destinataire) return { ok: false, message: "Adresse email requise." };
+
+  const stats = await collecterStatsCRM();
+  const user = await getUser();
+
+  const scoreConformite =
+    stats.conformite.chantiersAnalyses > 0
+      ? Math.round(
+          ((stats.conformite.chantiersAnalyses - stats.conformite.chantiersNonConformes.length) /
+            stats.conformite.chantiersAnalyses) * 100
+        )
+      : 100;
+
+  const html = `
+<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;color:#1e293b">
+  <div style="background:#0f172a;color:white;padding:24px 32px;border-radius:8px 8px 0 0">
+    <h1 style="margin:0;font-size:20px">Maintenance & Contrôle Qualité CRM</h1>
+    <p style="margin:4px 0 0;opacity:.7;font-size:13px">SDA Rénovation · Période ${stats.periode} · ${new Date().toLocaleDateString("fr-FR")}</p>
+  </div>
+  <div style="padding:24px 32px;background:#f8fafc;border:1px solid #e2e8f0">
+
+    <h2 style="color:#1e40af;font-size:16px;margin-top:0">KPIs clés</h2>
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        <td style="padding:8px;background:white;border:1px solid #e2e8f0;border-radius:4px;text-align:center">
+          <div style="font-size:22px;font-weight:bold;color:${stats.stats.documents.doublons > 0 ? "#d97706" : "#059669"}">${stats.stats.documents.doublons}</div>
+          <div style="font-size:11px;color:#64748b">Doublons fichiers</div>
+        </td>
+        <td style="padding:8px;background:white;border:1px solid #e2e8f0;border-radius:4px;text-align:center">
+          <div style="font-size:22px;font-weight:bold;color:${stats.conformite.chantiersNonConformes.length > 0 ? "#dc2626" : "#059669"}">${stats.conformite.chantiersNonConformes.length}</div>
+          <div style="font-size:11px;color:#64748b">Non-conformités</div>
+        </td>
+        <td style="padding:8px;background:white;border:1px solid #e2e8f0;border-radius:4px;text-align:center">
+          <div style="font-size:22px;font-weight:bold;color:${stats.stats.factures.enRetard > 0 ? "#dc2626" : "#059669"}">${stats.stats.factures.enRetard}</div>
+          <div style="font-size:11px;color:#64748b">Factures en retard</div>
+        </td>
+        <td style="padding:8px;background:white;border:1px solid #e2e8f0;border-radius:4px;text-align:center">
+          <div style="font-size:22px;font-weight:bold;color:${scoreConformite >= 80 ? "#059669" : scoreConformite >= 60 ? "#d97706" : "#dc2626"}">${scoreConformite}%</div>
+          <div style="font-size:11px;color:#64748b">Score processus</div>
+        </td>
+      </tr>
+    </table>
+
+    <h2 style="color:#1e40af;font-size:16px;margin-top:20px">Activité ${stats.periode}</h2>
+    <ul style="margin:0;padding-left:20px;font-size:13px;line-height:2">
+      <li>Clients actifs : <strong>${stats.stats.clients.actifs}/${stats.stats.clients.total}</strong></li>
+      <li>Chantiers en cours : <strong>${stats.stats.chantiers.enCours}/${stats.stats.chantiers.total}</strong></li>
+      <li>Devis du mois : <strong>${stats.stats.devis.mois}</strong></li>
+      <li>Factures du mois : <strong>${stats.stats.factures.mois}</strong> — CA TTC : <strong>${formatEuros(stats.stats.factures.caMoisTTC)}</strong></li>
+      <li>Tâches : <strong>${stats.stats.taches.terminees}/${stats.stats.taches.total}</strong> terminées (${stats.stats.taches.enRetard} en retard)</li>
+    </ul>
+
+    ${stats.conformite.chantiersNonConformes.length > 0 ? `
+    <h2 style="color:#dc2626;font-size:16px;margin-top:20px">⚠️ Chantiers non conformes</h2>
+    <ul style="margin:0;padding-left:20px;font-size:13px;line-height:2">
+      ${stats.conformite.chantiersNonConformes.map(c => `<li><strong>${c.nom}</strong> : ${c.problemes.join(", ")}</li>`).join("")}
+    </ul>
+    ` : `<p style="color:#059669;font-size:13px">✅ Tous les chantiers sont conformes aux processus.</p>`}
+
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
+    <p style="font-size:11px;color:#94a3b8;margin:0">Généré par ${user.name} depuis le CRM SDA Rénovation</p>
+  </div>
+</div>`;
+
+  const result = await envoyerEmail({
+    to: destinataire,
+    subject: `Rapport Maintenance CRM — ${stats.periode} — SDA Rénovation`,
+    html,
+    text: `Rapport Maintenance CRM ${stats.periode}\n\nDoublons: ${stats.stats.documents.doublons} | Non-conformités: ${stats.conformite.chantiersNonConformes.length} | Factures retard: ${stats.stats.factures.enRetard} | Score: ${scoreConformite}%`,
+  });
+
+  if (!result.ok) return { ok: false, message: result.error ?? "Erreur d'envoi." };
+  return { ok: true, message: `Rapport envoyé à ${destinataire}` };
+}
+
+// ---------------------------------------------------------------------------
 // Sauvegarde manuelle de la base de données
 // ---------------------------------------------------------------------------
 
@@ -362,4 +445,12 @@ export async function nettoyerDocumentsOrphelins(): Promise<{ supprimés: number
   });
   revalidatePath("/maintenance");
   return { supprimés: result.count };
+}
+
+export async function nettoyerDocumentsOrphelinsAction(): Promise<void> {
+  await nettoyerDocumentsOrphelins();
+}
+
+export async function declencherSauvegardeAction(): Promise<void> {
+  await declencherSauvegarde();
 }

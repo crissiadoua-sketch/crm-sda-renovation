@@ -127,6 +127,7 @@ model SousTraitant {
   interventions ChantierSousTraitant[]
   contrats      ContratSousTraitance[]
   ordresMission OrdreMission[]
+  pvsReception  PvReception[]
 }
 
 // ---------------------------------------------------------------------------
@@ -241,9 +242,12 @@ model ContratSousTraitance {
   tauxTVA           Float?
   modaliteReglement String?
   retenueGarantie   Float? // %
-  delaiExecution    String?
+  autoLiquidationTVA Boolean @default(true) // BTP : sous-traitant hors TVA, maître d'œuvre déclare
   dateDebut         DateTime?
   dateFin           DateTime?
+  dateReception     DateTime? // Réception des travaux → libération RG dans 1 an
+  rgLiberee         Boolean  @default(false)
+  delaiExecution    String?
   penalitesRetard   String?
   assuranceRC       String?
   notes             String?
@@ -456,12 +460,24 @@ model Facture {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  chantier  Chantier       @relation(fields: [chantierId], references: [id])
-  client    Client         @relation(fields: [clientId], references: [id])
-  devis     Devis?         @relation(fields: [devisId], references: [id])
+  chantier  Chantier         @relation(fields: [chantierId], references: [id])
+  client    Client           @relation(fields: [clientId], references: [id])
+  devis     Devis?           @relation(fields: [devisId], references: [id])
   lignes    FactureLigne[]
   paiements Paiement[]
   documents Document[]
+  relances  RelanceFacture[]
+}
+
+model RelanceFacture {
+  id        String   @id @default(cuid())
+  factureId String
+  type      String   // EMAIL | COURRIER | TELEPHONE | LR
+  date      DateTime @default(now())
+  notes     String?
+  createdAt DateTime @default(now())
+
+  facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
 }
 
 model FactureLigne {
@@ -711,8 +727,9 @@ model PvReception {
   id              String    @id @default(cuid())
   numero          String    @unique                   // PVR-2025-0001
 
+  categorie       String    @default("SUPPORT")       // SUPPORT | TRAVAUX_CLIENT | TRAVAUX_SOUS_TRAITANT
   statut          String    @default("BROUILLON")     // BROUILLON / FINALISE / SIGNE / ARCHIVE
-  typeSupport     String    @default("PRESTATION")    // PRESTATION / MAINTENANCE / FORMATION / LIVRAISON / ETUDE / AUTRE
+  typeSupport     String    @default("PRESTATION")    // PRESTATION / MAINTENANCE / FORMATION / LIVRAISON / ETUDE / AUTRE (utilisé pour SUPPORT)
 
   // Objet
   objet           String?
@@ -731,16 +748,17 @@ model PvReception {
   refBonLivraison String?
 
   // Relations CRM
-  clientId        String?
-  chantierId      String?
-  fournisseurId   String?
+  clientId          String?
+  chantierId        String?
+  fournisseurId     String?
+  sousTraitantId    String?   // pour TRAVAUX_SOUS_TRAITANT
 
   // Représentants — Maître d'ouvrage
   repMO           String?
   fonctionRepMO   String?
   emailRepMO      String?
 
-  // Représentants — Prestataire
+  // Représentants — Prestataire / Sous-traitant
   repPrestataire       String?
   fonctionPrestataire  String?
   emailPrestataire     String?
@@ -748,17 +766,29 @@ model PvReception {
   // Résultat de la réception
   resultat        String?         // ACCEPTE / ACCEPTE_RESERVES / REFUSE
   motifRefus      String?
-  dateEffet       DateTime?       // Date de prise d'effet (déclenchement garanties)
+  dateEffet       DateTime?       // Date de prise d'effet (déclenchement garanties légales BTP)
 
-  // Garanties
+  // Garanties légales BTP (pour TRAVAUX_CLIENT et TRAVAUX_SOUS_TRAITANT)
+  garantiePerfaitAchevement Boolean  @default(false)  // 1 an
+  garantieBiennale           Boolean  @default(false)  // 2 ans (éléments d'équipement)
+  garantieDecennale          Boolean  @default(false)  // 10 ans (structure / gros œuvre)
+  dateFinParfaitAchevement   DateTime?  // dateEffet + 1 an
+  dateFinBiennale            DateTime?  // dateEffet + 2 ans
+  dateFinDecennale           DateTime?  // dateEffet + 10 ans
+  assuranceDecennaleNo       String?    // n° police assurance décennale SDA
+  assuranceDONo              String?    // n° police dommages-ouvrage client
+  maitreOeuvreNom            String?    // Architecte / MOE
+  maitreOeuvreEmail          String?
+
+  // Garanties (support)
   garantieConformite Boolean  @default(false)
-  dureeGarantie      String?  // ex: "12 mois"
+  dureeGarantie      String?
 
   // Lien de partage (email / signature distante)
   shareToken      String?   @unique
   shareExpiry     DateTime?
-  signatureMO     String?   // base64 image
-  signaturePrestataire String? // base64 image
+  signatureMO     String?
+  signaturePrestataire String?
   dateSignatureMO       DateTime?
   dateSignaturePrestataire DateTime?
 
@@ -766,9 +796,10 @@ model PvReception {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  client      Client?      @relation(fields: [clientId],     references: [id], onDelete: SetNull)
-  chantier    Chantier?    @relation(fields: [chantierId],   references: [id], onDelete: SetNull)
-  fournisseur Fournisseur? @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
+  client       Client?       @relation(fields: [clientId],       references: [id], onDelete: SetNull)
+  chantier     Chantier?     @relation(fields: [chantierId],     references: [id], onDelete: SetNull)
+  fournisseur  Fournisseur?  @relation(fields: [fournisseurId],  references: [id], onDelete: SetNull)
+  sousTraitant SousTraitant? @relation(fields: [sousTraitantId], references: [id], onDelete: SetNull)
   lignes      PvReceptionLigne[]
   reserves    PvReceptionReserve[]
 }

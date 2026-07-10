@@ -47,6 +47,9 @@ import {
   Landmark,
   CalendarClock,
   TrendingUp,
+  AlertCircle,
+  Clock,
+  LayoutDashboard as LayoutDash2,
   type LucideIcon,
 } from "lucide-react";
 import { canAccess } from "@/lib/permissions";
@@ -159,8 +162,13 @@ export const navGroups: NavGroup[] = [
   {
     label: "Finance & Comptabilité",
     items: [
+      { href: "/finances/dashboard", label: "Tableau de bord Finance", icon: LayoutDash2 },
       { href: "/finances/rentabilite", label: "Rentabilité société", icon: BarChart3 },
       { href: "/finances/charges", label: "Budget des charges", icon: Settings2 },
+      { href: "/finances/tva", label: "Suivi TVA / CA3", icon: Receipt },
+      { href: "/finances/impayes", label: "Impayés & Relances", icon: AlertCircle },
+      { href: "/finances/retenues-garantie", label: "Retenues de garantie", icon: ShieldCheck },
+      { href: "/finances/tresorerie-hebdo", label: "Trésorerie 13 semaines", icon: Clock },
       { href: "/marge-rentabilite", label: "Marge & Rentabilité chantiers", icon: TrendingUp },
       { href: "/depenses", label: "Dépenses", icon: TrendingDown },
       { href: "/previsionnel", label: "Prévisionnel des flux", icon: CalendarClock },
@@ -170,6 +178,7 @@ export const navGroups: NavGroup[] = [
       { href: "/analytique", label: "Analytique & Graphiques", icon: BarChart3 },
       { href: "/comptabilite", label: "Comptabilité", icon: Calculator },
       { href: "/comptabilite/bilan", label: "Bilan", icon: Landmark },
+      { href: "/comptabilite/fec", label: "Export FEC", icon: FileCheck },
       { href: "/comptabilite/rapprochement", label: "Rapprochement bancaire", icon: FileCheck },
     ],
   },

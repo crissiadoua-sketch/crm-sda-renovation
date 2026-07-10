@@ -31,20 +31,28 @@ type Reserve = {
 };
 
 type PVR = {
-  id: string; numero: string; statut: string; typeSupport: string;
+  id: string; numero: string; statut: string; typeSupport: string; categorie: string;
   objet: string | null; descriptionPrestations: string | null;
   dateReception: string | null; lieuReception: string | null;
   periodeDebut: string | null; periodeFin: string | null;
   refContrat: string | null; refDevis: string | null;
   refCommande: string | null; refBonLivraison: string | null;
-  clientId: string | null; chantierId: string | null; fournisseurId: string | null;
+  clientId: string | null; chantierId: string | null;
+  fournisseurId: string | null; sousTraitantId: string | null;
   repMO: string | null; fonctionRepMO: string | null; emailRepMO: string | null;
   repPrestataire: string | null; fonctionPrestataire: string | null; emailPrestataire: string | null;
   resultat: string | null; motifRefus: string | null; dateEffet: string | null;
+  // BTP
+  garantiePerfaitAchevement: boolean; garantieBiennale: boolean; garantieDecennale: boolean;
+  dateFinParfaitAchevement: string | null; dateFinBiennale: string | null; dateFinDecennale: string | null;
+  assuranceDecennaleNo: string | null; assuranceDONo: string | null;
+  maitreOeuvreNom: string | null; maitreOeuvreEmail: string | null;
+  // Support
   garantieConformite: boolean; dureeGarantie: string | null;
   shareToken: string | null; notes: string | null;
   fournisseur: { id: string; nom: string; siret?: string | null; adresse?: string | null; codePostal?: string | null; ville?: string | null; telephone?: string | null; email?: string | null } | null;
-  chantier: { id: string; nom: string; adresse?: string | null; reference?: string | null } | null;
+  sousTraitant: { id: string; nom: string; specialite?: string | null; contact?: string | null; email?: string | null; telephone?: string | null; siret?: string | null; adresse?: string | null; representant?: string | null; qualiteRepresentant?: string | null } | null;
+  chantier: { id: string; nom: string; adresse?: string | null; reference?: string | null; clientId?: string | null } | null;
   client: { id: string; nom: string; prenom?: string | null; raisonSociale?: string | null; adresse?: string | null; codePostal?: string | null; ville?: string | null; siret?: string | null } | null;
   lignes: { designation: string; reference: string | null; quantite: number | null; unite: string | null; conformite: string; observations: string | null }[];
   reserves: { description: string; delaiLevee: string | null; responsable: string | null; statut: string; commentaireLevee: string | null }[];
@@ -76,18 +84,42 @@ const STATUT_LABELS: Record<string, string> = {
   BROUILLON: "Brouillon", FINALISE: "Finalisé", SIGNE: "Signé", ARCHIVE: "Archivé",
 };
 
+// Labels dynamiques selon la catégorie
+function getLabels(categorie: string) {
+  if (categorie === "TRAVAUX_CLIENT") return {
+    titre: "PV de Réception de Travaux — Client",
+    partieMO: "Maître d'ouvrage (Client)",
+    partieExecutant: "Entreprise (SDA Rénovation)",
+    emailExecutant: "contact@sda-renovation.com",
+  };
+  if (categorie === "TRAVAUX_SOUS_TRAITANT") return {
+    titre: "PV de Réception de Travaux — Sous-traitant",
+    partieMO: "Maître d'ouvrage (SDA Rénovation)",
+    partieExecutant: "Sous-traitant",
+    emailExecutant: "",
+  };
+  return {
+    titre: "PV de Réception de Support",
+    partieMO: "Maître d'ouvrage (SDA Rénovation)",
+    partieExecutant: "Prestataire",
+    emailExecutant: "",
+  };
+}
+
 export function PvReceptionEditor({
-  pvr, fournisseurs, chantiers, clients, currentUser,
+  pvr, fournisseurs, chantiers, clients, sousTraitants, contratsSTR, currentUser,
 }: {
   pvr: PVR;
   fournisseurs: { id: string; nom: string; email?: string | null; telephone?: string | null; contact?: string | null }[];
-  chantiers:    { id: string; nom: string; adresse?: string | null }[];
+  chantiers:    { id: string; nom: string; adresse?: string | null; clientId?: string | null; client?: { id: string; nom: string; raisonSociale?: string | null; email?: string | null; telephone?: string | null; adresse?: string | null; codePostal?: string | null; ville?: string | null } | null }[];
   clients:      { id: string; nom: string; raisonSociale?: string | null }[];
+  sousTraitants: { id: string; nom: string; specialite?: string | null; contact?: string | null; email?: string | null; telephone?: string | null; representant?: string | null; qualiteRepresentant?: string | null }[];
+  contratsSTR:  { id: string; reference: string; objet: string | null; sousTraitantId: string; chantierId: string | null; montantHT: number | null; sousTraitant: { id: string; nom: string }; chantier: { id: string; nom: string } | null }[];
   currentUser:  { name: string; role: string; email: string };
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved]               = useState(false);
-  const [activeTab, setActiveTab]       = useState<"identite" | "prestations" | "controle" | "reserves" | "resultat">("identite");
+  const [activeTab, setActiveTab]       = useState<"identite" | "prestations" | "controle" | "reserves" | "garanties" | "resultat">("identite");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [shareUrl, setShareUrl]         = useState<string | null>(pvr.shareToken ? `/pv-public/${pvr.shareToken}` : null);
   const [copied, setCopied]             = useState(false);
@@ -96,6 +128,10 @@ export function PvReceptionEditor({
     repMO: "idle",
   });
   const [envoiErreur, setEnvoiErreur]   = useState<string | null>(null);
+
+  const categorie = pvr.categorie;
+  const labels = getLabels(categorie);
+  const isTravaux = categorie === "TRAVAUX_CLIENT" || categorie === "TRAVAUX_SOUS_TRAITANT";
 
   const [form, setForm] = useState({
     statut:          pvr.statut,
@@ -113,6 +149,7 @@ export function PvReceptionEditor({
     clientId:        pvr.clientId ?? "",
     chantierId:      pvr.chantierId ?? "",
     fournisseurId:   pvr.fournisseurId ?? "",
+    sousTraitantId:  pvr.sousTraitantId ?? "",
     repMO:           pvr.repMO ?? "",
     fonctionRepMO:   pvr.fonctionRepMO ?? "",
     emailRepMO:      pvr.emailRepMO ?? "",
@@ -122,6 +159,18 @@ export function PvReceptionEditor({
     resultat:        pvr.resultat ?? "",
     motifRefus:      pvr.motifRefus ?? "",
     dateEffet:       pvr.dateEffet ?? "",
+    // BTP
+    garantiePerfaitAchevement: pvr.garantiePerfaitAchevement,
+    garantieBiennale:           pvr.garantieBiennale,
+    garantieDecennale:          pvr.garantieDecennale,
+    dateFinParfaitAchevement:   pvr.dateFinParfaitAchevement ?? "",
+    dateFinBiennale:            pvr.dateFinBiennale ?? "",
+    dateFinDecennale:           pvr.dateFinDecennale ?? "",
+    assuranceDecennaleNo:       pvr.assuranceDecennaleNo ?? "",
+    assuranceDONo:              pvr.assuranceDONo ?? "",
+    maitreOeuvreNom:            pvr.maitreOeuvreNom ?? "",
+    maitreOeuvreEmail:          pvr.maitreOeuvreEmail ?? "",
+    // Support
     garantieConformite: pvr.garantieConformite,
     dureeGarantie:   pvr.dureeGarantie ?? "",
     notes:           pvr.notes ?? "",
@@ -152,28 +201,108 @@ export function PvReceptionEditor({
 
   const set = (f: string, v: string | boolean) => setForm(p => ({ ...p, [f]: v }));
 
-  // ── Auto-remplissage ──────────────────────────────────────────────────────
-
-  // Remplir la section "Représentant MO" avec l'utilisateur connecté
-  const autoFillRepMO = () => {
-    setForm(p => ({
-      ...p,
-      repMO: p.repMO || currentUser.name,
-      fonctionRepMO: p.fonctionRepMO || currentUser.role,
-      emailRepMO: p.emailRepMO || currentUser.email,
+  // ── Auto-calcul des dates de fin de garantie BTP ─────────────────────────
+  const calcDatesFin = (dateEffetStr: string) => {
+    if (!dateEffetStr) return;
+    const base = new Date(dateEffetStr);
+    const pa = new Date(base); pa.setFullYear(pa.getFullYear() + 1);
+    const bi = new Date(base); bi.setFullYear(bi.getFullYear() + 2);
+    const de = new Date(base); de.setFullYear(de.getFullYear() + 10);
+    setForm(prev => ({
+      ...prev,
+      dateEffet: dateEffetStr,
+      dateFinParfaitAchevement: pa.toISOString().slice(0, 10),
+      dateFinBiennale: bi.toISOString().slice(0, 10),
+      dateFinDecennale: de.toISOString().slice(0, 10),
     }));
   };
 
-  // Quand le prestataire change : remplir les champs prestataire si vides
+  // ── Pré-remplissage depuis chantier ──────────────────────────────────────
+  const handleChantierChange = (chantierId: string) => {
+    const ch = chantiers.find(c => c.id === chantierId);
+    if (!ch) { set("chantierId", chantierId); return; }
+
+    setForm(prev => ({
+      ...prev,
+      chantierId,
+      lieuReception: prev.lieuReception || ch.adresse || "",
+      // Pour TRAVAUX_CLIENT : pré-remplir le client du chantier
+      clientId: (categorie === "TRAVAUX_CLIENT" && !prev.clientId && ch.clientId) ? ch.clientId : prev.clientId,
+      // Pré-remplir repMO avec les coordonnées du client pour TRAVAUX_CLIENT
+      repMO:       (categorie === "TRAVAUX_CLIENT" && !prev.repMO && ch.client) ? (ch.client.raisonSociale ?? `${ch.client.nom}`) : prev.repMO,
+      emailRepMO:  (categorie === "TRAVAUX_CLIENT" && !prev.emailRepMO && ch.client?.email) ? ch.client.email : prev.emailRepMO,
+    }));
+  };
+
+  // ── Pré-remplissage depuis sous-traitant ─────────────────────────────────
+  const handleSousTraitantChange = (sousTraitantId: string) => {
+    set("sousTraitantId", sousTraitantId);
+    if (!sousTraitantId) return;
+    const st = sousTraitants.find(s => s.id === sousTraitantId);
+    if (!st) return;
+    setForm(prev => ({
+      ...prev,
+      sousTraitantId,
+      repPrestataire:      prev.repPrestataire || st.representant || st.contact || "",
+      fonctionPrestataire: prev.fonctionPrestataire || st.qualiteRepresentant || "",
+      emailPrestataire:    prev.emailPrestataire || st.email || "",
+    }));
+  };
+
+  // ── Pré-remplissage depuis contrat ST ────────────────────────────────────
+  const handleContratSTRChange = (contratId: string) => {
+    const cst = contratsSTR.find(c => c.id === contratId);
+    if (!cst) return;
+    setForm(prev => ({
+      ...prev,
+      refContrat: prev.refContrat || cst.reference,
+      chantierId: prev.chantierId || cst.chantierId || "",
+      sousTraitantId: prev.sousTraitantId || cst.sousTraitantId,
+      objet: prev.objet || cst.objet || "",
+      lieuReception: prev.lieuReception || (cst.chantier ? "" : ""),
+    }));
+    if (!form.sousTraitantId && cst.sousTraitantId) {
+      handleSousTraitantChange(cst.sousTraitantId);
+    }
+    if (!form.chantierId && cst.chantierId) {
+      handleChantierChange(cst.chantierId);
+    }
+  };
+
+  // ── SDA Rénovation autofill (pour l'exécutant quand TRAVAUX_CLIENT) ──────
+  const autoFillExecutantSDA = () => {
+    setForm(prev => ({
+      ...prev,
+      repPrestataire:      prev.repPrestataire || currentUser.name,
+      fonctionPrestataire: prev.fonctionPrestataire || currentUser.role,
+      emailPrestataire:    prev.emailPrestataire || currentUser.email,
+    }));
+  };
+
+  // ── Pré-remplir représentant MO (SDA pour les ST, client pour CLIENT) ────
+  const autoFillRepMO = () => {
+    if (categorie === "TRAVAUX_CLIENT") {
+      // MO = le client → on ne peut pas autofill son nom, on laisse l'utilisateur le saisir
+      return;
+    }
+    setForm(prev => ({
+      ...prev,
+      repMO: prev.repMO || currentUser.name,
+      fonctionRepMO: prev.fonctionRepMO || currentUser.role,
+      emailRepMO: prev.emailRepMO || currentUser.email,
+    }));
+  };
+
+  // ── Pré-remplir prestataire depuis fournisseur ───────────────────────────
   const handleFournisseurChange = (fournisseurId: string) => {
     set("fournisseurId", fournisseurId);
     if (!fournisseurId) return;
     const f = fournisseurs.find(x => x.id === fournisseurId);
     if (!f) return;
-    setForm(p => ({
-      ...p,
-      repPrestataire: p.repPrestataire || f.contact || "",
-      emailPrestataire: p.emailPrestataire || f.email || "",
+    setForm(prev => ({
+      ...prev,
+      repPrestataire: prev.repPrestataire || f.contact || "",
+      emailPrestataire: prev.emailPrestataire || f.email || "",
     }));
   };
 
@@ -206,6 +335,7 @@ export function PvReceptionEditor({
     clientId:      form.clientId || undefined,
     chantierId:    form.chantierId || undefined,
     fournisseurId: form.fournisseurId || undefined,
+    sousTraitantId: form.sousTraitantId || undefined,
     repMO: form.repMO || undefined,
     fonctionRepMO: form.fonctionRepMO || undefined,
     emailRepMO:    form.emailRepMO || undefined,
@@ -215,6 +345,16 @@ export function PvReceptionEditor({
     resultat:      form.resultat || undefined,
     motifRefus:    form.motifRefus || undefined,
     dateEffet:     form.dateEffet || undefined,
+    garantiePerfaitAchevement: form.garantiePerfaitAchevement,
+    garantieBiennale:           form.garantieBiennale,
+    garantieDecennale:          form.garantieDecennale,
+    dateFinParfaitAchevement:   form.dateFinParfaitAchevement || undefined,
+    dateFinBiennale:            form.dateFinBiennale || undefined,
+    dateFinDecennale:           form.dateFinDecennale || undefined,
+    assuranceDecennaleNo:       form.assuranceDecennaleNo || undefined,
+    assuranceDONo:              form.assuranceDONo || undefined,
+    maitreOeuvreNom:            form.maitreOeuvreNom || undefined,
+    maitreOeuvreEmail:          form.maitreOeuvreEmail || undefined,
     garantieConformite: form.garantieConformite,
     dureeGarantie: form.dureeGarantie || undefined,
     notes:         form.notes || undefined,
@@ -291,20 +431,23 @@ export function PvReceptionEditor({
   const nonConformes  = lignes.filter(l => l.conformite === "NON_CONFORME").length;
   const reservesOuv   = reserves.filter(r => r.statut === "OUVERTE").length;
 
-  // ── Pré-remplissage auto depuis les relations CRM ─────────────────────────
-  const handleChantierChange = (chantierId: string) => {
-    set("chantierId", chantierId);
-    const ch = chantiers.find(c => c.id === chantierId);
-    if (ch && !form.lieuReception) set("lieuReception", ch.adresse ?? "");
-  };
-
   const TABS = [
     { key: "identite",    label: "Identification",  badge: null },
-    { key: "prestations", label: "Prestation",       badge: null },
+    { key: "prestations", label: isTravaux ? "Travaux" : "Prestation", badge: null },
     { key: "controle",    label: "Contrôle",         badge: nonConformes > 0 ? nonConformes : null },
     { key: "reserves",    label: "Réserves",         badge: reservesOuv > 0 ? reservesOuv : null },
+    ...(isTravaux ? [{ key: "garanties", label: "Garanties BTP", badge: null }] : []),
     { key: "resultat",    label: "Résultat & Envoi", badge: null },
   ] as const;
+
+  const catBadge =
+    categorie === "TRAVAUX_CLIENT"        ? "bg-emerald-100 text-emerald-700" :
+    categorie === "TRAVAUX_SOUS_TRAITANT" ? "bg-amber-100 text-amber-700" :
+    "bg-slate-100 text-slate-600";
+  const catLabel =
+    categorie === "TRAVAUX_CLIENT"        ? "🏗 Travaux Client" :
+    categorie === "TRAVAUX_SOUS_TRAITANT" ? "🔧 Travaux Sous-traitant" :
+    "📋 Support";
 
   return (
     <FullscreenToggle>
@@ -319,10 +462,11 @@ export function PvReceptionEditor({
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${catBadge}`}>{catLabel}</span>
+          </div>
           <h2 className="text-2xl font-bold text-brand-navy">{pvr.numero}</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            PV de Réception · {TYPES.find(t => t.value === form.typeSupport)?.label}
-          </p>
+          <p className="text-sm text-slate-500 mt-0.5">{labels.titre}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select value={form.statut} onChange={e => set("statut", e.target.value)}
@@ -330,9 +474,14 @@ export function PvReceptionEditor({
             {STATUTS.map(s => <option key={s} value={s}>{STATUT_LABELS[s]}</option>)}
           </select>
           <Link href={`/apercu/pv-reception/${pvr.id}`} target="_blank"
-            className="rounded-lg border border-brand-navy px-4 py-2 text-sm font-medium text-brand-navy hover:bg-brand-navy/5 transition">
-            PDF
+            className="rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition">
+            📄 Aperçu PDF
           </Link>
+          <button
+            onClick={() => { window.open(`/apercu/pv-reception/${pvr.id}`, "_blank"); }}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+            🖨 Imprimer
+          </button>
           <a href={`/api/pv-reception/${pvr.id}/word`}
             className="rounded-lg border border-[#29ABE2] px-4 py-2 text-sm font-medium text-[#29ABE2] hover:bg-blue-50 transition">
             Word
@@ -345,11 +494,11 @@ export function PvReceptionEditor({
       </div>
 
       {/* ── Onglets ───────────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
         {TABS.map(tab => (
           <button key={tab.key}
             onClick={() => setActiveTab(tab.key as typeof activeTab)}
-            className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
+            className={`relative flex shrink-0 items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
               activeTab === tab.key
                 ? "border-brand-navy text-brand-navy"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -371,144 +520,212 @@ export function PvReceptionEditor({
           {/* Général */}
           <Section title="Général" icon="📄">
             <div className="flex flex-col gap-4">
-              <Field label="Type de support *">
-                <select value={form.typeSupport} onChange={e => set("typeSupport", e.target.value)} className={inp}>
-                  {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </Field>
+              {categorie === "SUPPORT" && (
+                <Field label="Type de support *">
+                  <select value={form.typeSupport} onChange={e => set("typeSupport", e.target.value)} className={inp}>
+                    {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </Field>
+              )}
               <Field label="Objet de la réception *">
                 <input value={form.objet} onChange={e => set("objet", e.target.value)}
-                  className={inp} placeholder="Ex: Réception de la prestation de maintenance préventive" />
+                  className={inp} placeholder={
+                    categorie === "TRAVAUX_CLIENT" ? "Ex: Réception des travaux de rénovation — Appartement T3, 12 rue des Lilas" :
+                    categorie === "TRAVAUX_SOUS_TRAITANT" ? "Ex: Réception des travaux de carrelage — Chantier La Touche" :
+                    "Ex: Réception de la prestation de maintenance préventive"
+                  } />
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Date de réception *">
                   <input type="date" value={form.dateReception} onChange={e => set("dateReception", e.target.value)} className={inp} />
                 </Field>
-                <Field label="Lieu de réception">
+                <Field label="Lieu de réception / Adresse chantier">
                   <input value={form.lieuReception} onChange={e => set("lieuReception", e.target.value)}
-                    className={inp} placeholder="Adresse chantier" />
+                    className={inp} placeholder="Adresse" />
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Période — Début prestation">
-                  <input type="date" value={form.periodeDebut} onChange={e => set("periodeDebut", e.target.value)} className={inp} />
-                </Field>
-                <Field label="Période — Fin prestation">
-                  <input type="date" value={form.periodeFin} onChange={e => set("periodeFin", e.target.value)} className={inp} />
-                </Field>
-              </div>
+              {isTravaux && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Début des travaux">
+                    <input type="date" value={form.periodeDebut} onChange={e => set("periodeDebut", e.target.value)} className={inp} />
+                  </Field>
+                  <Field label="Fin des travaux">
+                    <input type="date" value={form.periodeFin} onChange={e => set("periodeFin", e.target.value)} className={inp} />
+                  </Field>
+                </div>
+              )}
+              {!isTravaux && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Période — Début prestation">
+                    <input type="date" value={form.periodeDebut} onChange={e => set("periodeDebut", e.target.value)} className={inp} />
+                  </Field>
+                  <Field label="Période — Fin prestation">
+                    <input type="date" value={form.periodeFin} onChange={e => set("periodeFin", e.target.value)} className={inp} />
+                  </Field>
+                </div>
+              )}
             </div>
           </Section>
 
-          {/* Références */}
-          <Section title="Références documentaires" icon="🔗">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="N° Contrat">
-                <input value={form.refContrat} onChange={e => set("refContrat", e.target.value)} className={inp} placeholder="CTR-2025-001" />
-              </Field>
-              <Field label="N° Devis">
-                <input value={form.refDevis} onChange={e => set("refDevis", e.target.value)} className={inp} placeholder="DEV-2025-001" />
-              </Field>
-              <Field label="N° Bon de commande">
-                <input value={form.refCommande} onChange={e => set("refCommande", e.target.value)} className={inp} placeholder="BC-2025-001" />
-              </Field>
-              <Field label="N° Bon de livraison">
-                <input value={form.refBonLivraison} onChange={e => set("refBonLivraison", e.target.value)} className={inp} placeholder="BL-2025-001" />
-              </Field>
-            </div>
-            <div className="mt-3 flex flex-col gap-3">
+          {/* Références + liens CRM */}
+          <Section title="Références & Liens CRM" icon="🔗">
+            <div className="flex flex-col gap-3">
+
+              {/* Pré-remplissage depuis contrat ST */}
+              {categorie === "TRAVAUX_SOUS_TRAITANT" && contratsSTR.length > 0 && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide mb-2">✨ Pré-remplir depuis un contrat</p>
+                  <select
+                    onChange={e => handleContratSTRChange(e.target.value)}
+                    className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-xs">
+                    <option value="">— Choisir un contrat de sous-traitance —</option>
+                    {contratsSTR.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.reference} — {c.sousTraitant.nom}{c.chantier ? ` / ${c.chantier.nom}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <Field label="Chantier (CRM)">
                 <select value={form.chantierId} onChange={e => handleChantierChange(e.target.value)} className={inp}>
                   <option value="">— aucun —</option>
                   {chantiers.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
                 </select>
               </Field>
-              <Field label="Client (CRM)">
-                <select value={form.clientId} onChange={e => set("clientId", e.target.value)} className={inp}>
-                  <option value="">— aucun —</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.raisonSociale ?? c.nom}</option>)}
-                </select>
-              </Field>
-              <Field label="Prestataire (CRM)">
-                <select value={form.fournisseurId} onChange={e => handleFournisseurChange(e.target.value)} className={inp}>
-                  <option value="">— aucun —</option>
-                  {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
-                </select>
-              </Field>
+
+              {categorie === "TRAVAUX_CLIENT" && (
+                <Field label="Client (CRM) *">
+                  <select value={form.clientId} onChange={e => set("clientId", e.target.value)} className={inp}>
+                    <option value="">— sélectionner —</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.raisonSociale ?? c.nom}</option>)}
+                  </select>
+                </Field>
+              )}
+
+              {categorie === "TRAVAUX_SOUS_TRAITANT" && (
+                <Field label="Sous-traitant (CRM) *">
+                  <select value={form.sousTraitantId} onChange={e => handleSousTraitantChange(e.target.value)} className={inp}>
+                    <option value="">— sélectionner —</option>
+                    {sousTraitants.map(s => <option key={s.id} value={s.id}>{s.nom}{s.specialite ? ` — ${s.specialite}` : ""}</option>)}
+                  </select>
+                </Field>
+              )}
+
+              {categorie === "SUPPORT" && (
+                <>
+                  <Field label="Client (CRM)">
+                    <select value={form.clientId} onChange={e => set("clientId", e.target.value)} className={inp}>
+                      <option value="">— aucun —</option>
+                      {clients.map(c => <option key={c.id} value={c.id}>{c.raisonSociale ?? c.nom}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Prestataire (CRM)">
+                    <select value={form.fournisseurId} onChange={e => handleFournisseurChange(e.target.value)} className={inp}>
+                      <option value="">— aucun —</option>
+                      {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
+                    </select>
+                  </Field>
+                </>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 mt-1">
+                <Field label="N° Devis / Contrat">
+                  <input value={form.refDevis} onChange={e => set("refDevis", e.target.value)} className={inp} placeholder="DEV-2025-001" />
+                </Field>
+                <Field label="N° Bon de commande">
+                  <input value={form.refCommande} onChange={e => set("refCommande", e.target.value)} className={inp} placeholder="BC-2025-001" />
+                </Field>
+              </div>
             </div>
           </Section>
 
-          {/* Représentants maître d'ouvrage */}
-          <Section title="Représentant — Maître d'ouvrage (SDA Rénovation)" icon="🏢">
+          {/* Représentant MO */}
+          <Section title={`Représentant — ${labels.partieMO}`} icon="🏢">
             <div className="flex flex-col gap-3">
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={autoFillRepMO}
-                  className="flex items-center gap-1.5 rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/10 transition"
-                >
-                  ✨ Remplir avec mon profil
-                </button>
-              </div>
+              {categorie !== "TRAVAUX_CLIENT" && (
+                <div className="flex justify-end">
+                  <button type="button" onClick={autoFillRepMO}
+                    className="flex items-center gap-1.5 rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/10 transition">
+                    ✨ Remplir avec mon profil
+                  </button>
+                </div>
+              )}
               <Field label="Nom et prénom *">
                 <input value={form.repMO} onChange={e => set("repMO", e.target.value)}
-                  className={inp} placeholder="Ex: Jean DUPONT" />
+                  className={inp} placeholder={categorie === "TRAVAUX_CLIENT" ? "Nom du maître d'ouvrage" : "Ex: Jean DUPONT"} />
               </Field>
               <Field label="Fonction / Qualité">
                 <input value={form.fonctionRepMO} onChange={e => set("fonctionRepMO", e.target.value)}
-                  className={inp} placeholder="Ex: Responsable production" />
+                  className={inp} placeholder={categorie === "TRAVAUX_CLIENT" ? "Propriétaire / Responsable" : "Ex: Conducteur de travaux"} />
               </Field>
               <Field label="Email">
                 <input type="email" value={form.emailRepMO} onChange={e => set("emailRepMO", e.target.value)}
-                  className={inp} placeholder="prenom.nom@sda-renovation.com" />
+                  className={inp} placeholder={categorie === "TRAVAUX_CLIENT" ? "email@client.com" : "prenom.nom@sda-renovation.com"} />
               </Field>
+              {isTravaux && categorie === "TRAVAUX_CLIENT" && (
+                <Field label="Maître d'œuvre / Architecte (si applicable)">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input value={form.maitreOeuvreNom} onChange={e => set("maitreOeuvreNom", e.target.value)}
+                      className={inp} placeholder="Nom architecte / MOE" />
+                    <input type="email" value={form.maitreOeuvreEmail} onChange={e => set("maitreOeuvreEmail", e.target.value)}
+                      className={inp} placeholder="Email MOE" />
+                  </div>
+                </Field>
+              )}
             </div>
           </Section>
 
-          {/* Représentants prestataire */}
-          <Section title="Représentant — Prestataire" icon="🔧">
+          {/* Représentant exécutant */}
+          <Section title={`Représentant — ${labels.partieExecutant}`} icon="🔧">
             <div className="flex flex-col gap-3">
+              {categorie === "TRAVAUX_CLIENT" && (
+                <div className="flex justify-end">
+                  <button type="button" onClick={autoFillExecutantSDA}
+                    className="flex items-center gap-1.5 rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/10 transition">
+                    ✨ Remplir avec mon profil (SDA)
+                  </button>
+                </div>
+              )}
               <Field label="Nom et prénom *">
                 <input value={form.repPrestataire} onChange={e => set("repPrestataire", e.target.value)}
-                  className={inp} placeholder="Ex: Marie MARTIN" />
+                  className={inp} placeholder={
+                    categorie === "TRAVAUX_CLIENT" ? "Représentant SDA Rénovation" :
+                    categorie === "TRAVAUX_SOUS_TRAITANT" ? "Représentant sous-traitant" :
+                    "Ex: Marie MARTIN"
+                  } />
               </Field>
               <Field label="Fonction / Qualité">
                 <input value={form.fonctionPrestataire} onChange={e => set("fonctionPrestataire", e.target.value)}
-                  className={inp} placeholder="Ex: Chef de projet" />
+                  className={inp} placeholder="Ex: Gérant / Chef de chantier" />
               </Field>
               <Field label="Email">
                 <input type="email" value={form.emailPrestataire} onChange={e => set("emailPrestataire", e.target.value)}
-                  className={inp} placeholder="contact@prestataire.com" />
+                  className={inp} placeholder={categorie === "TRAVAUX_CLIENT" ? "contact@sda-renovation.com" : "contact@sous-traitant.com"} />
               </Field>
             </div>
           </Section>
         </div>
       )}
 
-      {/* ── Onglet : Prestation ─────────────────────────────────────────────── */}
+      {/* ── Onglet : Travaux / Prestation ──────────────────────────────────── */}
       {activeTab === "prestations" && (
-        <Section title="Description de la prestation réceptionnée" icon="📝">
+        <Section title={isTravaux ? "Description des travaux réceptionnés" : "Description de la prestation réceptionnée"} icon="📝">
           <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-            <strong>Rappel juridique :</strong> La description doit être suffisamment précise pour définir
-            exactement ce qui est réceptionné. Elle constitue la référence en cas de litige.
+            {isTravaux ? (
+              <><strong>Base légale BTP :</strong> La description doit permettre d'identifier précisément les travaux réceptionnés (nature, périmètre, localisation). Elle constitue la référence pour les garanties légales (parfait achèvement, biennale, décennale).</>
+            ) : (
+              <><strong>Rappel juridique :</strong> La description doit être suffisamment précise pour définir exactement ce qui est réceptionné. Elle constitue la référence en cas de litige.</>
+            )}
           </div>
           <textarea
             value={form.descriptionPrestations}
             onChange={e => set("descriptionPrestations", e.target.value)}
-            rows={10}
+            rows={12}
             className={`${inp} resize-y w-full`}
-            placeholder={`Décrivez ici en détail les prestations réceptionnées :
-
-- Nature des travaux / services effectués
-- Périmètre d'intervention
-- Livrables remis (documents, rapports, équipements...)
-- Conditions d'exécution
-- Normes et référentiels appliqués
-- Résultats attendus vs réalisés`}
+            placeholder={isTravaux ? `Décrivez ici les travaux réceptionnés :\n\n- Nature et localisation des travaux\n- Corps d'état concernés\n- Normes et DTU applicables\n- Matériaux et produits mis en œuvre\n- Prestations exclues de la présente réception` : `Décrivez ici en détail les prestations réceptionnées :\n\n- Nature des travaux / services effectués\n- Périmètre d'intervention\n- Livrables remis`}
           />
-          <p className="mt-2 text-xs text-slate-400">
-            Ce champ alimente directement la section "Objet de la réception" du document officiel.
-          </p>
         </Section>
       )}
 
@@ -517,9 +734,9 @@ export function PvReceptionEditor({
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-brand-navy">Tableau de vérification des livrables</h3>
+              <h3 className="font-semibold text-brand-navy">{isTravaux ? "Points de contrôle des travaux" : "Tableau de vérification des livrables"}</h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Cochez la conformité de chaque prestation / livrable réceptionné.
+                {isTravaux ? "Vérifiez chaque point de contrôle (lot par lot, ouvrage par ouvrage)." : "Cochez la conformité de chaque prestation / livrable réceptionné."}
               </p>
             </div>
             <div className="flex gap-3 text-xs">
@@ -533,12 +750,12 @@ export function PvReceptionEditor({
               <thead className="bg-brand-navy text-white text-[11px] uppercase tracking-wider">
                 <tr>
                   <th className="px-3 py-2.5 text-left w-8">#</th>
-                  <th className="px-3 py-2.5 text-left">Désignation / Livrable</th>
-                  <th className="px-3 py-2.5 text-left w-28">Référence</th>
+                  <th className="px-3 py-2.5 text-left">{isTravaux ? "Ouvrage / Lot" : "Désignation / Livrable"}</th>
+                  <th className="px-3 py-2.5 text-left w-28">Référence / DTU</th>
                   <th className="px-3 py-2.5 text-right w-16">Qté</th>
                   <th className="px-3 py-2.5 text-left w-20">Unité</th>
                   <th className="px-3 py-2.5 text-center w-36">Conformité</th>
-                  <th className="px-3 py-2.5 text-left">Observations</th>
+                  <th className="px-3 py-2.5 text-left">Observations / Réserves</th>
                   <th className="w-8"></th>
                 </tr>
               </thead>
@@ -552,11 +769,11 @@ export function PvReceptionEditor({
                     <td className="px-3 py-2">
                       <input value={l.designation} onChange={e => updateLigne(i, "designation", e.target.value)}
                         className="w-full rounded border border-slate-200 px-2 py-1 text-xs focus:outline-none focus:border-brand-blue"
-                        placeholder="Désignation du livrable…" />
+                        placeholder={isTravaux ? "Ex: Carrelage salle de bain…" : "Désignation du livrable…"} />
                     </td>
                     <td className="px-3 py-2">
                       <input value={l.reference} onChange={e => updateLigne(i, "reference", e.target.value)}
-                        className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Réf." />
+                        className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="DTU / Réf." />
                     </td>
                     <td className="px-3 py-2">
                       <input type="number" value={l.quantite} onChange={e => updateLigne(i, "quantite", e.target.value)}
@@ -564,7 +781,7 @@ export function PvReceptionEditor({
                     </td>
                     <td className="px-3 py-2">
                       <input value={l.unite} onChange={e => updateLigne(i, "unite", e.target.value)}
-                        className="w-16 rounded border border-slate-200 px-2 py-1 text-xs" placeholder="u" />
+                        className="w-16 rounded border border-slate-200 px-2 py-1 text-xs" placeholder="m²" />
                     </td>
                     <td className="px-3 py-2">
                       <select value={l.conformite} onChange={e => updateLigne(i, "conformite", e.target.value)}
@@ -578,7 +795,7 @@ export function PvReceptionEditor({
                     </td>
                     <td className="px-3 py-2">
                       <input value={l.observations} onChange={e => updateLigne(i, "observations", e.target.value)}
-                        className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Commentaire…" />
+                        className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Commentaire, réserve…" />
                     </td>
                     <td className="px-3 py-2 text-right">
                       <button onClick={() => removeLigne(i)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
@@ -590,7 +807,7 @@ export function PvReceptionEditor({
             <div className="border-t border-slate-100 px-4 py-2.5">
               <button onClick={addLigne} type="button"
                 className="text-xs font-medium text-brand-blue hover:underline">
-                + Ajouter un livrable
+                + Ajouter {isTravaux ? "un ouvrage / lot" : "un livrable"}
               </button>
             </div>
           </div>
@@ -598,7 +815,7 @@ export function PvReceptionEditor({
           {nonConformes > 0 && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               <strong>⚠ {nonConformes} non-conformité(s) détectée(s).</strong>{" "}
-              Il est recommandé d'émettre des réserves dans l'onglet Réserves ou de refuser la réception.
+              Émettez les réserves correspondantes dans l'onglet Réserves.
             </div>
           )}
         </div>
@@ -611,8 +828,9 @@ export function PvReceptionEditor({
             <div>
               <h3 className="font-semibold text-brand-navy">Réserves émises</h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Chaque réserve doit être décrite précisément avec un délai de levée.
-                Elle engage contractuellement le prestataire.
+                {isTravaux
+                  ? "Chaque réserve identifie un désordre ou une non-conformité à lever dans le délai de parfait achèvement."
+                  : "Chaque réserve doit être décrite précisément avec un délai de levée. Elle engage contractuellement le prestataire."}
               </p>
             </div>
             <button onClick={addReserve} type="button"
@@ -628,18 +846,12 @@ export function PvReceptionEditor({
           ) : (
             <div className="flex flex-col gap-3">
               {reserves.map((r, i) => (
-                <div key={i} className={`rounded-xl border p-4 ${
-                  r.statut === "LEVEE" ? "border-green-200 bg-green-50/50" : "border-red-200 bg-red-50/50"
-                }`}>
+                <div key={i} className={`rounded-xl border p-4 ${r.statut === "LEVEE" ? "border-green-200 bg-green-50/50" : "border-red-200 bg-red-50/50"}`}>
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <span className="rounded-full bg-brand-navy text-white text-xs font-bold px-2 py-0.5">
-                      Réserve {i + 1}
-                    </span>
+                    <span className="rounded-full bg-brand-navy text-white text-xs font-bold px-2 py-0.5">Réserve {i + 1}</span>
                     <div className="flex items-center gap-2">
                       <select value={r.statut} onChange={e => updateReserve(i, "statut", e.target.value)}
-                        className={`rounded-lg border px-2 py-1 text-xs font-semibold ${
-                          r.statut === "LEVEE" ? "border-green-300 bg-green-50 text-green-700" : "border-red-300 bg-red-50 text-red-700"
-                        }`}>
+                        className={`rounded-lg border px-2 py-1 text-xs font-semibold ${r.statut === "LEVEE" ? "border-green-300 bg-green-50 text-green-700" : "border-red-300 bg-red-50 text-red-700"}`}>
                         <option value="OUVERTE">Ouverte</option>
                         <option value="LEVEE">Levée ✓</option>
                       </select>
@@ -651,16 +863,15 @@ export function PvReceptionEditor({
                       <Field label="Description de la réserve *">
                         <textarea value={r.description} onChange={e => updateReserve(i, "description", e.target.value)}
                           rows={2} className={`${inp} resize-none`}
-                          placeholder="Décrivez précisément la non-conformité ou le point à corriger…" />
+                          placeholder={isTravaux ? "Ex: Défaut de planéité du carrelage salle de bain (lot 4) — écart > 5 mm sous règle de 2 m" : "Décrivez précisément la non-conformité…"} />
                       </Field>
                     </div>
                     <Field label="Délai de levée">
-                      <input type="date" value={r.delaiLevee} onChange={e => updateReserve(i, "delaiLevee", e.target.value)}
-                        className={inp} />
+                      <input type="date" value={r.delaiLevee} onChange={e => updateReserve(i, "delaiLevee", e.target.value)} className={inp} />
                     </Field>
                     <Field label="Responsable">
                       <input value={r.responsable} onChange={e => updateReserve(i, "responsable", e.target.value)}
-                        className={inp} placeholder="Nom du responsable de la levée" />
+                        className={inp} placeholder="Nom du responsable" />
                     </Field>
                     {r.statut === "LEVEE" && (
                       <div className="sm:col-span-2">
@@ -678,6 +889,81 @@ export function PvReceptionEditor({
         </div>
       )}
 
+      {/* ── Onglet : Garanties BTP ──────────────────────────────────────────── */}
+      {activeTab === "garanties" && isTravaux && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <Section title="Garanties légales BTP" icon="🛡">
+            <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              <strong>Art. 1792 et suivants du Code Civil :</strong> La réception des travaux déclenche le point de départ des garanties légales BTP. Renseignez la date d'effet (= date de réception ou prise d'effet) pour calculer automatiquement les échéances.
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <Field label="Date de prise d'effet des garanties *">
+                <input type="date" value={form.dateEffet}
+                  onChange={e => calcDatesFin(e.target.value)} className={inp} />
+                <p className="text-[11px] text-slate-400 mt-0.5">En général = date de réception. Remplit automatiquement les dates de fin de garantie.</p>
+              </Field>
+
+              <div className="flex flex-col gap-3">
+                <GarantieRow
+                  label="Garantie de parfait achèvement (1 an)"
+                  sublabel="Levée de toutes les réserves émises à la réception + désordres signalés dans l'année"
+                  checked={form.garantiePerfaitAchevement}
+                  onCheck={v => set("garantiePerfaitAchevement", v)}
+                  dateLabel="Fin le"
+                  dateValue={form.dateFinParfaitAchevement}
+                  onDate={v => set("dateFinParfaitAchevement", v)}
+                  colorCls="border-blue-300 bg-blue-50"
+                />
+                <GarantieRow
+                  label="Garantie biennale (2 ans)"
+                  sublabel="Éléments d'équipement dissociables (art. 1792-3 C.civ.)"
+                  checked={form.garantieBiennale}
+                  onCheck={v => set("garantieBiennale", v)}
+                  dateLabel="Fin le"
+                  dateValue={form.dateFinBiennale}
+                  onDate={v => set("dateFinBiennale", v)}
+                  colorCls="border-amber-300 bg-amber-50"
+                />
+                <GarantieRow
+                  label="Garantie décennale (10 ans)"
+                  sublabel="Solidité de l'ouvrage + éléments indissociables (art. 1792 C.civ.)"
+                  checked={form.garantieDecennale}
+                  onCheck={v => set("garantieDecennale", v)}
+                  dateLabel="Fin le"
+                  dateValue={form.dateFinDecennale}
+                  onDate={v => set("dateFinDecennale", v)}
+                  colorCls="border-red-300 bg-red-50"
+                />
+              </div>
+            </div>
+          </Section>
+
+          <Section title="Assurances" icon="📋">
+            <div className="flex flex-col gap-4">
+              <Field label="N° police assurance décennale (SDA Rénovation)">
+                <input value={form.assuranceDecennaleNo} onChange={e => set("assuranceDecennaleNo", e.target.value)}
+                  className={inp} placeholder="Ex: MAAF PRO - Police n° 12345678" />
+              </Field>
+              {categorie === "TRAVAUX_CLIENT" && (
+                <Field label="N° police dommages-ouvrage (Client)">
+                  <input value={form.assuranceDONo} onChange={e => set("assuranceDONo", e.target.value)}
+                    className={inp} placeholder="Police DO client" />
+                </Field>
+              )}
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <strong>Rappel :</strong> Pour les travaux soumis à l'obligation d'assurance décennale (art. L241-1 C.assur.), une attestation d'assurance en cours de validité doit être jointe au PV ou remise préalablement à la réception.
+              </div>
+              <Field label="Notes internes">
+                <textarea value={form.notes} onChange={e => set("notes", e.target.value)}
+                  rows={3} className={`${inp} resize-none w-full`}
+                  placeholder="Observations, suivi post-réception…" />
+              </Field>
+            </div>
+          </Section>
+        </div>
+      )}
+
       {/* ── Onglet : Résultat & Envoi ────────────────────────────────────────── */}
       {activeTab === "resultat" && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -685,15 +971,14 @@ export function PvReceptionEditor({
           {/* Résultat */}
           <Section title="Décision de réception" icon="⚖️">
             <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              <strong>Valeur juridique :</strong> La décision de réception constitue l'acte juridique principal
-              du PV. Elle déclenche le point de départ des délais de garantie (art. 1792-6 C. civ. par analogie).
+              {isTravaux
+                ? <><strong>Base légale :</strong> Art. 1792-6 C.civ. — La réception déclenche le point de départ des garanties légales (parfait achèvement, biennale, décennale). Les réserves doivent être levées dans le délai imparti.</>
+                : <><strong>Valeur juridique :</strong> La décision de réception constitue l'acte juridique principal du PV. Elle déclenche les délais de garantie contractuels.</>}
             </div>
             <div className="flex flex-col gap-2 mb-4">
               {RESULTATS.map(r => (
                 <label key={r.value}
-                  className={`flex items-center gap-3 rounded-lg border-2 px-4 py-3 cursor-pointer transition ${
-                    form.resultat === r.value ? r.cls + " border-2" : "border-slate-200 bg-white"
-                  }`}>
+                  className={`flex items-center gap-3 rounded-lg border-2 px-4 py-3 cursor-pointer transition ${form.resultat === r.value ? r.cls + " border-2" : "border-slate-200 bg-white"}`}>
                   <input type="radio" name="resultat" value={r.value}
                     checked={form.resultat === r.value}
                     onChange={e => set("resultat", e.target.value)}
@@ -707,52 +992,51 @@ export function PvReceptionEditor({
               <Field label="Motif de refus *">
                 <textarea value={form.motifRefus} onChange={e => set("motifRefus", e.target.value)}
                   rows={3} className={`${inp} resize-none`}
-                  placeholder="Détaillez les raisons du refus de réception et les conditions à remplir pour une nouvelle présentation…" />
+                  placeholder="Détaillez les raisons du refus et les conditions pour une nouvelle présentation…" />
               </Field>
             )}
 
-            <div className="mt-4 flex flex-col gap-3">
-              <Field label="Date de prise d'effet">
-                <input type="date" value={form.dateEffet} onChange={e => set("dateEffet", e.target.value)} className={inp} />
-              </Field>
-              <div className="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
-                <input type="checkbox" id="garantie" checked={form.garantieConformite}
-                  onChange={e => set("garantieConformite", e.target.checked)}
-                  className="mt-0.5 accent-brand-navy" />
-                <div>
-                  <label htmlFor="garantie" className="text-sm font-medium cursor-pointer">
-                    Garantie de conformité applicable
-                  </label>
-                  <p className="text-xs text-slate-400">Déclenche la période de garantie contractuelle</p>
-                  {form.garantieConformite && (
-                    <div className="mt-2">
-                      <input value={form.dureeGarantie} onChange={e => set("dureeGarantie", e.target.value)}
-                        className={inp} placeholder="Ex: 12 mois à compter de la date d'effet" />
-                    </div>
-                  )}
+            {!isTravaux && (
+              <div className="mt-4 flex flex-col gap-3">
+                <Field label="Date de prise d'effet">
+                  <input type="date" value={form.dateEffet} onChange={e => set("dateEffet", e.target.value)} className={inp} />
+                </Field>
+                <div className="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
+                  <input type="checkbox" id="garantie" checked={form.garantieConformite}
+                    onChange={e => set("garantieConformite", e.target.checked)}
+                    className="mt-0.5 accent-brand-navy" />
+                  <div>
+                    <label htmlFor="garantie" className="text-sm font-medium cursor-pointer">Garantie de conformité applicable</label>
+                    {form.garantieConformite && (
+                      <div className="mt-2">
+                        <input value={form.dureeGarantie} onChange={e => set("dureeGarantie", e.target.value)}
+                          className={inp} placeholder="Ex: 12 mois à compter de la date d'effet" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </Section>
 
           {/* Export et partage */}
           <div className="flex flex-col gap-4">
             <Section title="Export du document" icon="📤">
               <div className="flex flex-col gap-3">
-                <Link href={`/apercu/pv-reception/${pvr.id}`} target="_blank"
+                <a href={`/apercu/pv-reception/${pvr.id}`} target="_blank"
                   className="flex items-center gap-3 rounded-lg border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 hover:bg-red-100 transition">
                   <span className="text-xl">📄</span>
                   <div>
-                    <p>Exporter en PDF</p>
-                    <p className="text-xs font-normal text-red-500">Document A4 prêt à imprimer et signer</p>
+                    <p>Aperçu & Impression PDF</p>
+                    <p className="text-xs font-normal text-red-500">Ouvre dans un nouvel onglet → Imprimer ou Enregistrer en PDF</p>
                   </div>
-                </Link>
+                </a>
                 <a href={`/api/pv-reception/${pvr.id}/word`}
                   className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition">
                   <span className="text-xl">📝</span>
                   <div>
                     <p>Exporter en Word (.docx)</p>
-                    <p className="text-xs font-normal text-blue-500">Document modifiable · format .docx</p>
+                    <p className="text-xs font-normal text-blue-500">Document modifiable</p>
                   </div>
                 </a>
               </div>
@@ -762,56 +1046,46 @@ export function PvReceptionEditor({
               <div className="flex flex-col gap-3">
                 {!shareUrl ? (
                   <div className="text-center py-4">
-                    <p className="text-sm text-slate-500 mb-3">
-                      Finalisez le PV pour générer un lien partageable sécurisé.
-                    </p>
+                    <p className="text-sm text-slate-500 mb-3">Finalisez le PV pour générer un lien partageable sécurisé.</p>
                     <button onClick={handleFinaliser} disabled={isPending || !form.resultat}
                       className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40 transition">
                       {isPending ? "Finalisation…" : "Finaliser et générer le lien"}
                     </button>
-                    {!form.resultat && (
-                      <p className="text-xs text-red-500 mt-2">⚠ Sélectionnez un résultat d'abord.</p>
-                    )}
+                    {!form.resultat && <p className="text-xs text-red-500 mt-2">⚠ Sélectionnez un résultat d'abord.</p>}
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    <p className="text-xs text-slate-500">Lien de lecture sécurisé (valable 30 jours) :</p>
+                    <p className="text-xs text-slate-500">Lien de lecture sécurisé (valable 1 an) :</p>
                     <div className="flex gap-2">
                       <input readOnly
                         value={`${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}`}
                         className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-600" />
                       <button onClick={handleCopy}
-                        className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                          copied ? "bg-green-600 text-white" : "bg-brand-navy text-white hover:opacity-90"
-                        }`}>
+                        className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${copied ? "bg-green-600 text-white" : "bg-brand-navy text-white hover:opacity-90"}`}>
                         {copied ? "Copié ✓" : "Copier"}
                       </button>
                     </div>
-                    <div className="flex gap-2">
-                      {form.emailPrestataire && (
-                        <div className="flex flex-1 flex-col gap-1">
-                          <button onClick={() => handleEnvoyerEmail("prestataire", form.emailPrestataire)}
-                            disabled={isPending || envoiStatut.prestataire === "envoi"}
-                            className="flex-1 rounded-lg bg-[#29ABE2] py-2 text-center text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition">
-                            {envoiStatut.prestataire === "envoi" ? "Envoi…" : envoiStatut.prestataire === "ok" ? "Envoyé ✓" : "✉ Envoyer au prestataire"}
-                          </button>
-                          <a href={`mailto:${form.emailPrestataire}?subject=PV de Réception ${pvr.numero}&body=Bonjour,%0A%0AVeuillez trouver ci-dessous le lien vers le PV de Réception ${pvr.numero} :%0A%0A${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}%0A%0ACordialement,%0ASDA Rénovation`}
-                            className="text-center text-[11px] text-slate-400 hover:text-slate-600 underline">
-                            ou via ma messagerie
-                          </a>
-                        </div>
-                      )}
+                    <div className="flex gap-2 flex-wrap">
                       {form.emailRepMO && (
-                        <div className="flex flex-1 flex-col gap-1">
+                        <div className="flex flex-1 flex-col gap-1 min-w-40">
                           <button onClick={() => handleEnvoyerEmail("repMO", form.emailRepMO)}
                             disabled={isPending || envoiStatut.repMO === "envoi"}
                             className="flex-1 rounded-lg bg-brand-navy py-2 text-center text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition">
-                            {envoiStatut.repMO === "envoi" ? "Envoi…" : envoiStatut.repMO === "ok" ? "Envoyé ✓" : "✉ Envoyer en interne"}
+                            {envoiStatut.repMO === "envoi" ? "Envoi…" : envoiStatut.repMO === "ok" ? "Envoyé ✓" : `✉ Envoyer au ${categorie === "TRAVAUX_CLIENT" ? "client" : "MO"}`}
                           </button>
-                          <a href={`mailto:${form.emailRepMO}?subject=PV de Réception ${pvr.numero}&body=Bonjour,%0A%0AVeuillez trouver le PV de Réception ${pvr.numero} :%0A%0A${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}%0A%0ACordialement`}
-                            className="text-center text-[11px] text-slate-400 hover:text-slate-600 underline">
-                            ou via ma messagerie
-                          </a>
+                          <a href={`mailto:${form.emailRepMO}?subject=PV de Réception ${pvr.numero}&body=Bonjour,%0A%0AVeuillez trouver le lien vers le PV ${pvr.numero} :%0A%0A${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}%0A%0ACordialement,%0ASDA Rénovation`}
+                            className="text-center text-[11px] text-slate-400 hover:text-slate-600 underline">ou via ma messagerie</a>
+                        </div>
+                      )}
+                      {form.emailPrestataire && (
+                        <div className="flex flex-1 flex-col gap-1 min-w-40">
+                          <button onClick={() => handleEnvoyerEmail("prestataire", form.emailPrestataire)}
+                            disabled={isPending || envoiStatut.prestataire === "envoi"}
+                            className="flex-1 rounded-lg bg-[#29ABE2] py-2 text-center text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition">
+                            {envoiStatut.prestataire === "envoi" ? "Envoi…" : envoiStatut.prestataire === "ok" ? "Envoyé ✓" : `✉ Envoyer au ${categorie === "TRAVAUX_SOUS_TRAITANT" ? "sous-traitant" : "prestataire"}`}
+                          </button>
+                          <a href={`mailto:${form.emailPrestataire}?subject=PV de Réception ${pvr.numero}&body=Bonjour,%0A%0AVeuillez trouver le lien vers le PV ${pvr.numero} :%0A%0A${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}%0A%0ACordialement,%0ASDA Rénovation`}
+                            className="text-center text-[11px] text-slate-400 hover:text-slate-600 underline">ou via ma messagerie</a>
                         </div>
                       )}
                     </div>
@@ -827,14 +1101,14 @@ export function PvReceptionEditor({
               </div>
             </Section>
 
-            {/* Notes internes */}
-            <Section title="Notes internes" icon="📝">
-              <textarea value={form.notes} onChange={e => set("notes", e.target.value)}
-                rows={3} className={`${inp} resize-none w-full`}
-                placeholder="Notes confidentielles, suivi, historique…" />
-            </Section>
+            {!isTravaux && (
+              <Section title="Notes internes" icon="📝">
+                <textarea value={form.notes} onChange={e => set("notes", e.target.value)}
+                  rows={3} className={`${inp} resize-none w-full`}
+                  placeholder="Notes confidentielles, suivi, historique…" />
+              </Section>
+            )}
 
-            {/* Danger zone */}
             <div className="rounded-xl border border-red-200 p-4 flex flex-col gap-2">
               <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">Zone de danger</p>
               <button onClick={handleSave} disabled={isPending}
@@ -873,6 +1147,31 @@ export function PvReceptionEditor({
 // ── UI helpers ────────────────────────────────────────────────────────────────
 
 const inp = "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30";
+
+function GarantieRow({ label, sublabel, checked, onCheck, dateLabel, dateValue, onDate, colorCls }: {
+  label: string; sublabel: string; checked: boolean; onCheck: (v: boolean) => void;
+  dateLabel: string; dateValue: string; onDate: (v: string) => void; colorCls: string;
+}) {
+  return (
+    <div className={`rounded-lg border p-3 ${checked ? colorCls : "border-slate-200 bg-white"}`}>
+      <div className="flex items-start gap-2 mb-2">
+        <input type="checkbox" checked={checked} onChange={e => onCheck(e.target.checked)}
+          className="mt-0.5 accent-brand-navy" />
+        <div>
+          <p className="text-sm font-semibold">{label}</p>
+          <p className="text-[11px] text-slate-500">{sublabel}</p>
+        </div>
+      </div>
+      {checked && (
+        <div className="flex items-center gap-2 mt-1 ml-5">
+          <span className="text-xs text-slate-500 shrink-0">{dateLabel}</span>
+          <input type="date" value={dateValue} onChange={e => onDate(e.target.value)}
+            className="rounded border border-slate-200 bg-white px-2 py-1 text-xs focus:outline-none" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (

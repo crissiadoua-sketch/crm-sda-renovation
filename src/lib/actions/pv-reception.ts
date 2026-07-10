@@ -16,15 +16,17 @@ async function nextNumeroPvr(): Promise<string> {
 // Créer un PV de Réception
 // ---------------------------------------------------------------------------
 export async function creerPvReception(formData: FormData): Promise<void> {
-  const numero         = await nextNumeroPvr();
-  const typeSupport    = (formData.get("typeSupport") as string) || "PRESTATION";
-  const fournisseurId  = (formData.get("fournisseurId") as string) || null;
-  const chantierId     = (formData.get("chantierId") as string) || null;
-  const clientId       = (formData.get("clientId") as string) || null;
-  const objet          = (formData.get("objet") as string) || null;
+  const numero          = await nextNumeroPvr();
+  const categorie       = (formData.get("categorie") as string) || "SUPPORT";
+  const typeSupport     = (formData.get("typeSupport") as string) || "PRESTATION";
+  const fournisseurId   = (formData.get("fournisseurId") as string) || null;
+  const sousTraitantId  = (formData.get("sousTraitantId") as string) || null;
+  const chantierId      = (formData.get("chantierId") as string) || null;
+  const clientId        = (formData.get("clientId") as string) || null;
+  const objet           = (formData.get("objet") as string) || null;
 
   const pvr = await prisma.pvReception.create({
-    data: { numero, typeSupport, fournisseurId, chantierId, clientId, objet },
+    data: { numero, categorie, typeSupport, fournisseurId, sousTraitantId, chantierId, clientId, objet },
   });
 
   revalidatePath("/pv-reception");
@@ -52,6 +54,7 @@ export async function sauvegarderPvReception(
     clientId?:       string;
     chantierId?:     string;
     fournisseurId?:  string;
+    sousTraitantId?: string;
     repMO?:          string;
     fonctionRepMO?:  string;
     emailRepMO?:     string;
@@ -61,6 +64,18 @@ export async function sauvegarderPvReception(
     resultat?:       string;
     motifRefus?:     string;
     dateEffet?:      string;
+    // BTP guarantees
+    garantiePerfaitAchevement?: boolean;
+    garantieBiennale?:          boolean;
+    garantieDecennale?:         boolean;
+    dateFinParfaitAchevement?:  string;
+    dateFinBiennale?:           string;
+    dateFinDecennale?:          string;
+    assuranceDecennaleNo?:      string;
+    assuranceDONo?:             string;
+    maitreOeuvreNom?:           string;
+    maitreOeuvreEmail?:         string;
+    // Support guarantees
     garantieConformite: boolean;
     dureeGarantie?:  string;
     notes?:          string;
@@ -100,6 +115,7 @@ export async function sauvegarderPvReception(
         clientId:        data.clientId || null,
         chantierId:      data.chantierId || null,
         fournisseurId:   data.fournisseurId || null,
+        sousTraitantId:  data.sousTraitantId || null,
         repMO:           data.repMO || null,
         fonctionRepMO:   data.fonctionRepMO || null,
         emailRepMO:      data.emailRepMO || null,
@@ -109,6 +125,16 @@ export async function sauvegarderPvReception(
         resultat:        data.resultat || null,
         motifRefus:      data.motifRefus || null,
         dateEffet:       data.dateEffet ? new Date(data.dateEffet) : null,
+        garantiePerfaitAchevement: data.garantiePerfaitAchevement ?? false,
+        garantieBiennale:          data.garantieBiennale ?? false,
+        garantieDecennale:         data.garantieDecennale ?? false,
+        dateFinParfaitAchevement:  data.dateFinParfaitAchevement ? new Date(data.dateFinParfaitAchevement) : null,
+        dateFinBiennale:           data.dateFinBiennale ? new Date(data.dateFinBiennale) : null,
+        dateFinDecennale:          data.dateFinDecennale ? new Date(data.dateFinDecennale) : null,
+        assuranceDecennaleNo:      data.assuranceDecennaleNo || null,
+        assuranceDONo:             data.assuranceDONo || null,
+        maitreOeuvreNom:           data.maitreOeuvreNom || null,
+        maitreOeuvreEmail:         data.maitreOeuvreEmail || null,
         garantieConformite: data.garantieConformite,
         dureeGarantie:   data.dureeGarantie || null,
         notes:           data.notes || null,

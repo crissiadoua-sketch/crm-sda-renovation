@@ -10,6 +10,8 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS } from "@/lib/corps-etat";
 import { LienSignatureContrat } from "@/components/contrats-sous-traitance/lien-signature";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerContratSTParEmail } from "@/lib/actions/email-documents";
 
 const STATUTS = ["BROUILLON", "ENVOYE", "SIGNE", "TERMINE", "RESILIE", "ANNULE"];
 const STATUT_LABELS: Record<string, string> = {
@@ -57,6 +59,11 @@ export default async function ContratDetailPage({ params }: { params: Promise<{ 
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <EnvoyerEmailModal
+            action={envoyerContratSTParEmail.bind(null, id)}
+            defaultTo={contrat.sousTraitant.email ?? ""}
+            documentLabel={`Contrat ${contrat.numero}`}
+          />
           <Link
             href={`/apercu/contrat-sous-traitance/${id}`}
             target="_blank"

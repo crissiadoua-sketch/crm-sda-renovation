@@ -9,6 +9,8 @@ import { Field, inputClasses } from "@/components/ui/fields";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { urlFichier } from "@/lib/format";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerFicheTechniqueParEmail } from "@/lib/actions/email-documents";
 
 const CATEGORIES = [
   { value: "PRODUIT", label: "Produit" },
@@ -64,6 +66,11 @@ export default async function FicheTechniqueDetailPage({
           )}
         </div>
         <div className="flex items-center gap-3">
+          <EnvoyerEmailModal
+            action={envoyerFicheTechniqueParEmail.bind(null, fiche.id)}
+            defaultTo=""
+            documentLabel={`Fiche technique ${fiche.designation}`}
+          />
           {fiche.fichierPdf && (
             <a
               href={urlFichier(fiche.fichierPdf)}

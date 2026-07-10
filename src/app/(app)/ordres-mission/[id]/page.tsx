@@ -8,6 +8,8 @@ import { mettreAJourOrdreMission, supprimerOrdreMission } from "@/lib/actions/or
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerOrdreMissionParEmail } from "@/lib/actions/email-documents";
 
 const STATUTS = ["BROUILLON", "ENVOYE", "EN_COURS", "TERMINE", "ANNULE"];
 const STATUT_LABELS: Record<string, string> = {
@@ -60,6 +62,11 @@ export default async function OrdreMissionDetailPage({ params }: { params: Promi
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <EnvoyerEmailModal
+            action={envoyerOrdreMissionParEmail.bind(null, id)}
+            defaultTo=""
+            documentLabel={`Ordre de mission ${om.numero}`}
+          />
           <a href={`/apercu/ordre-mission/${id}`} target="_blank" rel="noreferrer"
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
             <FileText className="h-4 w-4 text-red-500" />

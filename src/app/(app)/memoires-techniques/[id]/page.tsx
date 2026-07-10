@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { EditeurMemoire } from "./editeur-memoire";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerMemoireTechniqueParEmail } from "@/lib/actions/email-documents";
 
 export default async function MemoireTechniquePage({
   params,
@@ -36,8 +38,16 @@ export default async function MemoireTechniquePage({
   });
 
   return (
-    <EditeurMemoire
-      mt={{
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-2 pt-2">
+        <EnvoyerEmailModal
+          action={envoyerMemoireTechniqueParEmail.bind(null, mt.id)}
+          defaultTo={mt.chantier.client?.email ?? ""}
+          documentLabel={`Mémoire technique ${mt.reference}`}
+        />
+      </div>
+      <EditeurMemoire
+        mt={{
         id: mt.id,
         reference: mt.reference,
         titre: mt.titre,
@@ -71,5 +81,6 @@ export default async function MemoireTechniquePage({
       }}
       devisDisponibles={devisDisponibles}
     />
+    </div>
   );
 }

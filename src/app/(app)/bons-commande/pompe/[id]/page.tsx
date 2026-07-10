@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { BonReservationPompeEditor } from "./brp-editor";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerBrpParEmail } from "@/lib/actions/email-documents";
 
 export default async function BonReservationPompePage({
   params,
@@ -26,14 +28,23 @@ export default async function BonReservationPompePage({
   if (!brp) notFound();
 
   return (
-    <BonReservationPompeEditor
-      brp={{
-        ...brp,
-        dateReservation: brp.dateReservation?.toISOString().slice(0, 10) ?? null,
-      }}
-      fournisseurs={fournisseurs}
-      chantiers={chantiers}
-      clients={clients}
-    />
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-2 pt-2">
+        <EnvoyerEmailModal
+          action={envoyerBrpParEmail.bind(null, brp.id)}
+          defaultTo={brp.fournisseur?.email ?? ""}
+          documentLabel={`Réservation pompe ${brp.numero}`}
+        />
+      </div>
+      <BonReservationPompeEditor
+        brp={{
+          ...brp,
+          dateReservation: brp.dateReservation?.toISOString().slice(0, 10) ?? null,
+        }}
+        fournisseurs={fournisseurs}
+        chantiers={chantiers}
+        clients={clients}
+      />
+    </div>
   );
 }

@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { FapEditor } from "./fap-editor";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerAgrementProduitParEmail } from "@/lib/actions/email-documents";
 
 export default async function FicheAgrementDetailPage({
   params,
@@ -47,7 +49,14 @@ export default async function FicheAgrementDetailPage({
         >
           ← Retour aux fiches d'agrément
         </Link>
-        <h2 className="mt-1 text-xl font-bold text-brand-navy">{fiche.numero}</h2>
+        <div className="mt-1 flex flex-wrap items-center gap-3">
+          <h2 className="text-xl font-bold text-brand-navy">{fiche.numero}</h2>
+          <EnvoyerEmailModal
+            action={envoyerAgrementProduitParEmail.bind(null, fiche.id)}
+            defaultTo=""
+            documentLabel={`Agrément produit ${fiche.numero}`}
+          />
+        </div>
       </div>
       <FapEditor
         fiche={ficheSerialise}

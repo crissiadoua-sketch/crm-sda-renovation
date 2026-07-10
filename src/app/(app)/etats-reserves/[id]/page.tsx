@@ -8,6 +8,8 @@ import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Logo } from "@/components/logo";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerEtatReservesParEmail } from "@/lib/actions/email-documents";
 
 const statutTones: Record<string, BadgeTone> = {
   EN_COURS: "gray",
@@ -70,6 +72,11 @@ export default async function EtatReservesDetailPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <EnvoyerEmailModal
+            action={envoyerEtatReservesParEmail.bind(null, etat.id)}
+            defaultTo={etat.client?.email ?? ""}
+            documentLabel={`État des réserves ${etat.numero}`}
+          />
           <a
             href={`/apercu/etat-reserves/${etat.id}`}
             target="_blank"

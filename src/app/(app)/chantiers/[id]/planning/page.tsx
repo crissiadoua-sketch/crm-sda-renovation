@@ -5,6 +5,8 @@ import { updateTachesGantt } from "@/lib/actions/gantt";
 import { GanttClient } from "@/components/chantiers/gantt-client";
 import { couleurParDefaut } from "@/lib/intervenant-couleur";
 import { estDelaiLivraisonEleve } from "@/lib/delai-livraison";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerPlanningGanttParEmail } from "@/lib/actions/email-documents";
 
 export default async function ChantierPlanningPage({
   params,
@@ -159,7 +161,14 @@ export default async function ChantierPlanningPage({
             Aperçu PDF →
           </Link>
         </div>
-        <p className="mt-1 text-sm text-slate-500">{chantier.reference}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-slate-500">{chantier.reference}</p>
+          <EnvoyerEmailModal
+            action={envoyerPlanningGanttParEmail.bind(null, chantier.id)}
+            defaultTo=""
+            documentLabel={`Planning ${chantier.nom}`}
+          />
+        </div>
       </div>
 
       <GanttClient

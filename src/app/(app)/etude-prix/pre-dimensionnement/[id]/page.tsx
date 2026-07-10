@@ -6,6 +6,8 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { Field, inputClasses, selectClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { formatDate, formatDateTime, urlFichier } from "@/lib/format";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerPreDimParEmail } from "@/lib/actions/email-documents";
 import {
   supprimerPreDimensionnement,
   ajouterDocumentPreDimensionnement,
@@ -48,6 +50,11 @@ export default async function PreDimensionnementDetailPage({
           {pdim.titre && <p className="text-sm text-slate-500">{pdim.titre}</p>}
         </div>
         <div className="flex items-center gap-2">
+          <EnvoyerEmailModal
+            action={envoyerPreDimParEmail.bind(null, pdim.id)}
+            defaultTo=""
+            documentLabel={`Pré-dimensionnement ${pdim.numero}`}
+          />
           <a
             href={`/apercu/pre-dimensionnement/${pdim.id}`}
             target="_blank"

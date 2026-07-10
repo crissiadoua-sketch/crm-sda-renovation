@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Printer, ShieldAlert } from "lucide-react";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerPpspsParEmail } from "@/lib/actions/email-documents";
 import { prisma } from "@/lib/prisma";
 import {
   updatePPSPSInfo,
@@ -163,6 +165,11 @@ export default async function PPSPSDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <EnvoyerEmailModal
+            action={envoyerPpspsParEmail.bind(null, ppsps.id)}
+            defaultTo=""
+            documentLabel={`PPSPS ${ppsps.titre}`}
+          />
           <DeleteButton
             action={deletePPSPS.bind(null, ppsps.id)}
             confirmMessage={`Supprimer le PPSPS "${ppsps.titre}" ? Cette action est irréversible.`}

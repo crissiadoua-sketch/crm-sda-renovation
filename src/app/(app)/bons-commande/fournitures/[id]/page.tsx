@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { BcFournituresEditor } from "./bcf-editor";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerBcfParEmail } from "@/lib/actions/email-documents";
 
 export default async function BcFournituresDetailPage({
   params,
@@ -23,13 +25,22 @@ export default async function BcFournituresDetailPage({
   if (!bcf) notFound();
 
   return (
-    <BcFournituresEditor
-      bcf={{
-        ...bcf,
-        dateCommande:  bcf.dateCommande.toISOString().slice(0, 10),
-        dateSouhaitee: bcf.dateSouhaitee?.toISOString().slice(0, 10) ?? null,
-      }}
-      fournisseurs={fournisseurs}
-    />
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-2 pt-2">
+        <EnvoyerEmailModal
+          action={envoyerBcfParEmail.bind(null, bcf.id)}
+          defaultTo={bcf.fournisseur?.email ?? ""}
+          documentLabel={`BCF ${bcf.numero}`}
+        />
+      </div>
+      <BcFournituresEditor
+        bcf={{
+          ...bcf,
+          dateCommande:  bcf.dateCommande.toISOString().slice(0, 10),
+          dateSouhaitee: bcf.dateSouhaitee?.toISOString().slice(0, 10) ?? null,
+        }}
+        fournisseurs={fournisseurs}
+      />
+    </div>
   );
 }

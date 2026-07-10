@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronUp, ChevronDown, Paperclip, X, FileText } from "lucide-react";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { envoyerDoeParEmail } from "@/lib/actions/email-documents";
 import { prisma } from "@/lib/prisma";
 import {
   updateDOEInfo,
@@ -129,6 +131,11 @@ export default async function DOEDetailPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <EnvoyerEmailModal
+            action={envoyerDoeParEmail.bind(null, doe.id)}
+            defaultTo=""
+            documentLabel={`DOE ${doe.titre}`}
+          />
           <button
             disabled
             title="Bientôt disponible"

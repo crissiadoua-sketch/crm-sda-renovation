@@ -122,8 +122,8 @@ export async function deleteConversation(conversationId: string) {
 
 export async function marquerCommeLu(conversationId: string) {
   const session = await verifySession();
-  await prisma.conversationParticipant.update({
-    where: { conversationId_userId: { conversationId, userId: session.userId } },
+  await prisma.conversationParticipant.updateMany({
+    where: { conversationId, userId: session.userId },
     data: { luAt: new Date() },
   });
   revalidatePath("/messagerie");

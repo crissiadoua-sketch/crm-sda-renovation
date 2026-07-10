@@ -25,10 +25,12 @@ function SidebarNav({
   pathname,
   navGroups,
   onNavigate,
+  smtpConfigured,
 }: {
   pathname: string;
   navGroups: NavGroup[];
   onNavigate?: () => void;
+  smtpConfigured?: boolean;
 }) {
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -41,6 +43,7 @@ function SidebarNav({
             {group.items.map((item) => {
               const active = isActive(pathname, item.href);
               const Icon = item.icon;
+              const showSmtpAlert = item.href === "/messagerie" && smtpConfigured === false;
               return (
                 <li key={item.href}>
                   <Link
@@ -55,7 +58,13 @@ function SidebarNav({
                     <Icon
                       className={`h-4.5 w-4.5 shrink-0 ${active ? "text-brand-orange" : ""}`}
                     />
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate flex-1">{item.label}</span>
+                    {showSmtpAlert && (
+                      <span className="relative flex h-2.5 w-2.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
@@ -92,12 +101,14 @@ export function AppShell({
   userPermissions,
   children,
   banner,
+  smtpConfigured,
 }: {
   user: CurrentUser;
   userRole: string;
   userPermissions: string[];
   children: React.ReactNode;
   banner?: React.ReactNode;
+  smtpConfigured?: boolean;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -115,7 +126,7 @@ export function AppShell({
         <div className="flex items-center px-6 py-6">
           <Logo variant="light" size="md" />
         </div>
-        <SidebarNav pathname={pathname} navGroups={navGroups} />
+        <SidebarNav pathname={pathname} navGroups={navGroups} smtpConfigured={smtpConfigured} />
         <UserFooter user={user} />
       </aside>
 
@@ -141,6 +152,7 @@ export function AppShell({
               pathname={pathname}
               navGroups={navGroups}
               onNavigate={() => setMobileOpen(false)}
+              smtpConfigured={smtpConfigured}
             />
             <UserFooter user={user} />
           </aside>

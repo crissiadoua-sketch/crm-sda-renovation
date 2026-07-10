@@ -195,7 +195,7 @@ export default async function PvReceptionPage({
           <p className="text-sm text-slate-400 mt-1">Créez votre premier PV en sélectionnant le type ci-dessus.</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
               <tr>
@@ -225,7 +225,11 @@ export default async function PvReceptionPage({
                   { label: TYPE_LABELS[pvr.typeSupport] ?? pvr.typeSupport, cls: "bg-slate-100 text-slate-600" };
                 return (
                   <tr key={pvr.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs font-bold text-brand-navy">{pvr.numero}</td>
+                    <td className="px-4 py-3 font-mono text-xs font-bold">
+                      <Link href={`/pv-reception/${pvr.id}`} className="text-brand-navy hover:text-brand-blue">
+                        {pvr.numero}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${catLabel.cls}`}>{catLabel.label}</span>
                     </td>
@@ -260,7 +264,9 @@ export default async function PvReceptionPage({
                     <td className="px-4 py-3"><Badge tone={cfg.tone}>{cfg.label}</Badge></td>
                     <td className="px-4 py-3 text-right">
                       <Link href={`/pv-reception/${pvr.id}`}
-                        className="text-brand-blue text-xs font-medium hover:underline">Ouvrir</Link>
+                        className="inline-flex items-center rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition whitespace-nowrap">
+                        Ouvrir →
+                      </Link>
                     </td>
                   </tr>
                 );

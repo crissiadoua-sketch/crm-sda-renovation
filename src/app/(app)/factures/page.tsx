@@ -6,6 +6,8 @@ import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { inputClasses } from "@/components/ui/fields";
 import { AutoSubmitSelect } from "@/components/ui/auto-submit-select";
 import { formatEuros, formatDate, clientDisplayName } from "@/lib/format";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
+import { FactureStatutSelect } from "./statut-select";
 
 const statutTones: Record<string, BadgeTone> = {
   BROUILLON: "gray",
@@ -139,6 +141,7 @@ export default async function FacturesPage({
   const now = new Date();
 
   return (
+    <FullscreenToggle>
     <div className="flex flex-col gap-5">
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -276,9 +279,7 @@ export default async function FacturesPage({
                     {resteDu > 0 ? formatEuros(resteDu) : "—"}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge tone={statutTones[facture.statut] ?? "gray"}>
-                      {statutLabels[facture.statut] ?? facture.statut}
-                    </Badge>
+                    <FactureStatutSelect id={facture.id} statut={facture.statut} />
                   </td>
                 </tr>
               );
@@ -305,5 +306,6 @@ export default async function FacturesPage({
         </table>
       </div>
     </div>
+    </FullscreenToggle>
   );
 }

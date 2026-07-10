@@ -69,22 +69,24 @@ export default async function DashboardPage() {
           take: 5,
           include: { chantier: { select: { nom: true, reference: true } } },
         }),
-    prisma.ficheIntervention.count({
-      where: { statut: { in: ["EN_COURS", "BROUILLON"] } },
-    }),
-    prisma.ficheNonConformite.count({
-      where: { statut: { notIn: ["CLOTUREE", "ANNULEE"] } },
-    }),
-    prisma.ficheNonConformite.count({
-      where: { statut: { notIn: ["CLOTUREE", "ANNULEE"] }, gravite: "CRITIQUE" },
-    }),
-    prisma.bonTravaux.count({
-      where: { statut: { in: ["EN_COURS", "EN_ATTENTE"] } },
-    }),
-    prisma.etudeDebourse.count(),
-    prisma.demandeApprovisionnement.count({
-      where: { statut: { in: ["BROUILLON", "EN_ATTENTE"] } },
-    }),
+    user?.role === "EXPERT_COMPTABLE"
+      ? Promise.resolve(0)
+      : prisma.ficheIntervention.count({ where: { statut: { in: ["EN_COURS", "BROUILLON"] } } }),
+    user?.role === "EXPERT_COMPTABLE"
+      ? Promise.resolve(0)
+      : prisma.ficheNonConformite.count({ where: { statut: { notIn: ["CLOTUREE", "ANNULEE"] } } }),
+    user?.role === "EXPERT_COMPTABLE"
+      ? Promise.resolve(0)
+      : prisma.ficheNonConformite.count({ where: { statut: { notIn: ["CLOTUREE", "ANNULEE"] }, gravite: "CRITIQUE" } }),
+    user?.role === "EXPERT_COMPTABLE"
+      ? Promise.resolve(0)
+      : prisma.bonTravaux.count({ where: { statut: { in: ["EN_COURS", "EN_ATTENTE"] } } }),
+    user?.role === "EXPERT_COMPTABLE"
+      ? Promise.resolve(0)
+      : prisma.etudeDebourse.count(),
+    user?.role === "EXPERT_COMPTABLE"
+      ? Promise.resolve(0)
+      : prisma.demandeApprovisionnement.count({ where: { statut: { in: ["BROUILLON", "EN_ATTENTE"] } } }),
   ]);
 
   const totalImpaye = facturesImpayees.reduce(
@@ -150,7 +152,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Exploitation & Chantiers ── */}
-      <div>
+      {user?.role !== "EXPERT_COMPTABLE" && <div>
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
           Exploitation &amp; Chantiers
         </h3>
@@ -240,7 +242,7 @@ export default async function DashboardPage() {
             <p className="text-sm font-medium text-slate-600">Études déboursés</p>
           </Link>
         </div>
-      </div>
+      </div>}
 
       {user?.role !== "EXPERT_COMPTABLE" && (
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

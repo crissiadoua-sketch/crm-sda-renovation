@@ -410,7 +410,6 @@ export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "/depenses",
     "/factures",
     "/tresorerie",
-    "/marge-rentabilite",
     "/previsionnel",
     "/analytique",
   ],

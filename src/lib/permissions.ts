@@ -30,10 +30,23 @@ export const ALL_ROLES = [
   "EXPERT_COMPTABLE",
   // Administratif
   "ASSISTANTE_ADMINISTRATIVE",
+  // Études & BIM
+  "CHARGE_ETUDE",
+  "DESSINATEUR_PROJETEUR",
+  "BIM_MANAGER",
+  // Commercial
+  "ASSISTANT_COMMERCIAL",
+  // Ressources Humaines
+  "RESPONSABLE_RH",
+  "ASSISTANTE_RH",
   // Terrain
   "OUVRIER",
   "OUVRIER_2",
   "OUVRIER_3",
+  "OUVRIER_4",
+  "OUVRIER_5",
+  "OUVRIER_6",
+  "OUVRIER_7",
   "MAGASINIER",
   "LIVREUR",
   // Apprentis & Stagiaires
@@ -62,8 +75,16 @@ export const ROLE_LABELS: Record<string, string> = {
   // Études de prix
   CHIFFREUR_METREUR_1: "Chiffreur métreur n°1",
   CHIFFREUR_METREUR_2: "Chiffreur métreur n°2",
+  // Études & BIM
+  CHARGE_ETUDE: "Chargé d'étude",
+  DESSINATEUR_PROJETEUR: "Dessinateur projeteur",
+  BIM_MANAGER: "BIM Manager / Modeleur BIM",
   // Commercial
   COMMERCIAL: "Commercial",
+  ASSISTANT_COMMERCIAL: "Assistant(e) commercial(e)",
+  // Ressources Humaines
+  RESPONSABLE_RH: "Responsable Ressources Humaines",
+  ASSISTANTE_RH: "Assistante Ressources Humaines",
   // Finance & Comptabilité
   COMPTABLE: "Comptable",
   ASSISTANTE_COMPTABLE: "Assistante comptable",
@@ -72,6 +93,10 @@ export const ROLE_LABELS: Record<string, string> = {
   OUVRIER: "Ouvrier n°1",
   OUVRIER_2: "Ouvrier n°2",
   OUVRIER_3: "Ouvrier n°3",
+  OUVRIER_4: "Ouvrier n°4",
+  OUVRIER_5: "Ouvrier n°5",
+  OUVRIER_6: "Ouvrier n°6",
+  OUVRIER_7: "Ouvrier n°7",
   MAGASINIER: "Magasinier",
   LIVREUR: "Livreur",
   // Apprentis
@@ -103,9 +128,19 @@ export const ROLE_BADGE_TONES: Record<string, "blue" | "navy" | "orange" | "gree
   COMPTABLE: "gray",
   ASSISTANTE_COMPTABLE: "gray",
   EXPERT_COMPTABLE: "gray",
+  CHARGE_ETUDE: "blue",
+  DESSINATEUR_PROJETEUR: "blue",
+  BIM_MANAGER: "blue",
+  ASSISTANT_COMMERCIAL: "green",
+  RESPONSABLE_RH: "navy",
+  ASSISTANTE_RH: "blue",
   OUVRIER: "gray",
   OUVRIER_2: "gray",
   OUVRIER_3: "gray",
+  OUVRIER_4: "gray",
+  OUVRIER_5: "gray",
+  OUVRIER_6: "gray",
+  OUVRIER_7: "gray",
   MAGASINIER: "gray",
   LIVREUR: "gray",
   APPRENTI_1: "green",
@@ -576,6 +611,121 @@ export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "/exploitation/fiches-intervention",
     "/exploitation/rapports-hebdo",
     "/exploitation/bons-travaux",
+  ],
+
+  OUVRIER_4: [
+    "/",
+    "/planning",
+    "/notes-de-frais",
+    "/exploitation/fiches-intervention",
+    "/exploitation/rapports-hebdo",
+    "/exploitation/bons-travaux",
+  ],
+
+  OUVRIER_5: [
+    "/",
+    "/planning",
+    "/notes-de-frais",
+    "/exploitation/fiches-intervention",
+    "/exploitation/rapports-hebdo",
+    "/exploitation/bons-travaux",
+  ],
+
+  OUVRIER_6: [
+    "/",
+    "/planning",
+    "/notes-de-frais",
+    "/exploitation/fiches-intervention",
+    "/exploitation/rapports-hebdo",
+    "/exploitation/bons-travaux",
+  ],
+
+  OUVRIER_7: [
+    "/",
+    "/planning",
+    "/notes-de-frais",
+    "/exploitation/fiches-intervention",
+    "/exploitation/rapports-hebdo",
+    "/exploitation/bons-travaux",
+  ],
+
+  CHARGE_ETUDE: [
+    "/",
+    "/clients",
+    "/chantiers",
+    "/documents",
+    "/ouvrages",
+    "/fiches-techniques",
+    "/dtu",
+    "/devis",
+    "/etude-prix/debourses-secs",
+    "/etude-prix/cout-materiaux",
+    "/etude-prix/agrement-produits",
+    "/etude-prix/approvisionement",
+    "/etude-prix/pre-dimensionnement",
+    "/qualite/paq",
+    "/qualite/daact",
+    "/ppsps",
+    "/marge-rentabilite",
+  ],
+
+  DESSINATEUR_PROJETEUR: [
+    "/",
+    "/chantiers",
+    "/documents",
+    "/ouvrages",
+    "/fiches-techniques",
+    "/dtu",
+    "/etude-prix/pre-dimensionnement",
+    "/etude-prix/debourses-secs",
+    "/qualite/paq",
+  ],
+
+  BIM_MANAGER: [
+    "/",
+    "/chantiers",
+    "/documents",
+    "/ouvrages",
+    "/fiches-techniques",
+    "/dtu",
+    "/etude-prix/pre-dimensionnement",
+    "/etude-prix/debourses-secs",
+    "/qualite/paq",
+    "/qualite/daact",
+    "/ppsps",
+  ],
+
+  ASSISTANT_COMMERCIAL: [
+    "/",
+    "/clients",
+    "/prospects",
+    "/devis",
+    "/ouvrages",
+    "/documents",
+    "/messagerie",
+    "/taches",
+  ],
+
+  RESPONSABLE_RH: [
+    "/",
+    "/rh",
+    "/interimaires",
+    "/main-oeuvre",
+    "/mutuelle",
+    "/notes-de-frais",
+    "/planning",
+    "/taches",
+    "/documents",
+  ],
+
+  ASSISTANTE_RH: [
+    "/",
+    "/rh",
+    "/interimaires",
+    "/mutuelle",
+    "/notes-de-frais",
+    "/planning",
+    "/documents",
   ],
 
   APPRENTI_1: [

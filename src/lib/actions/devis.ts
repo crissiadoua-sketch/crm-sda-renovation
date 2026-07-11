@@ -633,3 +633,103 @@ export async function refuserDevisParClient(
   revalidatePath(`/devis/${devis.id}`);
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Synthèse analytique IA des variantes (Claude API)
+// ---------------------------------------------------------------------------
+
+export async function genererSyntheseVariantesIA(
+  chantierId: string,
+): Promise<{ synthese: string } | { error: string }> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return { error: "Clé API Anthropic non configurée. Ajoutez ANTHROPIC_API_KEY dans votre fichier .env." };
+  }
+
+  const [chantier, variantes] = await Promise.all([
+    prisma.chantier.findUnique({
+      where: { id: chantierId },
+      include: { client: true },
+    }),
+    prisma.devis.findMany({
+      where: { chantierId, type: "INITIAL" },
+      include: { lignes: { orderBy: { ordre: "asc" } } },
+      orderBy: { totalTTC: "asc" },
+    }),
+  ]);
+
+  if (!chantier || variantes.length < 2) {
+    return { error: "Il faut au moins 2 variantes pour générer une synthèse comparative." };
+  }
+
+  const stripHtml = (s: string | null) => (s ?? "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+
+  const clientCivilite = chantier.client?.civilite ?? "";
+  const clientNom = `${clientCivilite} ${chantier.client?.nom ?? ""}`.trim() || "Madame, Monsieur";
+  const clientPrenom = chantier.client?.prenom ?? null;
+
+  const offresDesc = variantes.map((v, i) => {
+    const chapitres = v.lignes
+      .filter((l) => l.type === "CHAPITRE")
+      .map((l) => stripHtml(l.designation))
+      .filter(Boolean)
+      .slice(0, 8);
+
+    const lignesMateriaux = v.lignes
+      .filter((l) => l.type === "LIGNE" && l.designation)
+      .slice(0, 8)
+      .map((l) => stripHtml(l.designation?.split("\n")[0] ?? ""))
+      .filter(Boolean);
+
+    return [
+      `--- OFFRE ${i + 1} : ${stripHtml(v.objet) || v.numero} ---`,
+      `Numéro de devis : ${v.numero}`,
+      `Total HT : ${v.totalHT.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}`,
+      `Total TTC : ${v.totalTTC.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}`,
+      `Délai d'exécution : ${v.delaiExecution ?? "non précisé"}`,
+      `Modalités de règlement : ${v.modaliteReglement ?? "non précisées"}`,
+      chapitres.length > 0 ? `Chapitres : ${chapitres.join(" | ")}` : null,
+      lignesMateriaux.length > 0 ? `Prestations principales : ${lignesMateriaux.join(" | ")}` : null,
+    ].filter(Boolean).join("\n");
+  });
+
+  const prompt = `Tu es un expert consultant en construction et rénovation pour l'entreprise SDA Rénovation. Ta mission est de rédiger une synthèse analytique comparative professionnelle à l'attention du client, pour l'aider à choisir entre plusieurs offres.
+
+CONTEXTE DU PROJET :
+Chantier : ${chantier.nom}
+Client : ${clientPrenom ? `${clientPrenom} ${chantier.client?.nom ?? ""}` : clientNom}
+Nombre d'offres : ${variantes.length}
+
+DÉTAIL DES OFFRES :
+${offresDesc.join("\n\n")}
+
+INSTRUCTIONS DE RÉDACTION :
+1. Rédige un email professionnel directement adressé au client (tutoiement exclu, vouvoiement).
+2. Commence par "Bonjour ${clientPrenom ?? clientNom}," puis une introduction chaleureuse rappelant le projet.
+3. Pour chaque offre, analyse-la sur ces 5 axes (une section par offre) :
+   - Aspect Technique : qualité des matériaux, performance, durabilité, conformité aux normes
+   - Aspect Budgétaire : positionnement prix, rapport qualité-prix, transparence des coûts
+   - Aspect Esthétique : rendu visuel attendu, finitions, style et personnalisation possible
+   - Produits & Délais : disponibilité des matériaux, sur-mesure éventuel, délai de réalisation
+   - Adéquation à vos attentes : niveau de prestation proposé, points forts selon les besoins du projet
+4. Conclus avec une recommandation nuancée qui aide le client à trancher sans lui imposer un choix.
+5. Termine par "Nous restons à votre disposition pour tout échange complémentaire." et une formule de politesse.
+6. Langue : français uniquement. Ton : expert, bienveillant, professionnel, concis.
+7. Format : texte brut uniquement (PAS de markdown, PAS d'astérisques, PAS de tirets de liste), des sections bien séparées par des sauts de ligne.
+8. Ne mentionne pas les numéros de devis dans le corps — utilise uniquement le nom des offres (ex. "Offre Économique", "Offre Premium").`;
+
+  try {
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const response = await client.messages.create({
+      model: "claude-sonnet-5",
+      max_tokens: 2500,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = (response.content.find((b) => b.type === "text") as { type: "text"; text: string } | undefined)?.text ?? "";
+    if (!text) return { error: "L'IA n'a pas retourné de contenu. Réessayez." };
+    return { synthese: text };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Erreur inconnue";
+    return { error: `Erreur IA : ${msg}` };
+  }
+}

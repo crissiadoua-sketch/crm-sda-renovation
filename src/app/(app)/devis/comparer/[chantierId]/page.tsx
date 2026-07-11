@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatEuros, formatDate, clientDisplayName } from "@/lib/format";
 import { computeSousTotaux, computeSectionClosures } from "@/lib/devis-subtotals";
-import { retenirVariante, supprimerVariante, envoyerVariantes, genererLienVariantes } from "@/lib/actions/devis";
+import { retenirVariante, supprimerVariante, envoyerVariantes, genererLienVariantes, genererSyntheseVariantesIA } from "@/lib/actions/devis";
+import { envoyerDevisParEmail } from "@/lib/actions/email-documents";
 import { ComparaisonActions } from "./comparaison-actions";
 
 export default async function ComparerVariantesPage({
@@ -156,6 +157,12 @@ export default async function ComparerVariantesPage({
     chapitres: chapitresParVariante[vi] ?? [],
   }));
 
+  const emailDevisActions = Object.fromEntries(
+    variantes.map((v) => [v.id, envoyerDevisParEmail.bind(null, v.id)])
+  );
+
+  const clientEmail = chantier.client?.email ?? "";
+
   return (
     <div className="flex flex-col gap-6">
       {/* En-tête */}
@@ -271,10 +278,13 @@ export default async function ComparerVariantesPage({
         variantes={variantesSummary}
         chantierId={chantierId}
         tokenExistant={chantier.tokenVariantes}
+        clientEmail={clientEmail}
         retenirAction={retenirVariante}
         supprimerAction={supprimerVariante}
         envoyerAction={envoyerVariantes}
         genererLienAction={genererLienVariantes}
+        genererSyntheseAction={genererSyntheseVariantesIA}
+        emailDevisActions={emailDevisActions}
       />
     </div>
   );

@@ -20,6 +20,7 @@ interface EnvoyerEmailModalProps {
   vueOptions?: VueOption[];
   defaultVue?: string;
   defaultSubject?: string;
+  defaultMessage?: string;
 }
 
 export function EnvoyerEmailModal({
@@ -30,6 +31,7 @@ export function EnvoyerEmailModal({
   vueOptions,
   defaultVue,
   defaultSubject = "",
+  defaultMessage = "",
 }: EnvoyerEmailModalProps) {
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -242,10 +244,12 @@ export function EnvoyerEmailModal({
                     <span className="font-normal text-slate-400">(optionnel)</span>
                   </label>
                   <textarea
+                    key={defaultMessage}
                     name="message"
-                    rows={fullscreen ? 6 : 3}
+                    rows={defaultMessage ? (fullscreen ? 14 : 8) : (fullscreen ? 6 : 3)}
+                    defaultValue={defaultMessage}
                     placeholder="Ajoutez un message personnalisé qui apparaîtra dans l'email…"
-                    className={`${inputCls} resize-none`}
+                    className={`${inputCls} resize-y`}
                   />
                 </div>
 

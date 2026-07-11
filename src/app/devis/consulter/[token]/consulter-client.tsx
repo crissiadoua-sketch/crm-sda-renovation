@@ -44,7 +44,7 @@ export default function ConsulterClient({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
 
-  const apercuUrl = `/apercu/devis/${devisId}?descriptif=1&noPrint=1`;
+  const apercuUrl = `/apercu/devis/${devisId}?descriptif=1`;
 
   // ── Canvas helpers ──────────────────────────────────────────────────────────
   function getPos(e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement): [number, number] {

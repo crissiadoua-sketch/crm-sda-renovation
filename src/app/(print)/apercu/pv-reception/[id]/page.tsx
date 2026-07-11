@@ -253,7 +253,7 @@ export default async function ApercuPvReceptionPage({
               </p>
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white text-[10px] uppercase tracking-wider">
+                  <tr className="bg-[#F7941E] text-white text-[10px] uppercase tracking-wider">
                     <th className="px-2 py-2 text-left w-6">#</th>
                     <th className="px-2 py-2 text-left">{isTravaux ? "Ouvrage / Lot" : "Désignation / Livrable"}</th>
                     <th className="px-2 py-2 text-left w-24">Réf. / DTU</th>
@@ -349,7 +349,7 @@ export default async function ApercuPvReceptionPage({
           {/* ══ GARANTIES BTP ═════════════════════════════════════════════════════ */}
           {isTravaux && (pvr.garantiePerfaitAchevement || pvr.garantieBiennale || pvr.garantieDecennale) && (
             <div className="mb-4 rounded-lg border border-[#1E2F6E]/20 overflow-hidden">
-              <div className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] px-4 py-2">
+              <div className="bg-[#F7941E] px-4 py-2">
                 <p className="text-xs font-bold uppercase tracking-widest text-white">Garanties légales BTP (art. 1792 et s. C.civ.)</p>
               </div>
               <div className="divide-y divide-slate-100">
@@ -427,7 +427,7 @@ export default async function ApercuPvReceptionPage({
 
           {/* ══ SIGNATURES ════════════════════════════════════════════════════════ */}
           <div className="mb-3 rounded-lg border border-[#1E2F6E]/20 overflow-hidden">
-            <div className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] px-4 py-2">
+            <div className="bg-[#F7941E] px-4 py-2">
               <p className="text-xs font-bold uppercase tracking-widest text-white">Signatures</p>
             </div>
             <div className="grid grid-cols-2 divide-x divide-slate-200">

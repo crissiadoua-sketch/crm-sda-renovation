@@ -171,7 +171,7 @@ export default async function LivretAccueilPage({
 
             {/* Encadré CHANTIER */}
             <div className="w-full max-w-[380px] border border-slate-300 rounded-sm mt-4">
-              <div className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] px-4 py-2 text-center">
+              <div className="bg-[#F7941E] px-4 py-2 text-center">
                 <span className="text-white font-bold text-sm tracking-widest uppercase">CHANTIER</span>
               </div>
               <div className="px-6 py-5 text-center space-y-1">

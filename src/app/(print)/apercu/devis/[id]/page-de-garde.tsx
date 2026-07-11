@@ -193,7 +193,7 @@ export function PageDeGarde({ devis }: { devis: {
           {/* Parties */}
           {hasIntervenants && (
             <div className="mb-6 rounded-xl border border-slate-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] px-4 py-2">
+              <div className="bg-[#F7941E] px-4 py-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white">Parties prenantes</p>
               </div>
               <div className="divide-y divide-slate-100">

@@ -91,7 +91,7 @@ export default async function ApercuPVReunionChantierPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Participants</p>
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white">
+                  <tr className="bg-[#F7941E] text-white">
                     <th className="px-2 py-1.5 text-left font-semibold">Nom</th>
                     <th className="px-2 py-1.5 text-left font-semibold">Société</th>
                     <th className="px-2 py-1.5 text-left font-semibold">Fonction</th>
@@ -141,7 +141,7 @@ export default async function ApercuPVReunionChantierPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Actions à mener</p>
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white">
+                  <tr className="bg-[#F7941E] text-white">
                     <th className="px-2 py-1.5 text-left font-semibold w-6">#</th>
                     <th className="px-2 py-1.5 text-left font-semibold">Description</th>
                     <th className="px-2 py-1.5 text-left font-semibold w-28">Responsable</th>

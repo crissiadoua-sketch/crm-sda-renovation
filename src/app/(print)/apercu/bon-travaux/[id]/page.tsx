@@ -134,7 +134,7 @@ export default async function ApercuBonTravauxPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Équipe</p>
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white">
+                  <tr className="bg-[#F7941E] text-white">
                     <th className="px-2 py-1.5 text-left font-semibold">Nom</th>
                     <th className="px-2 py-1.5 text-left font-semibold">Prénom</th>
                     <th className="px-2 py-1.5 text-left font-semibold">Rôle</th>
@@ -161,7 +161,7 @@ export default async function ApercuBonTravauxPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Tâches à réaliser</p>
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white">
+                  <tr className="bg-[#F7941E] text-white">
                     <th className="px-2 py-1.5 text-left font-semibold w-6">#</th>
                     <th className="px-2 py-1.5 text-left font-semibold">Description</th>
                     <th className="px-2 py-1.5 text-right font-semibold w-14">Qté</th>

@@ -98,7 +98,7 @@ export default async function ApercuPreDimensionnementPage({
 
           {/* Résultat */}
           <div className="mb-5 rounded-xl border-2 border-[#1E2F6E] overflow-hidden">
-            <div className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] px-4 py-2">
+            <div className="bg-[#F7941E] px-4 py-2">
               <p className="text-sm font-black text-white uppercase tracking-wide">Résultat du pré-dimensionnement</p>
             </div>
             <div className="px-4 py-4">

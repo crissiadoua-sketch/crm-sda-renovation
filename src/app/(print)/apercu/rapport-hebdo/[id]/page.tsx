@@ -113,7 +113,7 @@ export default async function ApercuRapportHebdoPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Tâches de la semaine</p>
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white">
+                  <tr className="bg-[#F7941E] text-white">
                     <th className="px-2 py-1.5 text-left font-semibold w-6">#</th>
                     <th className="px-2 py-1.5 text-left font-semibold">Tâche</th>
                     <th className="px-2 py-1.5 text-center font-semibold w-16">Début %</th>

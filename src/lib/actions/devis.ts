@@ -566,6 +566,7 @@ export async function signerDevis(
 export async function accepterDevisParClient(
   token: string,
   nomSignataire: string,
+  imageSignature?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const devis = await prisma.devis.findUnique({
     where: { signatureToken: token },
@@ -580,7 +581,7 @@ export async function accepterDevisParClient(
       data: {
         devisId: devis.id,
         nomSignataire,
-        imageSignature: "ACCEPTE_ELECTRONIQUEMENT",
+        imageSignature: imageSignature ?? "ACCEPTE_ELECTRONIQUEMENT",
         adresseIp: null,
         userAgent: null,
       },

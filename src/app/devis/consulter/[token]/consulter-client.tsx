@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { accepterDevisParClient, refuserDevisParClient } from "@/lib/actions/devis";
 
 type State = "initial" | "accepte" | "refuse";
@@ -39,20 +39,77 @@ export default function ConsulterClient({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRefuseConfirm, setShowRefuseConfirm] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawing = useRef(false);
 
   const apercuUrl = `/apercu/devis/${devisId}?descriptif=1`;
 
+  // ── Canvas helpers ──────────────────────────────────────────────────────────
+  function getPos(e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement): [number, number] {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    return [(clientX - rect.left) * scaleX, (clientY - rect.top) * scaleY];
+  }
+
+  function startDraw(e: React.MouseEvent | React.TouchEvent) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    isDrawing.current = true;
+    const [x, y] = getPos(e.nativeEvent as MouseEvent | TouchEvent, canvas);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    e.preventDefault();
+  }
+
+  function draw(e: React.MouseEvent | React.TouchEvent) {
+    if (!isDrawing.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const [x, y] = getPos(e.nativeEvent as MouseEvent | TouchEvent, canvas);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = "#1E2F6E";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+    setHasSignature(true);
+    e.preventDefault();
+  }
+
+  function stopDraw() {
+    isDrawing.current = false;
+  }
+
+  function clearCanvas() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasSignature(false);
+  }
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
   async function handleAccepter() {
     if (!nom.trim()) { setError("Veuillez saisir votre nom et prénom."); return; }
+    if (!hasSignature) { setError("Veuillez apposer votre signature électronique ci-dessous."); return; }
+    const canvas = canvasRef.current;
+    const signatureImage = canvas ? canvas.toDataURL("image/png") : undefined;
     setPending(true);
     setError(null);
     try {
-      const result = await accepterDevisParClient(token, nom.trim());
-      if (result.ok) {
-        setState("accepte");
-      } else {
-        setError(result.error ?? "Erreur lors de l'acceptation.");
-      }
+      const result = await accepterDevisParClient(token, nom.trim(), signatureImage);
+      if (result.ok) setState("accepte");
+      else setError(result.error ?? "Erreur lors de l'acceptation.");
     } catch {
       setError("Une erreur inattendue s'est produite.");
     } finally {
@@ -65,11 +122,8 @@ export default function ConsulterClient({
     setError(null);
     try {
       const result = await refuserDevisParClient(token);
-      if (result.ok) {
-        setState("refuse");
-      } else {
-        setError(result.error ?? "Erreur lors du refus.");
-      }
+      if (result.ok) setState("refuse");
+      else setError(result.error ?? "Erreur lors du refus.");
     } catch {
       setError("Une erreur inattendue s'est produite.");
     } finally {
@@ -78,7 +132,7 @@ export default function ConsulterClient({
     }
   }
 
-  // ── État : Devis accepté ──────────────────────────────────────────────────
+  // ── État : Devis accepté ────────────────────────────────────────────────────
   if (state === "accepte") {
     return (
       <div className="flex flex-col gap-5">
@@ -90,7 +144,6 @@ export default function ConsulterClient({
           </p>
         </div>
 
-        {/* Carte devis */}
         <DevisCard numero={numero} chantierNom={chantierNom} objet={objet} totalTTC={totalTTC} dateValidite={dateValidite} />
 
         {/* Bouton PDF — disponible seulement après acceptation */}
@@ -113,7 +166,7 @@ export default function ConsulterClient({
     );
   }
 
-  // ── État : Devis refusé ──────────────────────────────────────────────────
+  // ── État : Devis refusé ─────────────────────────────────────────────────────
   if (state === "refuse") {
     return (
       <div className="flex flex-col gap-5">
@@ -135,18 +188,33 @@ export default function ConsulterClient({
     );
   }
 
-  // ── État initial : choisir ────────────────────────────────────────────────
+  // ── État initial ────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-5">
       {/* Carte devis */}
       <DevisCard numero={numero} chantierNom={chantierNom} objet={objet} totalTTC={totalTTC} dateValidite={dateValidite} />
 
-      {/* Réponse */}
+      {/* Aperçu PDF — visible avant acceptation */}
+      <a
+        href={apercuUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 w-full rounded-xl border border-[#1E2F6E]/30 bg-[#1E2F6E]/5 text-[#1E2F6E] font-semibold py-3 text-sm hover:bg-[#1E2F6E]/10 transition"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+        Consulter l'aperçu de votre devis
+      </a>
+
+      {/* Formulaire de réponse */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="bg-[#1E2F6E]/5 px-5 py-3 border-b border-slate-100">
           <p className="text-xs font-bold uppercase tracking-widest text-[#1E2F6E]">Votre réponse</p>
         </div>
         <div className="px-5 py-5 flex flex-col gap-4">
+
+          {/* Nom */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">
               Nom et prénom <span className="text-red-500">*</span>
@@ -158,6 +226,44 @@ export default function ConsulterClient({
               placeholder="Ex : Jean Dupont"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#1E2F6E] focus:ring-2 focus:ring-[#1E2F6E]/10 outline-none transition"
             />
+          </div>
+
+          {/* Signature électronique */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-slate-600">
+                Signature électronique <span className="text-red-500">*</span>
+              </label>
+              {hasSignature && (
+                <button
+                  type="button"
+                  onClick={clearCanvas}
+                  className="text-xs text-slate-400 hover:text-red-500 transition"
+                >
+                  Effacer
+                </button>
+              )}
+            </div>
+            <div className={`rounded-lg border-2 overflow-hidden transition ${hasSignature ? "border-[#1E2F6E]/40" : "border-dashed border-slate-300"}`}>
+              <canvas
+                ref={canvasRef}
+                width={560}
+                height={140}
+                className="w-full touch-none bg-white cursor-crosshair"
+                onMouseDown={startDraw}
+                onMouseMove={draw}
+                onMouseUp={stopDraw}
+                onMouseLeave={stopDraw}
+                onTouchStart={startDraw}
+                onTouchMove={draw}
+                onTouchEnd={stopDraw}
+              />
+            </div>
+            {!hasSignature && (
+              <p className="mt-1 text-[10px] text-slate-400 text-center">
+                Tracez votre signature dans le cadre ci-dessus
+              </p>
+            )}
           </div>
 
           {error && (

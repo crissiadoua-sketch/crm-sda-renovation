@@ -189,6 +189,7 @@ export async function envoyerDevisParEmail(
     revalidatePath(`/devis/${id}`);
   }
 
+  const consulterUrl = token ? `${APP_URL}/devis/consulter/${token}` : "";
   const signatureUrl = token ? `${APP_URL}/devis/sign/${token}` : "";
 
   // ── Entête commune à toutes les vues ────────────────────────────────────
@@ -196,14 +197,15 @@ export async function envoyerDevisParEmail(
     <p style="margin:0 0 6px;font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Devis</p>
     <p style="margin:0 0 14px;font-size:24px;font-weight:bold;color:#1E2F6E">${devis.numero}</p>
     <p style="margin:0 0 4px;font-size:13px;color:#475569">Chantier : <strong>${devis.chantier.nom}</strong></p>
-    ${devis.objet ? `<p style="margin:0 0 4px;font-size:13px;color:#475569">Objet : ${devis.objet}</p>` : ""}
-    ${devis.dateValidite ? `<p style="margin:0 0 14px;font-size:12px;color:#dc2626">Valable jusqu'au ${formatDate(devis.dateValidite)}</p>` : "<p style='margin:0 0 14px'></p>"}
+    ${devis.objet ? `<p style="margin:0 0 4px;font-size:13px;color:#475569">Objet : <strong>${devis.objet}</strong></p>` : ""}
+    ${devis.dateValidite ? `<p style="margin:0 0 8px;font-size:12px;color:#dc2626">Offre valable jusqu'au ${formatDate(devis.dateValidite)}</p>` : ""}
+    ${devis.totalTTC ? `<p style="margin:8px 0 0;font-size:20px;font-weight:800;color:#1e293b">Total TTC : ${formatEuros(devis.totalTTC)}</p>` : ""}
+    ${parametres?.tauxTvaDefaut ? `<p style="margin:2px 0 0;font-size:12px;color:#64748b">TVA ${parametres.tauxTvaDefaut} %</p>` : ""}
   `;
 
-  // ── Lignes selon la vue ──────────────────────────────────────────────────
+  // ── Lignes selon la vue (vues internes uniquement) ──────────────────────
   const lignesFiltrees = devis.lignes.filter(l => l.styleTexte !== "TITRE");
 
-  // Vue commerciale : toutes les lignes avec prix
   const lignesCommerciales = lignesFiltrees
     .filter(l => l.totalHT)
     .map(l => `<tr>
@@ -213,16 +215,6 @@ export async function envoyerDevisParEmail(
     </tr>`)
     .join("");
 
-  const lignesResume = lignesFiltrees
-    .filter(l => l.totalHT)
-    .slice(0, 5)
-    .map(l => `<tr>
-      <td style="padding:4px 0;font-size:13px;color:#334155;border-bottom:1px solid #f1f5f9">${l.designation}</td>
-      <td style="padding:4px 0 4px 16px;font-size:13px;color:#334155;text-align:right;white-space:nowrap;border-bottom:1px solid #f1f5f9">${formatEuros(l.totalHT ?? 0)}</td>
-    </tr>`)
-    .join("");
-
-  // Vue sans prix : descriptions uniquement
   const lignesSansPrix = lignesFiltrees
     .map(l => `<tr><td style="padding:4px 0;font-size:13px;color:#334155;border-bottom:1px solid #f1f5f9">• ${l.designation}</td></tr>`)
     .join("");
@@ -236,18 +228,14 @@ export async function envoyerDevisParEmail(
   let corps = "";
 
   if (vue === "client") {
-    // Vue client : résumé 5 lignes + total TTC + bouton signature
+    // Vue client : email épuré — juste l'essentiel + bouton "Consulter"
     corps = salutation(devis.client.prenom, message)
-      + boiteDoc(enteteDoc
-        + (lignesResume ? `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:14px"><tbody>${lignesResume}</tbody></table>` : "")
-        + `<p style="margin:0;font-size:18px;font-weight:bold;color:#1e293b">Total TTC : ${formatEuros(devis.totalTTC ?? 0)}</p>`
-        + (parametres?.tauxTvaDefaut ? `<p style="margin:2px 0 0;font-size:12px;color:#64748b">TVA ${parametres.tauxTvaDefaut} %</p>` : ""))
-      + boutonCta(signatureUrl, "Consulter et signer le devis →")
-      + `<p style="font-size:12px;color:#94a3b8;text-align:center;margin:-16px 0 20px">Ou copiez ce lien : <a href="${signatureUrl}" style="color:#6366f1">${signatureUrl}</a></p>`
+      + boiteDoc(enteteDoc)
+      + boutonCta(consulterUrl, "Consulter votre devis →")
+      + `<p style="font-size:12px;color:#94a3b8;text-align:center;margin:-16px 0 20px">Ou copiez ce lien : <a href="${consulterUrl}" style="color:#6366f1">${consulterUrl}</a></p>`
       + `<p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>`
       + signature();
   } else if (vue === "commerciale") {
-    // Vue commerciale : toutes les lignes avec prix détaillés
     corps = salutation(devis.client.prenom, message)
       + boiteDoc(enteteDoc
         + (lignesCommerciales ? `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:14px"><thead>${tableEntete}</thead><tbody>${lignesCommerciales}</tbody></table>` : "")
@@ -261,7 +249,6 @@ export async function envoyerDevisParEmail(
       + `<p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>`
       + signature();
   } else if (vue === "synthese") {
-    // Vue synthèse : juste l'entête + montants, sans ligne
     corps = salutation(devis.client.prenom, message)
       + boiteDoc(enteteDoc
         + `<div style="display:flex;gap:24px;margin-top:8px">`
@@ -274,7 +261,7 @@ export async function envoyerDevisParEmail(
       + `<p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>`
       + signature();
   } else {
-    // Vue sans_prix : descriptions uniquement, pas de montants, pas de signature
+    // Vue sans_prix : descriptions uniquement, pas de montants
     corps = salutation(devis.client.prenom, message)
       + boiteDoc(enteteDoc
         + (lignesSansPrix ? `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:8px"><tbody>${lignesSansPrix}</tbody></table>` : ""))
@@ -292,7 +279,7 @@ export async function envoyerDevisParEmail(
     to,
     subject: `Devis ${devis.numero} — SDA Rénovation`,
     html: emailLayout(`Devis N° ${devis.numero}`, corps, signataire),
-    text: `Bonjour,\n\n${message ? message + "\n\n" : ""}Devis ${devis.numero} — Chantier : ${devis.chantier.nom}\n${devis.objet ? `Objet : ${devis.objet}\n` : ""}${vue !== "sans_prix" ? `Montant TTC : ${formatEuros(devis.totalTTC ?? 0)}\n` : ""}${devis.dateValidite ? `Valable jusqu'au ${formatDate(devis.dateValidite)}\n` : ""}${signatureUrl ? `Consultez et signez : ${signatureUrl}\n` : ""}\nCordialement,\nSDA Rénovation\n[${vueLabel[vue] ?? vue}]`,
+    text: `Bonjour,\n\n${message ? message + "\n\n" : ""}Devis ${devis.numero} — Chantier : ${devis.chantier.nom}\n${devis.objet ? `Objet : ${devis.objet}\n` : ""}${vue !== "sans_prix" ? `Montant TTC : ${formatEuros(devis.totalTTC ?? 0)}\n` : ""}${devis.dateValidite ? `Offre valable jusqu'au ${formatDate(devis.dateValidite)}\n` : ""}${vue === "client" && consulterUrl ? `Consultez votre devis : ${consulterUrl}\n` : signatureUrl ? `Consultez et signez : ${signatureUrl}\n` : ""}\nCordialement,\nSDA Rénovation\n[${vueLabel[vue] ?? vue}]`,
   });
 }
 

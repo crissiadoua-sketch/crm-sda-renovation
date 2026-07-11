@@ -562,3 +562,73 @@ export async function signerDevis(
   revalidatePath(`/devis/${devis.id}`);
   return { ok: true };
 }
+
+export async function accepterDevisParClient(
+  token: string,
+  nomSignataire: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const devis = await prisma.devis.findUnique({
+    where: { signatureToken: token },
+    select: { id: true, statut: true, chantierId: true, signature: { select: { id: true } } },
+  });
+
+  if (!devis) return { ok: false, error: "Lien invalide ou expiré." };
+  if (devis.signature) return { ok: false, error: "Ce devis a déjà été traité." };
+
+  await prisma.$transaction([
+    prisma.signature.create({
+      data: {
+        devisId: devis.id,
+        nomSignataire,
+        imageSignature: "ACCEPTE_ELECTRONIQUEMENT",
+        adresseIp: null,
+        userAgent: null,
+      },
+    }),
+    prisma.devis.update({
+      where: { id: devis.id },
+      data: { statut: "ACCEPTE" },
+    }),
+    prisma.devis.updateMany({
+      where: {
+        chantierId: devis.chantierId,
+        id: { not: devis.id },
+        statut: { notIn: ["ACCEPTE", "REFUSE"] },
+      },
+      data: { statut: "REFUSE" },
+    }),
+  ]);
+
+  revalidatePath(`/devis/${devis.id}`);
+  return { ok: true };
+}
+
+export async function refuserDevisParClient(
+  token: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const devis = await prisma.devis.findUnique({
+    where: { signatureToken: token },
+    select: { id: true, statut: true, chantierId: true, signature: { select: { id: true } } },
+  });
+
+  if (!devis) return { ok: false, error: "Lien invalide ou expiré." };
+  if (devis.signature) return { ok: false, error: "Ce devis a déjà été accepté et ne peut plus être refusé." };
+
+  await prisma.$transaction([
+    prisma.devis.update({
+      where: { id: devis.id },
+      data: { statut: "REFUSE" },
+    }),
+    prisma.devis.updateMany({
+      where: {
+        chantierId: devis.chantierId,
+        id: { not: devis.id },
+        statut: { notIn: ["ACCEPTE", "REFUSE"] },
+      },
+      data: { statut: "REFUSE" },
+    }),
+  ]);
+
+  revalidatePath(`/devis/${devis.id}`);
+  return { ok: true };
+}

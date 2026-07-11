@@ -194,19 +194,6 @@ export default function ConsulterClient({
       {/* Carte devis */}
       <DevisCard numero={numero} chantierNom={chantierNom} objet={objet} totalTTC={totalTTC} dateValidite={dateValidite} />
 
-      {/* Aperçu PDF — visible avant acceptation */}
-      <a
-        href={apercuUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center gap-2 w-full rounded-xl border border-[#1E2F6E]/30 bg-[#1E2F6E]/5 text-[#1E2F6E] font-semibold py-3 text-sm hover:bg-[#1E2F6E]/10 transition"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-        </svg>
-        Consulter l'aperçu de votre devis
-      </a>
-
       {/* Formulaire de réponse */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="bg-[#1E2F6E]/5 px-5 py-3 border-b border-slate-100">

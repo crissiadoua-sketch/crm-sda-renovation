@@ -31,11 +31,7 @@ export default async function ApercuContratSousTraitancePage({
       <PrintToolbar label={`Convention de sous-traitance — ${contrat.numero}`} />
 
       <style>{`
-        @media print {
-          @page { size: A4; margin: 15mm 15mm 15mm 20mm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .pb { break-before: page; }
-        }
+        @media print { .pb { break-before: page; } }
         .art { margin-bottom: 1.1em; }
         .art-title { font-size: 13px; font-weight: 700; color: #1E2F6E; margin-bottom: 3px; }
         .art-body { font-size: 11px; line-height: 1.7; color: #374151; }

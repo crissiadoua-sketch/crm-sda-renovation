@@ -40,7 +40,7 @@ export default function ConsulterClient({
   const [error, setError] = useState<string | null>(null);
   const [showRefuseConfirm, setShowRefuseConfirm] = useState(false);
 
-  const apercuUrl = `/apercu/devis/${devisId}`;
+  const apercuUrl = `/apercu/devis/${devisId}?descriptif=1`;
 
   async function handleAccepter() {
     if (!nom.trim()) { setError("Veuillez saisir votre nom et prénom."); return; }

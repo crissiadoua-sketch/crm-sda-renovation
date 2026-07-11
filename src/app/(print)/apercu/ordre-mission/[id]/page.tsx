@@ -57,6 +57,11 @@ export default async function ApercuOrdreMissionPage({
             </div>
           </div>
 
+          {/* Bannière type document */}
+          <div className="mb-5 border-b-2 border-t-2 border-[#1E2F6E]/20 bg-[#1E2F6E]/5 px-4 py-2 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#1E2F6E]">Ordre de mission — document officiel</p>
+          </div>
+
           {/* Parties */}
           <div className="mb-6 grid grid-cols-2 gap-4">
             <div className="rounded border border-slate-200 bg-slate-50 p-4">

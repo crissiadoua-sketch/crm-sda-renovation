@@ -178,53 +178,18 @@ export default async function DevisDetailPage({
           action={envoyerDevisParEmail.bind(null, devis.id)}
           defaultTo={devis.client.email ?? ""}
           documentLabel={`devis ${devis.numero}`}
-          vueOptions={[
-            {
-              value: "client",
-              label: "Vue client",
-              description: "Résumé + total TTC + lien de signature",
-              icon: "✍️",
-            },
-            {
-              value: "commerciale",
-              label: "Vue détaillée",
-              description: "Toutes les lignes avec prix unitaires",
-              icon: "📋",
-            },
-            {
-              value: "synthese",
-              label: "Vue synthèse",
-              description: "Totaux HT/TVA/TTC uniquement",
-              icon: "📊",
-            },
-            {
-              value: "sans_prix",
-              label: "Sans prix",
-              description: "Descriptif seul, pas de montants (archi, MOE…)",
-              icon: "📝",
-            },
-          ]}
+          vueOptions={[{ value: "client", label: "Vue client", description: "Résumé + lien de consultation sécurisé", icon: "✉️" }]}
           defaultVue="client"
         />
         <PdfPreviewModal
-          href={`/apercu/devis/${devis.id}`}
-          label={`Aperçu PDF — ${devis.numero}`}
-          buttonLabel="📄 Aperçu PDF"
-        />
-        <PdfPreviewModal
-          href={`/apercu/devis/${devis.id}?sansPrix=1`}
-          label={`Aperçu sans prix — ${devis.numero}`}
-          buttonLabel="📄 Aperçu sans prix"
-        />
-        <PdfPreviewModal
-          href={`/apercu/devis/${devis.id}?synthese=1`}
-          label={`Aperçu synthèse — ${devis.numero}`}
-          buttonLabel="📄 Aperçu synthèse"
-        />
-        <PdfPreviewModal
           href={`/apercu/devis/${devis.id}?descriptif=1`}
-          label={`Aperçu descriptif + totaux — ${devis.numero}`}
-          buttonLabel="📄 Descriptif + totaux"
+          label={`Aperçu PDF client — ${devis.numero}`}
+          buttonLabel="📄 PDF client (descriptif)"
+        />
+        <PdfPreviewModal
+          href={`/apercu/devis/${devis.id}`}
+          label={`Aperçu PDF interne — ${devis.numero}`}
+          buttonLabel="📄 PDF interne (avec prix)"
         />
         {devis.type === "INITIAL" && (
           <form action={creerAvenant.bind(null, devis.id)}>

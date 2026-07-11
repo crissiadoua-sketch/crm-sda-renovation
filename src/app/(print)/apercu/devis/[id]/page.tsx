@@ -66,19 +66,19 @@ export default async function ApercuDevisPage({
         <div className="px-12 py-10 print:px-10 print:py-8">
 
           {sansPrix && (
-            <div className="mb-4 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-center">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Document sans prix — quantités uniquement</p>
+            <div className="mb-4 border-b-2 border-t-2 border-[#1E2F6E]/20 bg-[#1E2F6E]/5 px-4 py-2 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#1E2F6E]">Document sans prix — quantités uniquement</p>
             </div>
           )}
 
           {synthese && (
-            <div className="mb-4 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-center">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Synthèse — sous-totaux et totaux uniquement</p>
+            <div className="mb-4 border-b-2 border-t-2 border-[#1E2F6E]/20 bg-[#1E2F6E]/5 px-4 py-2 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#1E2F6E]">Synthèse — sous-totaux et totaux uniquement</p>
             </div>
           )}
           {descriptif && (
-            <div className="mb-4 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-center">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Document descriptif — sous-totaux et totaux HT/TVA/TTC</p>
+            <div className="mb-4 border-b-2 border-t-2 border-[#1E2F6E]/20 bg-[#1E2F6E]/5 px-4 py-2 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#1E2F6E]">Document descriptif — sous-totaux et totaux HT / TVA / TTC</p>
             </div>
           )}
 

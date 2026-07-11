@@ -106,7 +106,7 @@ export default async function ApercuFicheAutocontrolePage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Points de contrôle</p>
               <table className="w-full text-xs border border-slate-200 rounded-lg overflow-hidden">
                 <thead>
-                  <tr className="bg-[#1B3F94] text-white">
+                  <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white">
                     <th className="px-3 py-2 text-left font-semibold w-6">#</th>
                     <th className="px-3 py-2 text-left font-semibold">Critère</th>
                     <th className="px-3 py-2 text-left font-semibold w-28">Exigence</th>

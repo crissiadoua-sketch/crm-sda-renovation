@@ -65,7 +65,7 @@ export default async function ApercuApprovisionementChantierPage({
           <div className="mb-5 overflow-x-auto">
             <table className="w-full border-collapse text-xs">
               <thead>
-                <tr className="bg-[#1B3F94] text-white text-[10px]">
+                <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white text-[10px]">
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Matériaux</th>
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-right font-semibold">Rdmt/Conso</th>
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-center font-semibold">U</th>

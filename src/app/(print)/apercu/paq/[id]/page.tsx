@@ -87,7 +87,7 @@ export default async function ApercuPAQPage({
 
           {/* Intervenants */}
           {paq.listeIntervenants && (
-            <div className="mb-4 rounded-lg border border-[#29ABE2]/40 bg-[#29ABE2]/5 px-4 py-3">
+            <div className="mb-4 rounded-lg border border-[#F7941E]/50 bg-[#F7941E]/5 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#1E2F6E] mb-2">Liste des intervenants</p>
               <p className="text-xs text-slate-700 whitespace-pre-wrap">{paq.listeIntervenants}</p>
             </div>

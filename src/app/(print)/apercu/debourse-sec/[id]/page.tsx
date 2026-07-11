@@ -110,7 +110,7 @@ export default async function ApercuDebourseSecPage({
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-[#29ABE2]/10 font-semibold text-[#1E2F6E]">
+                  <tr className="bg-[#F7941E]/8 font-semibold text-[#1E2F6E]">
                     <td className="border border-slate-200 px-2 py-1.5 text-xs" colSpan={4}>
                       Sous-Total DS par poste — Total DS d&apos;un {poste.unite ?? "unité"} de {poste.designation}
                     </td>
@@ -133,7 +133,7 @@ export default async function ApercuDebourseSecPage({
 
           {/* Récapitulatif final */}
           <div className="mb-5 rounded-xl border-2 border-[#1E2F6E] overflow-hidden">
-            <div className="bg-[#1B3F94] px-4 py-2">
+            <div className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] px-4 py-2">
               <p className="text-sm font-black text-white uppercase tracking-wide">Récapitulatif général</p>
             </div>
             <div className="px-4 py-3 space-y-1.5">

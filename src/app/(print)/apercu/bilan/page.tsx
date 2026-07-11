@@ -74,7 +74,7 @@ export default async function ApercuBilanPage({
           <div className="mb-6 grid grid-cols-2 gap-4">
             <table className="w-full border-collapse text-xs">
               <thead>
-                <tr className="bg-[#1B3F94] text-white text-[10px]">
+                <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white text-[10px]">
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold" colSpan={2}>ACTIF</th>
                 </tr>
               </thead>
@@ -92,7 +92,7 @@ export default async function ApercuBilanPage({
 
             <table className="w-full border-collapse text-xs">
               <thead>
-                <tr className="bg-[#1B3F94] text-white text-[10px]">
+                <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white text-[10px]">
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold" colSpan={2}>PASSIF</th>
                 </tr>
               </thead>
@@ -111,7 +111,7 @@ export default async function ApercuBilanPage({
           <p className="mb-2 text-sm font-bold text-[#1E2F6E]">Compte de résultat</p>
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-[#1B3F94] text-white text-[10px]">
+              <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white text-[10px]">
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold" colSpan={2}>Poste</th>
               </tr>
             </thead>

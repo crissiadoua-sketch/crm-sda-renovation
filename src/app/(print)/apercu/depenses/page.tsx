@@ -66,7 +66,7 @@ export default async function ApercuDepensesPage({
           {/* Tableau */}
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-[#1B3F94] text-white text-[10px]">
+              <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white text-[10px]">
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Date</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Libellé</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Catégorie</th>

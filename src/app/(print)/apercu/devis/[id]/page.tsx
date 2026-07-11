@@ -20,13 +20,14 @@ export default async function ApercuDevisPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ sansPrix?: string; synthese?: string; descriptif?: string }>;
+  searchParams: Promise<{ sansPrix?: string; synthese?: string; descriptif?: string; noPrint?: string }>;
 }) {
   const { id } = await params;
-  const { sansPrix: sansPrixParam, synthese: syntheseParam, descriptif: descriptifParam } = await searchParams;
+  const { sansPrix: sansPrixParam, synthese: syntheseParam, descriptif: descriptifParam, noPrint: noPrintParam } = await searchParams;
   const sansPrix  = sansPrixParam  === "1";
   const synthese  = syntheseParam  === "1";
   const descriptif = descriptifParam === "1";
+  const noPrint   = noPrintParam   === "1";
 
   const devis = await prisma.devis.findUnique({
     where: { id },
@@ -57,7 +58,7 @@ export default async function ApercuDevisPage({
 
   return (
     <>
-      <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}${sansPrix ? " · Sans prix" : ""}${synthese ? " · Synthèse" : ""}${descriptif ? " · Descriptif + totaux" : ""}`} />
+      <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}${sansPrix ? " · Sans prix" : ""}${synthese ? " · Synthèse" : ""}${descriptif ? " · Descriptif + totaux" : ""}`} noPrint={noPrint} />
 
       <PageDeGarde devis={devis} />
 

@@ -271,7 +271,7 @@ export default async function ApercuMemoireTechniquePage({
           {/* En-tête de page courante */}
           <PageHeader reference={mt.reference} titre={mt.titre} />
 
-          <h2 className="text-base font-black text-[#1E2F6E] uppercase tracking-wide mb-6 pb-2 border-b-2 border-[#1E2F6E]">
+          <h2 className="text-base font-black text-[#1E2F6E] uppercase tracking-wide mb-6 pb-2 border-b-2 border-[#F7941E]">
             Sommaire
           </h2>
 

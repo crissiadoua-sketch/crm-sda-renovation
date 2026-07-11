@@ -107,7 +107,7 @@ export default async function ApercuPvReceptionPage({
         <div className="px-10 py-8 print:px-9 print:py-7 text-sm">
 
           {/* ══ EN-TÊTE ═══════════════════════════════════════════════════════ */}
-          <div className="flex items-start justify-between border-b-[3px] border-[#1E2F6E] pb-4 mb-4">
+          <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-4 mb-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain" />
@@ -253,7 +253,7 @@ export default async function ApercuPvReceptionPage({
               </p>
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-[#1E2F6E] text-white text-[10px] uppercase tracking-wider">
+                  <tr className="bg-[#1B3F94] text-white text-[10px] uppercase tracking-wider">
                     <th className="px-2 py-2 text-left w-6">#</th>
                     <th className="px-2 py-2 text-left">{isTravaux ? "Ouvrage / Lot" : "Désignation / Livrable"}</th>
                     <th className="px-2 py-2 text-left w-24">Réf. / DTU</th>
@@ -304,7 +304,7 @@ export default async function ApercuPvReceptionPage({
                   }`} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-start gap-2">
-                        <span className="rounded-full bg-[#1E2F6E] text-white text-[9px] font-bold px-1.5 py-0.5 mt-0.5 shrink-0">
+                        <span className="rounded-full bg-[#1B3F94] text-white text-[9px] font-bold px-1.5 py-0.5 mt-0.5 shrink-0">
                           R{i + 1}
                         </span>
                         <div>
@@ -349,7 +349,7 @@ export default async function ApercuPvReceptionPage({
           {/* ══ GARANTIES BTP ═════════════════════════════════════════════════════ */}
           {isTravaux && (pvr.garantiePerfaitAchevement || pvr.garantieBiennale || pvr.garantieDecennale) && (
             <div className="mb-4 rounded-lg border border-[#1E2F6E]/20 overflow-hidden">
-              <div className="bg-[#1E2F6E] px-4 py-2">
+              <div className="bg-[#1B3F94] px-4 py-2">
                 <p className="text-xs font-bold uppercase tracking-widest text-white">Garanties légales BTP (art. 1792 et s. C.civ.)</p>
               </div>
               <div className="divide-y divide-slate-100">
@@ -427,7 +427,7 @@ export default async function ApercuPvReceptionPage({
 
           {/* ══ SIGNATURES ════════════════════════════════════════════════════════ */}
           <div className="mb-3 rounded-lg border border-[#1E2F6E]/20 overflow-hidden">
-            <div className="bg-[#1E2F6E] px-4 py-2">
+            <div className="bg-[#1B3F94] px-4 py-2">
               <p className="text-xs font-bold uppercase tracking-widest text-white">Signatures</p>
             </div>
             <div className="grid grid-cols-2 divide-x divide-slate-200">

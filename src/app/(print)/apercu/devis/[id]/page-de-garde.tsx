@@ -52,7 +52,7 @@ export function PageDeGarde({ devis }: { devis: {
         <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#1E2F6E]" />
         <div className="ml-6 flex flex-col h-full px-8 py-10">
           {/* En-tête */}
-          <div className="flex items-start justify-between border-b-2 border-[#1E2F6E] pb-6 mb-8">
+          <div className="flex items-start justify-between border-b-2 border-[#F7941E] pb-6 mb-8">
             <div className="flex items-center gap-4">
               <div className="rounded-xl bg-white px-5 py-3 shadow-sm border border-slate-100">
                 <img src="/logo.png" alt="SDA Rénovation" className="h-20 w-auto object-contain" />
@@ -193,7 +193,7 @@ export function PageDeGarde({ devis }: { devis: {
           {/* Parties */}
           {hasIntervenants && (
             <div className="mb-6 rounded-xl border border-slate-200 overflow-hidden">
-              <div className="bg-[#1E2F6E] px-4 py-2">
+              <div className="bg-[#1B3F94] px-4 py-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white">Parties prenantes</p>
               </div>
               <div className="divide-y divide-slate-100">

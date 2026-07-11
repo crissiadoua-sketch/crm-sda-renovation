@@ -86,7 +86,7 @@ export default async function ApercuDevisPage({
           )}
 
           {/* En-tête SDA Rénovation */}
-          <div className="flex items-start justify-between border-b-2 border-[#1E2F6E] pb-6 mb-6">
+          <div className="flex items-start justify-between border-b-2 border-[#F7941E] pb-6 mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <img src="/logo.png" alt="SDA Rénovation" className="h-10 w-auto object-contain" />
@@ -183,7 +183,7 @@ export default async function ApercuDevisPage({
             {synthese ? (
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="bg-[#1E2F6E] text-white">
+                  <tr className="bg-[#1B3F94] text-white">
                     <th className="px-3 py-2 text-left font-semibold text-xs">Désignation</th>
                     <th className="px-3 py-2 text-right font-semibold text-xs w-32">Sous-total HT</th>
                   </tr>
@@ -219,7 +219,7 @@ export default async function ApercuDevisPage({
             ) : (
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-[#1E2F6E] text-white">
+                <tr className="bg-[#1B3F94] text-white">
                   <th className="px-3 py-2 text-left font-semibold text-xs w-16">Code</th>
                   <th className="px-3 py-2 text-left font-semibold text-xs">Désignation</th>
                   <th className="px-3 py-2 text-center font-semibold text-xs w-14">Unité</th>
@@ -397,7 +397,7 @@ export default async function ApercuDevisPage({
                     <span className="font-medium">{formatEuros(devis.totalTVA)}</span>
                   </div>
                 )}
-                <div className="flex justify-between border-t-2 border-[#1E2F6E] pt-2 mt-1">
+                <div className="flex justify-between border-t-2 border-[#F7941E] pt-2 mt-1">
                   <span className="text-base font-bold text-[#1E2F6E]">TOTAL TTC</span>
                   <span className="text-base font-bold text-[#1E2F6E]">{formatEuros(devis.totalTTC)}</span>
                 </div>

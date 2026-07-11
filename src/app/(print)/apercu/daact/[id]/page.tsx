@@ -29,7 +29,7 @@ export default async function ApercuDAACTPage({
         <div className="px-12 py-10 print:px-10 print:py-8">
 
           {/* En-tête SDA */}
-          <div className="flex items-start justify-between border-b-[3px] border-[#1E2F6E] pb-5 mb-5">
+          <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-5">
             <div className="flex items-center gap-3 mb-2">
               <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain" />
               <p className="text-xs font-semibold text-[#F7941E] uppercase tracking-wide">{COMPANY.activite}</p>

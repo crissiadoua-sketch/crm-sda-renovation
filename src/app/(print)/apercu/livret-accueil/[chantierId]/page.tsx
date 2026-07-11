@@ -171,7 +171,7 @@ export default async function LivretAccueilPage({
 
             {/* Encadré CHANTIER */}
             <div className="w-full max-w-[380px] border border-slate-300 rounded-sm mt-4">
-              <div className="bg-[#1E2F6E] px-4 py-2 text-center">
+              <div className="bg-[#1B3F94] px-4 py-2 text-center">
                 <span className="text-white font-bold text-sm tracking-widest uppercase">CHANTIER</span>
               </div>
               <div className="px-6 py-5 text-center space-y-1">
@@ -230,9 +230,9 @@ export default async function LivretAccueilPage({
             <table className="w-full border-collapse text-xs mb-4">
               <thead>
                 <tr>
-                  <th className="px-3 py-2 bg-[#1E2F6E] text-white text-left font-semibold border border-[#1E2F6E]">Fonction</th>
-                  <th className="px-3 py-2 bg-[#1E2F6E] text-white text-left font-semibold border border-[#1E2F6E]">Nom</th>
-                  <th className="px-3 py-2 bg-[#1E2F6E] text-white text-left font-semibold border border-[#1E2F6E]">Contact</th>
+                  <th className="px-3 py-2 bg-[#1B3F94] text-white text-left font-semibold border border-[#1E2F6E]">Fonction</th>
+                  <th className="px-3 py-2 bg-[#1B3F94] text-white text-left font-semibold border border-[#1E2F6E]">Nom</th>
+                  <th className="px-3 py-2 bg-[#1B3F94] text-white text-left font-semibold border border-[#1E2F6E]">Contact</th>
                 </tr>
               </thead>
               <tbody>
@@ -263,8 +263,8 @@ export default async function LivretAccueilPage({
             <table className="w-full border-collapse text-xs mb-3">
               <thead>
                 <tr>
-                  <th className="px-3 py-2 bg-[#1E2F6E] text-white text-left font-semibold border border-[#1E2F6E]">Lot / Corps de métier</th>
-                  <th className="px-3 py-2 bg-[#1E2F6E] text-white text-left font-semibold border border-[#1E2F6E]">Intervention prévue</th>
+                  <th className="px-3 py-2 bg-[#1B3F94] text-white text-left font-semibold border border-[#1E2F6E]">Lot / Corps de métier</th>
+                  <th className="px-3 py-2 bg-[#1B3F94] text-white text-left font-semibold border border-[#1E2F6E]">Intervention prévue</th>
                 </tr>
               </thead>
               <tbody>

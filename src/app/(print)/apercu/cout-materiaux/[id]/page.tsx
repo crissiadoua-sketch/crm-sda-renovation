@@ -35,7 +35,7 @@ export default async function ApercuCoutMateriauxPage({
         <div className="px-10 py-8 print:px-8 print:py-6">
 
           {/* En-tête SDA */}
-          <div className="flex items-start justify-between border-b-[3px] border-[#1E2F6E] pb-5 mb-5">
+          <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-5">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain" />
@@ -63,7 +63,7 @@ export default async function ApercuCoutMateriauxPage({
             <table className="w-full border-collapse text-xs">
               <thead>
                 {/* Ligne 1 : groupes */}
-                <tr className="bg-[#1E2F6E] text-white text-[10px]">
+                <tr className="bg-[#1B3F94] text-white text-[10px]">
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold" rowSpan={2}>Réf</th>
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold" rowSpan={2}>Désignation Matériaux</th>
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-center font-semibold" rowSpan={2}>U</th>
@@ -106,7 +106,7 @@ export default async function ApercuCoutMateriauxPage({
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-[#1E2F6E] text-white font-bold">
+                <tr className="bg-[#1B3F94] text-white font-bold">
                   <td className="border border-[#29ABE2] px-2 py-2 text-xs" colSpan={11}>Coût moyen pondéré (moyenne)</td>
                   <td className="border border-[#29ABE2] px-2 py-2 text-right text-sm">{formatEuros(avg)}</td>
                 </tr>

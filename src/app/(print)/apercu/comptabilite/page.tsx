@@ -30,7 +30,7 @@ export default async function ApercuComptabilitePage({
       <div className="mx-auto my-8 w-full max-w-[297mm] bg-white shadow-xl print:my-0 print:shadow-none">
         <div className="px-10 py-8 print:px-8 print:py-6">
           {/* En-tête SDA */}
-          <div className="flex items-start justify-between border-b-[3px] border-[#1E2F6E] pb-5 mb-5">
+          <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-5">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain" />
@@ -71,7 +71,7 @@ export default async function ApercuComptabilitePage({
           <p className="mb-2 text-sm font-bold text-[#1E2F6E]">Journal des ventes — {factures.length} facture{factures.length !== 1 ? "s" : ""}</p>
           <table className="mb-6 w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-[#1E2F6E] text-white text-[10px]">
+              <tr className="bg-[#1B3F94] text-white text-[10px]">
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Date</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Numéro</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Client</th>
@@ -111,7 +111,7 @@ export default async function ApercuComptabilitePage({
           <p className="mb-2 text-sm font-bold text-[#1E2F6E]">Journal des achats — dépenses &amp; charges</p>
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-[#1E2F6E] text-white text-[10px]">
+              <tr className="bg-[#1B3F94] text-white text-[10px]">
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Date</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Libellé</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Catégorie</th>

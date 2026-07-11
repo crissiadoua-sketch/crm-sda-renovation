@@ -33,7 +33,7 @@ export default async function ApercuRapportHebdoPage({
         <div className="px-12 py-10 print:px-10 print:py-8">
 
           {/* En-tête SDA */}
-          <div className="flex items-start justify-between border-b-[3px] border-[#1E2F6E] pb-5 mb-5">
+          <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-5">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain" />
@@ -113,7 +113,7 @@ export default async function ApercuRapportHebdoPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Tâches de la semaine</p>
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="bg-[#1E2F6E] text-white">
+                  <tr className="bg-[#1B3F94] text-white">
                     <th className="px-2 py-1.5 text-left font-semibold w-6">#</th>
                     <th className="px-2 py-1.5 text-left font-semibold">Tâche</th>
                     <th className="px-2 py-1.5 text-center font-semibold w-16">Début %</th>

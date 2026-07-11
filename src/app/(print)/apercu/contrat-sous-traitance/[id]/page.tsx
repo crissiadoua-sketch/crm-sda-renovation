@@ -54,7 +54,7 @@ export default async function ApercuContratSousTraitancePage({
         <div className="px-12 py-8 print:px-10 print:py-6">
 
           {/* En-tête */}
-          <div className="flex items-start justify-between border-b-2 border-[#1E2F6E] pb-4 mb-6">
+          <div className="flex items-start justify-between border-b-2 border-[#F7941E] pb-4 mb-6">
             <div className="flex items-center gap-3">
               <img src="/logo.png" alt="SDA Rénovation" className="h-10 w-auto object-contain" />
             </div>

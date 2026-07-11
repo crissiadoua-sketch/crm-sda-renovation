@@ -46,7 +46,7 @@ export default async function ApercuBonReservationPompePage({
         <div className="px-10 py-8 print:px-9 print:py-7">
 
           {/* ── En-tête SDA ──────────────────────────────────────────────────── */}
-          <div className="flex items-start justify-between border-b-[3px] border-[#1E2F6E] pb-5 mb-5">
+          <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-5">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain" />
@@ -159,7 +159,7 @@ export default async function ApercuBonReservationPompePage({
 
           {/* ── Type de pompe ────────────────────────────────────────────────── */}
           <div className="mb-5">
-            <div className="rounded-t-lg bg-[#1E2F6E] px-4 py-2 flex items-center gap-2">
+            <div className="rounded-t-lg bg-[#1B3F94] px-4 py-2 flex items-center gap-2">
               <span className="text-white font-bold text-xs uppercase tracking-widest">Type de pompe</span>
             </div>
             <div className="rounded-b-lg border border-[#1E2F6E]/20 overflow-hidden">
@@ -210,7 +210,7 @@ export default async function ApercuBonReservationPompePage({
 
           {/* ── Prix et conditions ───────────────────────────────────────────── */}
           <div className="mb-5 rounded-lg border border-[#1E2F6E]/20 overflow-hidden">
-            <div className="bg-[#1E2F6E] px-4 py-2">
+            <div className="bg-[#1B3F94] px-4 py-2">
               <span className="text-white font-bold text-xs uppercase tracking-widest">
                 Prix et conditions de paiement
               </span>
@@ -239,7 +239,7 @@ export default async function ApercuBonReservationPompePage({
                       <span className="text-slate-500">TVA {brp.tauxTVA ?? 20} %</span>
                       <span className="font-medium">{fmt(tva)}</span>
                     </div>
-                    <div className="flex justify-between border-t-2 border-[#1E2F6E] pt-1.5 mt-1">
+                    <div className="flex justify-between border-t-2 border-[#F7941E] pt-1.5 mt-1">
                       <span className="font-bold text-[#1E2F6E]">PRIX TTC</span>
                       <span className="font-black text-[#1E2F6E] text-lg">{fmt(ttc)}</span>
                     </div>

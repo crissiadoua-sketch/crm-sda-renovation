@@ -41,7 +41,7 @@ export default async function ApercuEtatReservesPage({
         <div className="px-10 py-8 print:px-8 print:py-6 text-sm">
 
           {/* En-tête */}
-          <div className="flex items-start justify-between border-b-[3px] border-[#1E2F6E] pb-5 mb-6">
+          <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-6">
             <div>
               <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain mb-2" />
               <div className="text-xs text-slate-500 space-y-0.5">

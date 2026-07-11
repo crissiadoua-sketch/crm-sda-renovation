@@ -39,7 +39,7 @@ export default async function ApercuDebourseSecPage({
         <div className="px-12 py-10 print:px-10 print:py-8">
 
           {/* En-tête SDA */}
-          <div className="flex items-start justify-between border-b-[3px] border-[#1E2F6E] pb-5 mb-5">
+          <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-5">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain" />
@@ -133,7 +133,7 @@ export default async function ApercuDebourseSecPage({
 
           {/* Récapitulatif final */}
           <div className="mb-5 rounded-xl border-2 border-[#1E2F6E] overflow-hidden">
-            <div className="bg-[#1E2F6E] px-4 py-2">
+            <div className="bg-[#1B3F94] px-4 py-2">
               <p className="text-sm font-black text-white uppercase tracking-wide">Récapitulatif général</p>
             </div>
             <div className="px-4 py-3 space-y-1.5">

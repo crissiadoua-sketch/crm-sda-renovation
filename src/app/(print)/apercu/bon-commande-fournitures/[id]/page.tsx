@@ -65,7 +65,7 @@ export default async function ApercuBcFournituresPage({
         <div className="px-10 py-8 print:px-9 print:py-7">
 
           {/* ── En-tête ──────────────────────────────────────────────────────── */}
-          <div className="flex items-start justify-between border-b-[3px] border-[#1E2F6E] pb-5 mb-5">
+          <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-5">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain" />

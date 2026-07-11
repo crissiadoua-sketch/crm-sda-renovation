@@ -1,4 +1,4 @@
-import { COMPANY } from "@/lib/company";
+﻿import { COMPANY } from "@/lib/company";
 import { formatDate, formatEuros } from "@/lib/format";
 import { donneesComptables } from "@/lib/comptabilite-filtre";
 import { PrintToolbar } from "./print-toolbar";
@@ -37,7 +37,7 @@ export default async function ApercuComptabilitePage({
               </div>
               <div className="text-xs text-slate-500 space-y-0.5 ml-1">
                 <p>{COMPANY.adresse} — {COMPANY.codePostal} {COMPANY.ville}</p>
-                <p>{COMPANY.email} · {COMPANY.site}</p>
+                <p>{COMPANY.email} · {COMPANY.emailDirecteur} · {COMPANY.site}</p>
                 <p>SIREN {COMPANY.siren} · TVA {COMPANY.tvaIntracommunautaire}</p>
               </div>
             </div>

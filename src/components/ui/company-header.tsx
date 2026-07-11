@@ -27,7 +27,7 @@ export function CompanyHeader({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-white">{COMPANY.nom}</p>
           <p className="text-xs text-white/70">
-            SIREN {COMPANY.siren} · {COMPANY.ville} {COMPANY.codePostal} · {COMPANY.email}
+            SIREN {COMPANY.siren} · {COMPANY.ville} {COMPANY.codePostal} · {COMPANY.email} · {COMPANY.emailDirecteur}
           </p>
         </div>
         {typeDocument && (

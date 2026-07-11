@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { formatEuros, formatDate, clientDisplayName } from "@/lib/format";
@@ -49,7 +49,7 @@ export default async function ApercuFacturePage({
               </div>
               <div className="mt-2 text-xs text-slate-500 space-y-0.5">
                 <p>{COMPANY.adresse} — {COMPANY.codePostal} {COMPANY.ville}</p>
-                <p>{COMPANY.email} · {COMPANY.site}</p>
+                <p>{COMPANY.email} · {COMPANY.emailDirecteur} · {COMPANY.site}</p>
                 <p>SIREN {COMPANY.siren} · TVA {COMPANY.tvaIntracommunautaire}</p>
               </div>
             </div>

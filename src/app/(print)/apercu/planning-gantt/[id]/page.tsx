@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
@@ -212,7 +212,7 @@ export default async function ApercuPlanningGanttPage({
               </div>
               <div className="text-xs text-slate-500 space-y-0.5 ml-1">
                 <p>{COMPANY.adresse} — {COMPANY.codePostal} {COMPANY.ville}</p>
-                <p>{COMPANY.email} · {COMPANY.site}</p>
+                <p>{COMPANY.email} · {COMPANY.emailDirecteur} · {COMPANY.site}</p>
               </div>
             </div>
             <div className="text-right">

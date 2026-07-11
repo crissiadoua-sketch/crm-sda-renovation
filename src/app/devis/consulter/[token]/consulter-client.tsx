@@ -45,6 +45,7 @@ export default function ConsulterClient({
   const isDrawing = useRef(false);
 
   const apercuUrl = `/apercu/devis/${devisId}?descriptif=1`;
+  const apercuSigneUrl = `/apercu/devis/${devisId}`;
 
   // ── Canvas helpers ──────────────────────────────────────────────────────────
   function getPos(e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement): [number, number] {
@@ -146,18 +147,32 @@ export default function ConsulterClient({
 
         <DevisCard numero={numero} chantierNom={chantierNom} objet={objet} totalTTC={totalTTC} dateValidite={dateValidite} />
 
-        {/* Bouton PDF — disponible seulement après acceptation */}
+        {/* Bouton devis signé — version principale avec signature */}
+        <a
+          href={apercuSigneUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2.5 w-full rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-bold py-3.5 text-sm hover:opacity-90 transition shadow-md"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Télécharger le devis signé (PDF)
+        </a>
+
+        {/* Bouton devis sans signature */}
         <a
           href={apercuUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2.5 w-full rounded-xl border-2 border-[#1E2F6E] bg-white text-[#1E2F6E] font-bold py-3.5 text-sm hover:bg-[#1E2F6E]/5 transition"
+          className="flex items-center justify-center gap-2.5 w-full rounded-xl border-2 border-[#1E2F6E]/30 bg-white text-[#1E2F6E] font-semibold py-3 text-sm hover:bg-[#1E2F6E]/5 transition"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
           </svg>
-          Télécharger le devis (PDF)
+          Télécharger le devis sans signature
         </a>
         <p className="text-[11px] text-slate-400 text-center -mt-2">
           Dans la page qui s'ouvre, cliquez sur "Imprimer / Enregistrer en PDF"

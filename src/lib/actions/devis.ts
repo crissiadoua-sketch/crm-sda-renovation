@@ -7,6 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { prochainNumeroDocument } from "@/lib/codification";
 import { randomBytes } from "crypto";
 import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
+import { envoyerEmail } from "@/lib/email";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.com";
 
 const devisHeaderSchema = z.object({
   chantierId: z.string().min(1, "Le chantier est requis."),
@@ -528,7 +531,11 @@ export async function signerDevis(
 ): Promise<{ ok: boolean; error?: string }> {
   const devis = await prisma.devis.findUnique({
     where: { signatureToken: token },
-    select: { id: true, statut: true, chantierId: true, signature: { select: { id: true } } },
+    include: {
+      client: { select: { prenom: true, nom: true, raisonSociale: true, email: true } },
+      chantier: { select: { nom: true } },
+      signature: { select: { id: true } },
+    },
   });
 
   if (!devis) return { ok: false, error: "Lien invalide ou expiré." };
@@ -548,7 +555,6 @@ export async function signerDevis(
       where: { id: devis.id },
       data: { statut: "ACCEPTE" },
     }),
-    // Toutes les variantes du même chantier passent automatiquement en Refusé
     prisma.devis.updateMany({
       where: {
         chantierId: devis.chantierId,
@@ -558,6 +564,106 @@ export async function signerDevis(
       data: { statut: "REFUSE" },
     }),
   ]);
+
+  // Notification email à SDA
+  const clientNom = devis.client?.raisonSociale ?? (`${devis.client?.prenom ?? ""} ${devis.client?.nom ?? ""}`.trim() || "Client");
+  const lienDevis = `${APP_URL}/devis/${devis.id}`;
+  const dateSignature = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(new Date());
+  await envoyerEmail({
+    to: "contact@sda-renovation.com",
+    subject: `✅ Devis accepté — ${devis.numero} · ${clientNom}`,
+    html: `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px">
+<tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+  <tr><td style="background:#1E2F6E;border-radius:10px 10px 0 0;padding:24px 32px">
+    <p style="margin:0;font-size:22px;font-weight:bold;color:#fff">SDA Rénovation</p>
+    <p style="margin:4px 0 0;font-size:13px;color:#93c5fd">Notification de signature</p>
+  </td></tr>
+  <tr><td style="background:#fff;padding:32px;border:1px solid #e2e8f0;border-top:none">
+    <p style="margin:0 0 8px;font-size:24px">✅</p>
+    <p style="margin:0 0 16px;font-size:18px;font-weight:bold;color:#1E2F6E">Devis accepté et signé</p>
+    <table style="width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid #10b981;border-radius:6px;padding:20px 24px;margin-bottom:20px" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:4px 24px">
+        <p style="margin:4px 0;font-size:14px;color:#334155"><strong>Devis :</strong> ${devis.numero}</p>
+        <p style="margin:4px 0;font-size:14px;color:#334155"><strong>Chantier :</strong> ${devis.chantier?.nom ?? "—"}</p>
+        <p style="margin:4px 0;font-size:14px;color:#334155"><strong>Client :</strong> ${clientNom}</p>
+        <p style="margin:4px 0;font-size:14px;color:#334155"><strong>Signataire :</strong> ${nomSignataire}</p>
+        <p style="margin:4px 0;font-size:14px;color:#334155"><strong>Date :</strong> ${dateSignature}</p>
+      </td></tr>
+    </table>
+    <div style="text-align:center;margin:24px 0">
+      <a href="${lienDevis}" style="display:inline-block;background:#1E2F6E;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600">Voir le devis signé →</a>
+    </div>
+  </td></tr>
+  <tr><td style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;padding:16px 32px">
+    <p style="margin:0;font-size:11px;color:#94a3b8;text-align:center">Notification automatique CRM SDA Rénovation</p>
+  </td></tr>
+</table></td></tr></table>
+</body></html>`,
+  }).catch(() => { /* notification non bloquante */ });
+
+  revalidatePath(`/devis/${devis.id}`);
+  return { ok: true };
+}
+
+export async function refuserDevis(
+  token: string,
+  motif?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const devis = await prisma.devis.findUnique({
+    where: { signatureToken: token },
+    include: {
+      client: { select: { prenom: true, nom: true, raisonSociale: true } },
+      chantier: { select: { nom: true } },
+      signature: { select: { id: true } },
+    },
+  });
+
+  if (!devis) return { ok: false, error: "Lien invalide ou expiré." };
+  if (devis.signature) return { ok: false, error: "Ce devis a déjà été traité." };
+  if (devis.statut === "REFUSE") return { ok: false, error: "Ce devis est déjà refusé." };
+
+  await prisma.devis.update({
+    where: { id: devis.id },
+    data: { statut: "REFUSE" },
+  });
+
+  // Notification email à SDA
+  const clientNom = devis.client?.raisonSociale ?? (`${devis.client?.prenom ?? ""} ${devis.client?.nom ?? ""}`.trim() || "Client");
+  const lienDevis = `${APP_URL}/devis/${devis.id}`;
+  await envoyerEmail({
+    to: "contact@sda-renovation.com",
+    subject: `❌ Devis refusé — ${devis.numero} · ${clientNom}`,
+    html: `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px">
+<tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+  <tr><td style="background:#1E2F6E;border-radius:10px 10px 0 0;padding:24px 32px">
+    <p style="margin:0;font-size:22px;font-weight:bold;color:#fff">SDA Rénovation</p>
+    <p style="margin:4px 0 0;font-size:13px;color:#93c5fd">Notification de refus</p>
+  </td></tr>
+  <tr><td style="background:#fff;padding:32px;border:1px solid #e2e8f0;border-top:none">
+    <p style="margin:0 0 8px;font-size:24px">❌</p>
+    <p style="margin:0 0 16px;font-size:18px;font-weight:bold;color:#dc2626">Devis refusé par le client</p>
+    <table style="width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid #ef4444;border-radius:6px;padding:20px 24px;margin-bottom:20px" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:4px 24px">
+        <p style="margin:4px 0;font-size:14px;color:#334155"><strong>Devis :</strong> ${devis.numero}</p>
+        <p style="margin:4px 0;font-size:14px;color:#334155"><strong>Chantier :</strong> ${devis.chantier?.nom ?? "—"}</p>
+        <p style="margin:4px 0;font-size:14px;color:#334155"><strong>Client :</strong> ${clientNom}</p>
+        ${motif ? `<p style="margin:8px 0 4px;font-size:14px;color:#334155"><strong>Motif :</strong> ${motif}</p>` : ""}
+      </td></tr>
+    </table>
+    <div style="text-align:center;margin:24px 0">
+      <a href="${lienDevis}" style="display:inline-block;background:#1E2F6E;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600">Voir le devis →</a>
+    </div>
+  </td></tr>
+  <tr><td style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;padding:16px 32px">
+    <p style="margin:0;font-size:11px;color:#94a3b8;text-align:center">Notification automatique CRM SDA Rénovation</p>
+  </td></tr>
+</table></td></tr></table>
+</body></html>`,
+  }).catch(() => { /* notification non bloquante */ });
 
   revalidatePath(`/devis/${devis.id}`);
   return { ok: true };

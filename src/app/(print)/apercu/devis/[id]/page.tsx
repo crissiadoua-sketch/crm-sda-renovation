@@ -36,6 +36,7 @@ export default async function ApercuDevisPage({
       chantier: true,
       client: true,
       lignes: { orderBy: { ordre: "asc" } },
+      signature: { select: { nomSignataire: true, dateSignature: true, imageSignature: true } },
     },
   });
 
@@ -415,21 +416,55 @@ export default async function ApercuDevisPage({
           {/* Bon pour accord */}
           {!sansPrix && !synthese && !descriptif && (
             <div className="mb-8 rounded-lg border-2 border-[#1E2F6E]/20 bg-slate-50 p-5">
-              <p className="text-sm font-semibold text-[#1E2F6E] mb-3">Bon pour accord</p>
-              <p className="text-xs text-slate-500 mb-6">
-                En signant ce devis, le client accepte les conditions générales de vente et autorise {COMPANY.nom} à réaliser les travaux décrits ci-dessus.
-              </p>
-              <div className="grid grid-cols-2 gap-8">
-                <div>
-                  <p className="text-xs text-slate-400 mb-1">Fait à :</p>
-                  <div className="h-px w-full bg-slate-300 mt-8" />
-                  <p className="text-xs text-slate-400 mt-1">Lieu et date</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 mb-1">Signature du client (précédée de la mention « Bon pour accord ») :</p>
-                  <div className="h-16 w-full rounded border border-dashed border-slate-300 bg-white" />
-                </div>
-              </div>
+              {devis.signature ? (
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-green-600 text-lg">✅</span>
+                    <p className="text-sm font-semibold text-green-700">Devis accepté et signé électroniquement</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-8">
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">Signataire :</p>
+                      <p className="text-sm font-semibold text-slate-700">{devis.signature.nomSignataire}</p>
+                      <p className="text-xs text-slate-400 mt-2">Date de signature :</p>
+                      <p className="text-sm text-slate-700">
+                        {new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(new Date(devis.signature.dateSignature))}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-3 italic">
+                        Signature électronique conforme à l'article 1367 du Code civil
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">Signature :</p>
+                      <div className="rounded border border-slate-200 bg-white p-2 h-20 flex items-center justify-center">
+                        <img
+                          src={devis.signature.imageSignature}
+                          alt="Signature électronique"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-[#1E2F6E] mb-3">Bon pour accord</p>
+                  <p className="text-xs text-slate-500 mb-6">
+                    En signant ce devis, le client accepte les conditions générales de vente et autorise {COMPANY.nom} à réaliser les travaux décrits ci-dessus.
+                  </p>
+                  <div className="grid grid-cols-2 gap-8">
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">Fait à :</p>
+                      <div className="h-px w-full bg-slate-300 mt-8" />
+                      <p className="text-xs text-slate-400 mt-1">Lieu et date</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">Signature du client (précédée de la mention « Bon pour accord ») :</p>
+                      <div className="h-16 w-full rounded border border-dashed border-slate-300 bg-white" />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

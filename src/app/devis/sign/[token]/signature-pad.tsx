@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { signerDevis } from "@/lib/actions/devis";
+import { signerDevis, refuserDevis } from "@/lib/actions/devis";
 
 interface Props {
   token: string;
@@ -20,6 +20,9 @@ export default function SignaturePad({ token, devisNumero }: Props) {
   const [nom, setNom] = useState("");
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [refused, setRefused] = useState(false);
+  const [showRefuseModal, setShowRefuseModal] = useState(false);
+  const [motifRefus, setMotifRefus] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -132,6 +135,30 @@ export default function SignaturePad({ token, devisNumero }: Props) {
     finally { setPending(false); }
   }
 
+  async function handleRefuser() {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await refuserDevis(token, motifRefus.trim() || undefined);
+      if (result.ok) { setRefused(true); setShowRefuseModal(false); }
+      else { setError(result.error ?? "Erreur lors du refus."); }
+    } catch { setError("Une erreur inattendue s'est produite."); }
+    finally { setPending(false); }
+  }
+
+  if (refused) {
+    return (
+      <div className="rounded-2xl bg-red-50 border border-red-200 px-6 py-8 text-center">
+        <p className="text-4xl mb-3">❌</p>
+        <p className="text-red-700 font-bold text-xl">Devis refusé</p>
+        <p className="text-red-600 text-sm mt-2">
+          Votre refus a été enregistré pour le devis <span className="font-mono font-semibold">{devisNumero}</span>.
+          <br />SDA Rénovation a été notifié et vous contactera prochainement.
+        </p>
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-6 py-8 text-center">
@@ -146,6 +173,7 @@ export default function SignaturePad({ token, devisNumero }: Props) {
   }
 
   return (
+    <>
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="bg-[#1E2F6E]/5 px-5 py-3 border-b border-slate-100">
         <p className="text-xs font-bold uppercase tracking-widest text-[#1E2F6E]">Votre signature</p>
@@ -275,7 +303,55 @@ export default function SignaturePad({ token, devisNumero }: Props) {
           En cliquant sur "Signer le devis", vous acceptez les conditions et apposez votre signature électronique
           conformément à l'article 1367 du Code civil.
         </p>
+
+        <div className="border-t border-slate-100 pt-4 text-center">
+          <button
+            type="button"
+            onClick={() => setShowRefuseModal(true)}
+            disabled={pending}
+            className="text-sm text-slate-400 hover:text-red-500 underline underline-offset-2 transition"
+          >
+            Refuser ce devis
+          </button>
+        </div>
       </div>
     </div>
+
+    {/* Modal de refus */}
+    {showRefuseModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 flex flex-col gap-4">
+          <p className="text-lg font-bold text-slate-800">Refuser le devis {devisNumero} ?</p>
+          <p className="text-sm text-slate-500">SDA Rénovation sera notifié de votre refus. Vous pouvez indiquer un motif (facultatif).</p>
+          <textarea
+            value={motifRefus}
+            onChange={(e) => setMotifRefus(e.target.value)}
+            placeholder="Motif du refus (facultatif)..."
+            rows={3}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none resize-none"
+          />
+          {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowRefuseModal(false)}
+              disabled={pending}
+              className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleRefuser}
+              disabled={pending}
+              className="flex-1 rounded-xl bg-red-600 text-white py-2.5 text-sm font-bold hover:bg-red-700 transition disabled:opacity-60"
+            >
+              {pending ? "Envoi…" : "Confirmer le refus"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

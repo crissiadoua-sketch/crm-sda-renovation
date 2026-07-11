@@ -24,12 +24,12 @@ export default async function CoutMateriauxDetailPage({
   if (!doc) notFound();
 
   const chantiers = await prisma.chantier.findMany({
-    select: { id: true, nom: true, reference: true },
+    select: { id: true, nom: true, reference: true, clientId: true },
     orderBy: { nom: "asc" },
   });
 
   const devisList = await prisma.devis.findMany({
-    select: { id: true, numero: true, objet: true },
+    select: { id: true, numero: true, objet: true, chantierId: true },
     orderBy: { dateCreation: "desc" },
   });
 

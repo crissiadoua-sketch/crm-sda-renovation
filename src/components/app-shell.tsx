@@ -124,7 +124,9 @@ export function AppShell({
       {/* Sidebar — desktop */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col bg-gradient-to-b from-brand-blue to-brand-navy print:hidden">
         <div className="flex items-center px-6 py-6">
-          <Logo variant="light" size="md" />
+          <Link href="/">
+            <Logo variant="light" size="md" />
+          </Link>
         </div>
         <SidebarNav pathname={pathname} navGroups={navGroups} smtpConfigured={smtpConfigured} />
         <UserFooter user={user} />
@@ -139,7 +141,9 @@ export function AppShell({
           />
           <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-gradient-to-b from-brand-blue to-brand-navy">
             <div className="flex items-center justify-between px-6 py-6">
-              <Logo variant="light" size="md" />
+              <Link href="/">
+                <Logo variant="light" size="md" />
+              </Link>
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}

@@ -178,6 +178,33 @@ export default async function DevisDetailPage({
           action={envoyerDevisParEmail.bind(null, devis.id)}
           defaultTo={devis.client.email ?? ""}
           documentLabel={`devis ${devis.numero}`}
+          vueOptions={[
+            {
+              value: "client",
+              label: "Vue client",
+              description: "Résumé + total TTC + lien de signature",
+              icon: "✍️",
+            },
+            {
+              value: "commerciale",
+              label: "Vue détaillée",
+              description: "Toutes les lignes avec prix unitaires",
+              icon: "📋",
+            },
+            {
+              value: "synthese",
+              label: "Vue synthèse",
+              description: "Totaux HT/TVA/TTC uniquement",
+              icon: "📊",
+            },
+            {
+              value: "sans_prix",
+              label: "Sans prix",
+              description: "Descriptif seul, pas de montants (archi, MOE…)",
+              icon: "📝",
+            },
+          ]}
+          defaultVue="client"
         />
         <PdfPreviewModal
           href={`/apercu/devis/${devis.id}`}

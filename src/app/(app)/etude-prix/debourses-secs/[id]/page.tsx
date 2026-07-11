@@ -25,11 +25,11 @@ export default async function EtudeDebourseDetailPage({
     }),
     prisma.chantier.findMany({
       orderBy: { nom: "asc" },
-      select: { id: true, nom: true, reference: true },
+      select: { id: true, nom: true, reference: true, clientId: true },
     }),
     prisma.devis.findMany({
       orderBy: { numero: "desc" },
-      select: { id: true, numero: true, objet: true },
+      select: { id: true, numero: true, objet: true, chantierId: true },
     }),
     prisma.ouvrage.findMany({
       where: { actif: true },
@@ -66,7 +66,7 @@ export default async function EtudeDebourseDetailPage({
         totalMOHT: etude.totalMOHT,
         totalDSHT: etude.totalDSHT,
         chantier: etude.chantier
-          ? { id: etude.chantier.id, nom: etude.chantier.nom, reference: etude.chantier.reference }
+          ? { id: etude.chantier.id, nom: etude.chantier.nom, reference: etude.chantier.reference, clientId: (etude.chantier as { clientId?: string | null }).clientId ?? null }
           : null,
         devis: etude.devis
           ? { id: etude.devis.id, numero: etude.devis.numero, objet: etude.devis.objet }
@@ -95,7 +95,7 @@ export default async function EtudeDebourseDetailPage({
           })),
         })),
       }}
-      chantiers={chantiers}
+      chantiers={chantiers.map(c => ({ ...c, clientId: (c as { clientId?: string | null }).clientId ?? null }))}
       devisList={devis}
       ouvrages={ouvrages.map((o) => ({
         id: o.id,

@@ -5,11 +5,22 @@ import { Mail, X, Send, CheckCircle, AlertCircle } from "lucide-react";
 
 type EmailAction = (prev: unknown, formData: FormData) => Promise<{ ok: boolean; error?: string }>;
 
+export type VueOption = {
+  value: string;
+  label: string;
+  description: string;
+  icon?: string;
+};
+
 interface EnvoyerEmailModalProps {
   action: EmailAction;
   defaultTo?: string;
   documentLabel?: string;
   buttonVariant?: "default" | "small";
+  /** Options de vue disponibles — si absent, pas de sélecteur de vue */
+  vueOptions?: VueOption[];
+  /** Valeur par défaut du sélecteur de vue */
+  defaultVue?: string;
 }
 
 export function EnvoyerEmailModal({
@@ -17,18 +28,19 @@ export function EnvoyerEmailModal({
   defaultTo = "",
   documentLabel = "document",
   buttonVariant = "default",
+  vueOptions,
+  defaultVue,
 }: EnvoyerEmailModalProps) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(action, null);
+  const [selectedVue, setSelectedVue] = useState(defaultVue ?? vueOptions?.[0]?.value ?? "client");
 
   function handleClose() {
     setOpen(false);
   }
 
   const buttonCls =
-    buttonVariant === "small"
-      ? "inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-brand-blue/40 hover:bg-brand-blue/5 hover:text-brand-blue"
-      : "inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-brand-blue/40 hover:bg-brand-blue/5 hover:text-brand-blue";
+    "inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-brand-blue/40 hover:bg-brand-blue/5 hover:text-brand-blue";
 
   return (
     <>
@@ -39,7 +51,7 @@ export function EnvoyerEmailModal({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="relative w-full max-w-md rounded-xl bg-white shadow-2xl">
+          <div className="relative w-full max-w-lg rounded-xl bg-white shadow-2xl">
             {/* En-tête */}
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <div className="flex items-center gap-2">
@@ -77,15 +89,64 @@ export function EnvoyerEmailModal({
               </div>
             )}
 
-            {/* Formulaire (caché en cas de succès) */}
+            {/* Formulaire */}
             {!state?.ok && (
               <form action={formAction} className="flex flex-col gap-4 px-5 py-4">
                 {/* Erreur */}
                 {state?.error && (
                   <div className="flex items-start gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{state.error}</span>
+                    <div>
+                      <span>{state.error}</span>
+                      {state.error.includes("SMTP_HOST") && (
+                        <p className="mt-1 text-xs text-red-600">
+                          → Configurez les variables <code className="rounded bg-red-100 px-1">SMTP_USER</code> et <code className="rounded bg-red-100 px-1">SMTP_PASS</code> dans le fichier <code className="rounded bg-red-100 px-1">.env</code>, puis redémarrez le serveur.
+                        </p>
+                      )}
+                    </div>
                   </div>
+                )}
+
+                {/* Sélecteur de vue (si plusieurs options disponibles) */}
+                {vueOptions && vueOptions.length > 1 && (
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      Vue à envoyer
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {vueOptions.map((opt) => (
+                        <label
+                          key={opt.value}
+                          className={`flex cursor-pointer flex-col gap-0.5 rounded-lg border-2 p-3 transition-colors ${
+                            selectedVue === opt.value
+                              ? "border-brand-blue bg-brand-blue/5"
+                              : "border-slate-200 hover:border-slate-300"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="vue"
+                            value={opt.value}
+                            checked={selectedVue === opt.value}
+                            onChange={() => setSelectedVue(opt.value)}
+                            className="sr-only"
+                          />
+                          <span className="flex items-center gap-1.5">
+                            {opt.icon && <span className="text-base">{opt.icon}</span>}
+                            <span className={`text-sm font-semibold ${selectedVue === opt.value ? "text-brand-blue" : "text-slate-700"}`}>
+                              {opt.label}
+                            </span>
+                          </span>
+                          <span className="text-xs text-slate-500 leading-tight">{opt.description}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Champ caché si une seule vue */}
+                {(!vueOptions || vueOptions.length <= 1) && vueOptions?.[0] && (
+                  <input type="hidden" name="vue" value={vueOptions[0].value} />
                 )}
 
                 {/* Destinataire */}
@@ -119,7 +180,8 @@ export function EnvoyerEmailModal({
 
                 <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-2">
                   <p className="text-xs text-slate-400">
-                    Envoyé depuis <span className="font-medium">contact@sda-renovation.com</span>
+                    Envoyé depuis{" "}
+                    <span className="font-medium">contact@sda-renovation.com</span>
                   </p>
                   <div className="flex gap-2">
                     <button

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
@@ -98,7 +98,7 @@ export default async function ApercuPreDimensionnementPage({
 
           {/* Résultat */}
           <div className="mb-5 rounded-xl border-2 border-[#1E2F6E] overflow-hidden">
-            <div className="bg-[#F7941E] px-4 py-2">
+            <div className="bg-[#FFA726] px-4 py-2">
               <p className="text-sm font-black text-white uppercase tracking-wide">Résultat du pré-dimensionnement</p>
             </div>
             <div className="px-4 py-4">

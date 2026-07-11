@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
@@ -109,7 +109,7 @@ export default async function ApercuFicheNonConformitePage({
 
           {/* Description détaillée */}
           {fnc.description && (
-            <div className="mb-4 rounded-lg border border-[#F7941E]/50 bg-[#F7941E]/5 px-4 py-3">
+            <div className="mb-4 rounded-lg border border-[#F7941E]/50 bg-[#FFA726]/5 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#1E2F6E] mb-1">Description détaillée</p>
               <p className="text-xs text-slate-700 whitespace-pre-wrap">{fnc.description}</p>
             </div>

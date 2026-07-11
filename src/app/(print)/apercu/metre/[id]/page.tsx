@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { COMPANY } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
 import { formatDate } from "@/lib/format";
@@ -62,7 +62,7 @@ export default async function ApercuMetrePage({
 
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-[#F7941E] text-white text-[10px]">
+              <tr className="bg-[#FFA726] text-white text-[10px]">
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Désignation</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Type</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-right font-semibold">Valeur</th>

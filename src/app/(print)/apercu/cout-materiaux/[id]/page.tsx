@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
@@ -63,7 +63,7 @@ export default async function ApercuCoutMateriauxPage({
             <table className="w-full border-collapse text-xs">
               <thead>
                 {/* Ligne 1 : groupes */}
-                <tr className="bg-[#F7941E] text-white text-[10px]">
+                <tr className="bg-[#FFA726] text-white text-[10px]">
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold" rowSpan={2}>Réf</th>
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold" rowSpan={2}>Désignation Matériaux</th>
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-center font-semibold" rowSpan={2}>U</th>
@@ -106,7 +106,7 @@ export default async function ApercuCoutMateriauxPage({
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-[#F7941E] text-white font-bold">
+                <tr className="bg-[#FFA726] text-white font-bold">
                   <td className="border border-[#29ABE2] px-2 py-2 text-xs" colSpan={11}>Coût moyen pondéré (moyenne)</td>
                   <td className="border border-[#29ABE2] px-2 py-2 text-right text-sm">{formatEuros(avg)}</td>
                 </tr>

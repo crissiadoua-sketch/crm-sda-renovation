@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
@@ -183,7 +183,7 @@ export default async function ApercuDevisPage({
             {synthese ? (
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="bg-[#F7941E] text-white">
+                  <tr className="bg-[#FFA726] text-white">
                     <th className="px-3 py-2 text-left font-semibold text-xs">Désignation</th>
                     <th className="px-3 py-2 text-right font-semibold text-xs w-32">Sous-total HT</th>
                   </tr>
@@ -196,7 +196,7 @@ export default async function ApercuDevisPage({
                     return (
                       <tr
                         key={ligne.id}
-                        className={ligne.type === "CHAPITRE" ? "bg-[#F7941E]/8" : "bg-slate-50"}
+                        className={ligne.type === "CHAPITRE" ? "bg-[#FFA726]/8" : "bg-slate-50"}
                         style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
                       >
                         <td className={`px-3 whitespace-pre-wrap ${
@@ -219,7 +219,7 @@ export default async function ApercuDevisPage({
             ) : (
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-[#F7941E] text-white">
+                <tr className="bg-[#FFA726] text-white">
                   <th className="px-3 py-2 text-left font-semibold text-xs w-16">Code</th>
                   <th className="px-3 py-2 text-left font-semibold text-xs">Désignation</th>
                   <th className="px-3 py-2 text-center font-semibold text-xs w-14">Unité</th>
@@ -256,7 +256,7 @@ export default async function ApercuDevisPage({
                     return (
                       <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid", breakAfter: "avoid", pageBreakAfter: "avoid" }}>
                         {subtotalRows}
-                        <tr className="bg-[#F7941E]/8">
+                        <tr className="bg-[#FFA726]/8">
                           <td colSpan={nbCols} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#F7941E]/50 whitespace-pre-wrap">
                             <RichText html={ligne.designation} />
                           </td>

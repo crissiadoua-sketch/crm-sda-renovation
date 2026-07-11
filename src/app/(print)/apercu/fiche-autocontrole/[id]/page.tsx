@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { formatDate } from "@/lib/format";
@@ -106,7 +106,7 @@ export default async function ApercuFicheAutocontrolePage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Points de contrôle</p>
               <table className="w-full text-xs border border-slate-200 rounded-lg overflow-hidden">
                 <thead>
-                  <tr className="bg-[#F7941E] text-white">
+                  <tr className="bg-[#FFA726] text-white">
                     <th className="px-3 py-2 text-left font-semibold w-6">#</th>
                     <th className="px-3 py-2 text-left font-semibold">Critère</th>
                     <th className="px-3 py-2 text-left font-semibold w-28">Exigence</th>

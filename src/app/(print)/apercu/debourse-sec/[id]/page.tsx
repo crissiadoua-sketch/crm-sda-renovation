@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
@@ -110,7 +110,7 @@ export default async function ApercuDebourseSecPage({
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-[#F7941E]/8 font-semibold text-[#1E2F6E]">
+                  <tr className="bg-[#FFA726]/8 font-semibold text-[#1E2F6E]">
                     <td className="border border-slate-200 px-2 py-1.5 text-xs" colSpan={4}>
                       Sous-Total DS par poste — Total DS d&apos;un {poste.unite ?? "unité"} de {poste.designation}
                     </td>
@@ -133,7 +133,7 @@ export default async function ApercuDebourseSecPage({
 
           {/* Récapitulatif final */}
           <div className="mb-5 rounded-xl border-2 border-[#1E2F6E] overflow-hidden">
-            <div className="bg-[#F7941E] px-4 py-2">
+            <div className="bg-[#FFA726] px-4 py-2">
               <p className="text-sm font-black text-white uppercase tracking-wide">Récapitulatif général</p>
             </div>
             <div className="px-4 py-3 space-y-1.5">
@@ -153,7 +153,7 @@ export default async function ApercuDebourseSecPage({
                 <span>Total DS (Déboursé Sec)</span>
                 <span>{formatEuros(eds.totalDSHT)}</span>
               </div>
-              <div className="flex justify-between rounded-lg bg-[#F7941E]/10 px-3 py-2 mt-1">
+              <div className="flex justify-between rounded-lg bg-[#FFA726]/10 px-3 py-2 mt-1">
                 <span className="text-base font-black text-[#F7941E]">PVHT = DS × K ({eds.coeffK.toFixed(2)})</span>
                 <span className="text-base font-black text-[#F7941E]">{formatEuros(pvht)}</span>
               </div>

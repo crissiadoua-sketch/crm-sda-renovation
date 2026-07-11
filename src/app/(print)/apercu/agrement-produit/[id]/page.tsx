@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
@@ -199,7 +199,7 @@ export default async function ApercuAgrementProduitPage({
           </div>
 
           {/* Mention délai */}
-          <div className="mb-4 rounded-lg border border-[#F7941E]/40 bg-[#F7941E]/5 px-4 py-2 text-center">
+          <div className="mb-4 rounded-lg border border-[#F7941E]/40 bg-[#FFA726]/5 px-4 py-2 text-center">
             <p className="text-xs text-slate-600 italic">
               À défaut de réponse sous 15 jours, ce produit sera mis en œuvre sur le chantier.
             </p>

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
@@ -65,7 +65,7 @@ export default async function ApercuApprovisionementChantierPage({
           <div className="mb-5 overflow-x-auto">
             <table className="w-full border-collapse text-xs">
               <thead>
-                <tr className="bg-[#F7941E] text-white text-[10px]">
+                <tr className="bg-[#FFA726] text-white text-[10px]">
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Matériaux</th>
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-right font-semibold">Rdmt/Conso</th>
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-center font-semibold">U</th>

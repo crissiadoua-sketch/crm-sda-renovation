@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
@@ -159,7 +159,7 @@ export default async function ApercuBonReservationPompePage({
 
           {/* ── Type de pompe ────────────────────────────────────────────────── */}
           <div className="mb-5">
-            <div className="rounded-t-lg bg-[#F7941E] px-4 py-2 flex items-center gap-2">
+            <div className="rounded-t-lg bg-[#FFA726] px-4 py-2 flex items-center gap-2">
               <span className="text-white font-bold text-xs uppercase tracking-widest">Type de pompe</span>
             </div>
             <div className="rounded-b-lg border border-[#1E2F6E]/20 overflow-hidden">
@@ -210,7 +210,7 @@ export default async function ApercuBonReservationPompePage({
 
           {/* ── Prix et conditions ───────────────────────────────────────────── */}
           <div className="mb-5 rounded-lg border border-[#1E2F6E]/20 overflow-hidden">
-            <div className="bg-[#F7941E] px-4 py-2">
+            <div className="bg-[#FFA726] px-4 py-2">
               <span className="text-white font-bold text-xs uppercase tracking-widest">
                 Prix et conditions de paiement
               </span>

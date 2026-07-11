@@ -1,4 +1,5 @@
 import { COMPANY } from "@/lib/company";
+import { EmailsDocument } from "@/components/ui/emails-document";
 
 interface CompanyHeaderProps {
   /** N° d'affaire / chantier (obligatoire pour la traçabilité BTP) */
@@ -11,7 +12,7 @@ interface CompanyHeaderProps {
   warnIfNoAffaire?: boolean;
 }
 
-export function CompanyHeader({
+export async function CompanyHeader({
   affaire,
   refDocument,
   typeDocument,
@@ -27,7 +28,7 @@ export function CompanyHeader({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-white">{COMPANY.nom}</p>
           <p className="text-xs text-white/70">
-            SIREN {COMPANY.siren} · {COMPANY.ville} {COMPANY.codePostal} · {COMPANY.email} · {COMPANY.emailFacturation}
+            SIREN {COMPANY.siren} · {COMPANY.ville} {COMPANY.codePostal} · <EmailsDocument />
           </p>
         </div>
         {typeDocument && (

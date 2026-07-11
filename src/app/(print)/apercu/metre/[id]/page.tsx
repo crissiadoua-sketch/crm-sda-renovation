@@ -1,5 +1,6 @@
-﻿import { notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { COMPANY } from "@/lib/company";
+import { EmailsDocument } from "@/components/ui/emails-document";
 import { formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { formatValeurLigne, type UniteAffichage } from "@/lib/metre-units";
@@ -43,7 +44,7 @@ export default async function ApercuMetrePage({
               </div>
               <div className="text-xs text-slate-500 space-y-0.5 ml-1">
                 <p>{COMPANY.adresse} — {COMPANY.codePostal} {COMPANY.ville}</p>
-                <p>{COMPANY.email} · {COMPANY.emailFacturation} · {COMPANY.site}</p>
+                <p><EmailsDocument /> · {COMPANY.site}</p>
                 <p>SIREN {COMPANY.siren} · TVA {COMPANY.tvaIntracommunautaire}</p>
               </div>
             </div>

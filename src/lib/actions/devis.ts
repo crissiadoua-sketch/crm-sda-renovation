@@ -528,7 +528,7 @@ export async function signerDevis(
 ): Promise<{ ok: boolean; error?: string }> {
   const devis = await prisma.devis.findUnique({
     where: { signatureToken: token },
-    select: { id: true, statut: true, signature: { select: { id: true } } },
+    select: { id: true, statut: true, chantierId: true, signature: { select: { id: true } } },
   });
 
   if (!devis) return { ok: false, error: "Lien invalide ou expiré." };
@@ -547,6 +547,15 @@ export async function signerDevis(
     prisma.devis.update({
       where: { id: devis.id },
       data: { statut: "ACCEPTE" },
+    }),
+    // Toutes les variantes du même chantier passent automatiquement en Refusé
+    prisma.devis.updateMany({
+      where: {
+        chantierId: devis.chantierId,
+        id: { not: devis.id },
+        statut: { notIn: ["ACCEPTE", "REFUSE"] },
+      },
+      data: { statut: "REFUSE" },
     }),
   ]);
 

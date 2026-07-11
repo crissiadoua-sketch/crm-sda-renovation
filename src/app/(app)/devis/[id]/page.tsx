@@ -358,7 +358,7 @@ export default async function DevisDetailPage({
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h3 className="mb-3 font-semibold text-brand-navy">Informations générales</h3>
-        <DevisForm devis={devis} chantiers={chantiers} action={updateDevisInfo.bind(null, devis.id)} />
+        <DevisForm devis={devis} chantiers={chantiers} action={updateDevisInfo.bind(null, devis.id)} isSigne={!!devis.signature} />
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

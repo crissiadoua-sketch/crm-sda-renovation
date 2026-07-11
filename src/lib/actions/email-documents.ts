@@ -51,6 +51,7 @@ async function getSignataire(): Promise<Signataire | undefined> {
   try {
     const { getUser } = await import("@/lib/dal");
     const u = await getUser();
+    if (u.role === "EXPERT_COMPTABLE") return undefined;
     return {
       name: u.name,
       titre: (u as { titre?: string | null }).titre ?? null,

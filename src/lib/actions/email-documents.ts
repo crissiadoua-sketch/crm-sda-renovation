@@ -11,7 +11,60 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.c
 // ---------------------------------------------------------------------------
 // Template HTML partagé
 // ---------------------------------------------------------------------------
-function emailLayout(titre: string, corps: string): string {
+type Signataire = { name: string; titre?: string | null; telephone?: string | null; email: string };
+
+function signatureHtml(s: Signataire): string {
+  const tel = s.telephone ?? "";
+  return `
+<table cellpadding="0" cellspacing="0" style="margin-top:16px;border-top:1px solid #e2e8f0;padding-top:16px;width:100%">
+  <tr>
+    <!-- Logo -->
+    <td style="width:90px;padding-right:16px;vertical-align:middle">
+      <img src="${APP_URL}/logo.png" alt="SDA Rénovation" width="80" style="display:block;max-width:80px">
+    </td>
+    <!-- Séparateur -->
+    <td style="width:1px;background:#e2e8f0;padding:0">&nbsp;</td>
+    <!-- Infos -->
+    <td style="padding-left:16px;vertical-align:top">
+      <p style="margin:0;font-size:13px;font-weight:bold;color:#1E2F6E">${s.name}</p>
+      ${s.titre ? `<p style="margin:1px 0 0;font-size:12px;color:#1E2F6E">${s.titre}</p>` : ""}
+      <p style="margin:1px 0 0;font-size:12px;color:#1E2F6E">SDA Rénovation</p>
+      ${tel ? `<p style="margin:8px 0 0;font-size:12px;color:#1e293b"><a href="tel:${tel}" style="color:#1e293b;text-decoration:none">${tel}</a></p>` : ""}
+      <p style="margin:3px 0 0;font-size:12px"><a href="mailto:${s.email}" style="color:#1e293b;text-decoration:underline">${s.email}</a></p>
+      <p style="margin:3px 0 0;font-size:11px;color:#64748b">Z.I du Casque 23 bis rue Aristide Berges,<br>31270 Cugnaux</p>
+      <table cellpadding="0" cellspacing="0" style="margin-top:8px">
+        <tr>
+          <td style="padding-right:6px">
+            <a href="https://www.facebook.com/sdarenovation" style="display:inline-block;width:28px;height:28px;background:#1e1e1e;border-radius:50%;text-align:center;line-height:28px;color:#ffffff;text-decoration:none;font-size:13px;font-weight:bold">f</a>
+          </td>
+          <td>
+            <a href="https://www.linkedin.com/company/sda-renovation" style="display:inline-block;width:28px;height:28px;background:#1e1e1e;border-radius:50%;text-align:center;line-height:28px;color:#ffffff;text-decoration:none;font-size:11px;font-weight:bold">in</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
+}
+
+async function getSignataire(): Promise<Signataire | undefined> {
+  try {
+    const { getUser } = await import("@/lib/dal");
+    const u = await getUser();
+    return {
+      name: u.name,
+      titre: (u as { titre?: string | null }).titre ?? null,
+      telephone: (u as { telephone?: string | null }).telephone ?? null,
+      email: u.email,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function emailLayout(titre: string, corps: string, signataire?: Signataire): string {
+  const sig = signataire ? signatureHtml(signataire) : `
+    <p style="margin:0;font-size:12px;color:#94a3b8">SDA Rénovation · <a href="mailto:contact@sda-renovation.com" style="color:#1E2F6E;text-decoration:none">contact@sda-renovation.com</a></p>`;
   return `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${titre}</title></head>
@@ -26,9 +79,9 @@ function emailLayout(titre: string, corps: string): string {
   <tr><td style="background:#ffffff;padding:32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0">
     ${corps}
   </td></tr>
-  <tr><td style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;padding:16px 32px;text-align:center">
-    <p style="margin:0;font-size:12px;color:#94a3b8">SDA Rénovation · <a href="mailto:contact@sda-renovation.com" style="color:#6366f1;text-decoration:none">contact@sda-renovation.com</a></p>
-    <p style="margin:4px 0 0;font-size:11px;color:#cbd5e1">Ce message a été envoyé automatiquement depuis le CRM SDA Rénovation</p>
+  <tr><td style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;padding:20px 32px">
+    ${sig}
+    <p style="margin:16px 0 0;font-size:10px;color:#cbd5e1;text-align:center">Ce message a été envoyé automatiquement depuis le CRM SDA Rénovation</p>
   </td></tr>
 </table>
 </td></tr>
@@ -70,7 +123,9 @@ export async function envoyerDevisParEmail(
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
-  const [devis, parametres] = await Promise.all([
+  const [signataire, [devis, parametres]] = await Promise.all([
+    getSignataire(),
+    Promise.all([
     prisma.devis.findUnique({
       where: { id },
       include: {
@@ -83,6 +138,7 @@ export async function envoyerDevisParEmail(
       },
     }),
     prisma.parametres.findUnique({ where: { id: "default" } }),
+    ]),
   ]);
   if (!devis) return { ok: false, error: "Devis introuvable." };
 
@@ -201,7 +257,7 @@ export async function envoyerDevisParEmail(
   return envoyerEmail({
     to,
     subject: `Devis ${devis.numero} — SDA Rénovation`,
-    html: emailLayout(`Devis N° ${devis.numero}`, corps),
+    html: emailLayout(`Devis N° ${devis.numero}`, corps, signataire),
     text: `Bonjour,\n\n${message ? message + "\n\n" : ""}Devis ${devis.numero} — Chantier : ${devis.chantier.nom}\n${devis.objet ? `Objet : ${devis.objet}\n` : ""}${vue !== "sans_prix" ? `Montant TTC : ${formatEuros(devis.totalTTC ?? 0)}\n` : ""}${devis.dateValidite ? `Valable jusqu'au ${formatDate(devis.dateValidite)}\n` : ""}${signatureUrl ? `Consultez et signez : ${signatureUrl}\n` : ""}\nCordialement,\nSDA Rénovation\n[${vueLabel[vue] ?? vue}]`,
   });
 }
@@ -229,6 +285,8 @@ export async function envoyerFactureParEmail(
     }),
     prisma.parametres.findUnique({ where: { id: "default" } }),
   ]);
+  const signataire = await getSignataire();
+
   if (!facture) return { ok: false, error: "Facture introuvable." };
 
   // Met à jour le statut
@@ -269,7 +327,7 @@ export async function envoyerFactureParEmail(
   return envoyerEmail({
     to,
     subject: `${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — SDA Rénovation`,
-    html: emailLayout(`${typeLabel[facture.type] ?? "Facture"} N° ${facture.numero}`, corps),
+    html: emailLayout(`${typeLabel[facture.type] ?? "Facture"} N° ${facture.numero}`, corps, signataire),
     text: `Bonjour,\n\n${message ? message + "\n\n" : ""}${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — ${facture.chantier.nom}\nMontant TTC : ${formatEuros(facture.totalTTC)}\n${facture.dateEcheance ? `Échéance : ${formatDate(facture.dateEcheance)}\n` : ""}${resteDu > 0 ? `Reste à payer : ${formatEuros(resteDu)}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -295,6 +353,8 @@ export async function envoyerBcParEmail(
       lignes:      { select: { designation: true, quantite: true, unite: true, prixUnitaireHT: true, totalHT: true }, orderBy: { ordre: "asc" }, take: 10 },
     },
   });
+  const signataire = await getSignataire();
+
   if (!bc) return { ok: false, error: "Bon de commande introuvable." };
 
   const lignesHtml = bc.lignes
@@ -329,7 +389,7 @@ export async function envoyerBcParEmail(
   return envoyerEmail({
     to,
     subject: `Bon de Commande ${bc.numero} — SDA Rénovation`,
-    html: emailLayout(`Bon de Commande N° ${bc.numero}`, corps),
+    html: emailLayout(`Bon de Commande N° ${bc.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Bon de Commande ${bc.numero}\nFournisseur : ${bc.fournisseur.nom}\n${bc.chantier ? `Chantier : ${bc.chantier.nom}\n` : ""}Total TTC : ${formatEuros(bc.totalTTC)}\n\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -354,6 +414,8 @@ export async function envoyerBcBetonParEmail(
       chantier:    { select: { nom: true } },
     },
   });
+  const signataire = await getSignataire();
+
   if (!bcb) return { ok: false, error: "Bon de commande béton introuvable." };
 
   const corps = `<p style="margin:0 0 16px;font-size:15px;color:#1e293b">Madame, Monsieur,</p>
@@ -375,7 +437,7 @@ export async function envoyerBcBetonParEmail(
   return envoyerEmail({
     to,
     subject: `BC Béton ${bcb.numero} — SDA Rénovation`,
-    html: emailLayout(`Bon de Commande Béton N° ${bcb.numero}`, corps),
+    html: emailLayout(`Bon de Commande Béton N° ${bcb.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}BC Béton ${bcb.numero}\n${bcb.fournisseur ? `Centrale : ${bcb.fournisseur.nom}\n` : ""}${bcb.chantier ? `Chantier : ${bcb.chantier.nom}\n` : ""}${bcb.qteTotale ? `Volume : ${bcb.qteTotale} m³\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -400,6 +462,8 @@ export async function envoyerContratSTParEmail(
       chantier:     { select: { nom: true } },
     },
   });
+  const signataire = await getSignataire();
+
   if (!contrat) return { ok: false, error: "Contrat introuvable." };
 
   if (contrat.statut === "BROUILLON") {
@@ -423,7 +487,7 @@ export async function envoyerContratSTParEmail(
   return envoyerEmail({
     to,
     subject: `Contrat de sous-traitance ${contrat.numero} — SDA Rénovation`,
-    html: emailLayout(`Contrat de sous-traitance N° ${contrat.numero}`, corps),
+    html: emailLayout(`Contrat de sous-traitance N° ${contrat.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Contrat ${contrat.numero}\nSous-traitant : ${contrat.sousTraitant.nom}\nChantier : ${contrat.chantier.nom}\n${contrat.montantHT != null ? `Montant HT : ${formatEuros(contrat.montantHT)}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -449,6 +513,8 @@ export async function envoyerOrdreMissionParEmail(
       chantier:     { select: { nom: true } },
     },
   });
+  const signataire = await getSignataire();
+
   if (!om) return { ok: false, error: "Ordre de mission introuvable." };
 
   if (om.statut === "BROUILLON") {
@@ -477,7 +543,7 @@ export async function envoyerOrdreMissionParEmail(
   return envoyerEmail({
     to,
     subject: `Ordre de mission ${om.numero} — SDA Rénovation`,
-    html: emailLayout(`Ordre de mission N° ${om.numero}`, corps),
+    html: emailLayout(`Ordre de mission N° ${om.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Ordre de mission ${om.numero} — ${om.titre}\nIntervenant : ${intervenant}\n${om.chantier ? `Chantier : ${om.chantier.nom}\n` : ""}Du ${formatDate(om.dateDebut)}${om.dateFin ? ` au ${formatDate(om.dateFin)}` : ""}\n\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -502,6 +568,8 @@ export async function envoyerEtatReservesParEmail(
       client:   { select: { nom: true, email: true } },
     },
   });
+  const signataire = await getSignataire();
+
   if (!etat) return { ok: false, error: "État des réserves introuvable." };
 
   const statutLabel: Record<string, string> = { EN_COURS: "En cours", SIGNE: "Signé", LEVE: "Réserves levées" };
@@ -522,7 +590,7 @@ export async function envoyerEtatReservesParEmail(
   return envoyerEmail({
     to,
     subject: `État des réserves ${etat.numero} — SDA Rénovation`,
-    html: emailLayout(`État des réserves N° ${etat.numero}`, corps),
+    html: emailLayout(`État des réserves N° ${etat.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}État des réserves ${etat.numero}\n${etat.chantier ? `Chantier : ${etat.chantier.nom}\n` : ""}${etat.client ? `Client : ${etat.client.nom}\n` : ""}Date : ${formatDate(etat.dateDocument)}\n\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -546,6 +614,8 @@ export async function envoyerMemoireTechniqueParEmail(
       chantier: { select: { nom: true, client: { select: { nom: true, email: true } } } },
     },
   });
+  const signataire = await getSignataire();
+
   if (!mt) return { ok: false, error: "Mémoire technique introuvable." };
 
   const typeLabel: Record<string, string> = {
@@ -568,7 +638,7 @@ export async function envoyerMemoireTechniqueParEmail(
   return envoyerEmail({
     to,
     subject: `Mémoire technique ${mt.reference} — SDA Rénovation`,
-    html: emailLayout(`Mémoire technique ${mt.reference}`, corps),
+    html: emailLayout(`Mémoire technique ${mt.reference}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Mémoire technique ${mt.reference} — ${mt.titre}\nChantier : ${mt.chantier.nom}\n\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -590,6 +660,8 @@ export async function envoyerPpspsParEmail(
     where: { id },
     include: { chantier: { select: { nom: true } } },
   });
+  const signataire = await getSignataire();
+
   if (!ppsps) return { ok: false, error: "PPSPS introuvable." };
 
   if (ppsps.statut !== "TRANSMIS") {
@@ -613,7 +685,7 @@ export async function envoyerPpspsParEmail(
   return envoyerEmail({
     to,
     subject: `PPSPS — ${ppsps.titre} — SDA Rénovation`,
-    html: emailLayout(`PPSPS — ${ppsps.titre}`, corps),
+    html: emailLayout(`PPSPS — ${ppsps.titre}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}PPSPS — ${ppsps.titre}\nChantier : ${ppsps.chantier.nom}\n${ppsps.nomOperation ? `Opération : ${ppsps.nomOperation}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -635,6 +707,8 @@ export async function envoyerDoeParEmail(
     where: { id },
     include: { chantier: { select: { nom: true } } },
   });
+  const signataire = await getSignataire();
+
   if (!doe) return { ok: false, error: "DOE introuvable." };
 
   if (doe.statut !== "TRANSMIS") {
@@ -656,7 +730,7 @@ export async function envoyerDoeParEmail(
   return envoyerEmail({
     to,
     subject: `DOE — ${doe.titre} — SDA Rénovation`,
-    html: emailLayout(`DOE — ${doe.titre}`, corps),
+    html: emailLayout(`DOE — ${doe.titre}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}DOE — ${doe.titre}\nChantier : ${doe.chantier.nom}\n\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -675,6 +749,8 @@ export async function envoyerFicheTechniqueParEmail(
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
   const fiche = await prisma.ficheTechnique.findUnique({ where: { id } });
+  const signataire = await getSignataire();
+
   if (!fiche) return { ok: false, error: "Fiche technique introuvable." };
 
   const categorieLabel: Record<string, string> = {
@@ -696,7 +772,7 @@ export async function envoyerFicheTechniqueParEmail(
   return envoyerEmail({
     to,
     subject: `Fiche technique — ${fiche.designation} — SDA Rénovation`,
-    html: emailLayout(`Fiche technique — ${fiche.designation}`, corps),
+    html: emailLayout(`Fiche technique — ${fiche.designation}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Fiche technique : ${fiche.designation}\n${fiche.marque ? `Marque : ${fiche.marque}\n` : ""}${fiche.reference ? `Référence : ${fiche.reference}\n` : ""}Corps d'état : ${fiche.corpsEtat}\n\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -721,6 +797,8 @@ export async function envoyerBrpParEmail(
       chantier:    { select: { nom: true } },
     },
   });
+  const signataire = await getSignataire();
+
   if (!brp) return { ok: false, error: "Bon de réservation pompe introuvable." };
 
   const nomChantier = brp.nomChantier ?? brp.chantier?.nom ?? null;
@@ -742,7 +820,7 @@ export async function envoyerBrpParEmail(
   return envoyerEmail({
     to,
     subject: `Réservation pompe ${brp.numero} — SDA Rénovation`,
-    html: emailLayout(`Bon de réservation pompe N° ${brp.numero}`, corps),
+    html: emailLayout(`Bon de réservation pompe N° ${brp.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Bon de réservation pompe ${brp.numero}\nFournisseur : ${brp.fournisseur.nom}\n${nomChantier ? `Chantier : ${nomChantier}\n` : ""}${brp.dateReservation ? `Date : ${formatDate(brp.dateReservation)}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -767,6 +845,8 @@ export async function envoyerBcfParEmail(
       lignes:      { take: 8, orderBy: { ordre: "asc" } },
     },
   });
+  const signataire = await getSignataire();
+
   if (!bcf) return { ok: false, error: "Bon de commande fournitures introuvable." };
 
   const typeLabel: Record<string, string> = { BUREAU: "Bureau", ENTREPOT: "Entrepôt", MIXTE: "Mixte" };
@@ -796,7 +876,7 @@ export async function envoyerBcfParEmail(
   return envoyerEmail({
     to,
     subject: `BC Fournitures ${bcf.numero} — SDA Rénovation`,
-    html: emailLayout(`BC Fournitures N° ${bcf.numero}`, corps),
+    html: emailLayout(`BC Fournitures N° ${bcf.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}BC Fournitures ${bcf.numero}\nFournisseur : ${bcf.fournisseur.nom}\nTotal TTC : ${formatEuros(bcf.totalTTC)}\n\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -818,6 +898,8 @@ export async function envoyerAgrementProduitParEmail(
     where: { id },
     include: { chantier: { select: { nom: true } } },
   });
+  const signataire = await getSignataire();
+
   if (!fiche) return { ok: false, error: "Fiche d'agrément produit introuvable." };
 
   const corps = `<p style="margin:0 0 16px;font-size:15px;color:#1e293b">Madame, Monsieur,</p>
@@ -836,7 +918,7 @@ export async function envoyerAgrementProduitParEmail(
   return envoyerEmail({
     to,
     subject: `Agrément produit ${fiche.numero} — SDA Rénovation`,
-    html: emailLayout(`Agrément produit N° ${fiche.numero}`, corps),
+    html: emailLayout(`Agrément produit N° ${fiche.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Agrément produit ${fiche.numero}\n${fiche.marque ? `Marque : ${fiche.marque}\n` : ""}${fiche.chantier ? `Chantier : ${fiche.chantier.nom}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -858,6 +940,8 @@ export async function envoyerPreDimParEmail(
     where: { id },
     include: { chantier: { select: { nom: true, reference: true } } },
   });
+  const signataire = await getSignataire();
+
   if (!pdim) return { ok: false, error: "Pré-dimensionnement introuvable." };
 
   const typeElementLabel: Record<string, string> = { POUTRE: "Poutre", DALLE: "Dalle", POTEAU: "Poteau", DALLAGE: "Dallage" };
@@ -883,7 +967,7 @@ export async function envoyerPreDimParEmail(
   return envoyerEmail({
     to,
     subject: `Pré-dimensionnement ${pdim.numero} — SDA Rénovation`,
-    html: emailLayout(`Pré-dimensionnement N° ${pdim.numero}`, corps),
+    html: emailLayout(`Pré-dimensionnement N° ${pdim.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Pré-dimensionnement ${pdim.numero}\n${pdim.titre ? `${pdim.titre}\n` : ""}Élément : ${typeElementLabel[pdim.typeElement] ?? pdim.typeElement} — Matériau : ${materiauLabel[pdim.materiau] ?? pdim.materiau}\n${pdim.chantier ? `Chantier : ${pdim.chantier.reference} — ${pdim.chantier.nom}\n` : ""}${pdim.resultatLabel ? `Résultat : ${pdim.resultatLabel}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
 }
@@ -915,6 +999,8 @@ export async function envoyerPlanningGanttParEmail(
       },
     },
   });
+  const signataire = await getSignataire();
+
   if (!chantier) return { ok: false, error: "Chantier introuvable." };
 
   const statutGanttLabel: Record<string, string> = { A_FAIRE: "À faire", EN_COURS: "En cours", TERMINEE: "Terminée" };
@@ -949,7 +1035,7 @@ export async function envoyerPlanningGanttParEmail(
   return envoyerEmail({
     to,
     subject: `Planning ${chantier.nom} — SDA Rénovation`,
-    html: emailLayout(`Planning Gantt — ${chantier.nom}`, corps),
+    html: emailLayout(`Planning Gantt — ${chantier.nom}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Planning Gantt — ${chantier.nom} (${chantier.reference})\n${chantier.tachesGantt.map(t => `- ${t.nom} : ${formatDate(t.dateDebut)} → ${formatDate(t.dateFin)} (${statutGanttLabel[t.statut] ?? t.statut})`).join("\n")}\n\nCordialement,\nSDA Rénovation`,
   });
 }

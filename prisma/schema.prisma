@@ -20,6 +20,8 @@ model User {
   password            String
   role                String    @default("DIRIGEANT")
   permissions         String    @default("[]") // JSON string[] — routes autorisées pour les rôles restreints
+  telephone           String?
+  titre               String?   // ex. "Directeur", "Commercial", "Chargé d'affaires"
   passwordChangedAt   DateTime? // null = jamais changé depuis la création du compte
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

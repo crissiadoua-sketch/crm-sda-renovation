@@ -20,6 +20,8 @@ type UserFormProps = {
     email?: string;
     role?: string;
     permissions?: string[];
+    telephone?: string | null;
+    titre?: string | null;
   };
   isEdit?: boolean;
 };
@@ -125,6 +127,30 @@ export function UserForm({ action, defaultValues, isEdit }: UserFormProps) {
               ))}
             </select>
           </Field>
+        </div>
+
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Signature email</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Titre / Fonction" error={err?.titre?.[0]}>
+              <input
+                name="titre"
+                type="text"
+                defaultValue={defaultValues?.titre ?? ""}
+                className={inputClasses}
+                placeholder="ex. Conducteur de travaux, Commercial…"
+              />
+            </Field>
+            <Field label="Téléphone" error={err?.telephone?.[0]}>
+              <input
+                name="telephone"
+                type="tel"
+                defaultValue={defaultValues?.telephone ?? ""}
+                className={inputClasses}
+                placeholder="06 XX XX XX XX"
+              />
+            </Field>
+          </div>
         </div>
       </div>
 

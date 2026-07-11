@@ -23,6 +23,8 @@ const createSchema = z.object({
   password: z.string().min(8, "Le mot de passe doit comporter au moins 8 caractères."),
   role: z.string().min(1, "Le rôle est requis."),
   permissions: z.string().default("[]"),
+  titre: z.string().optional(),
+  telephone: z.string().optional(),
 });
 
 const updateSchema = z.object({
@@ -31,6 +33,8 @@ const updateSchema = z.object({
   password: z.string().optional(),
   role: z.string().min(1, "Le rôle est requis."),
   permissions: z.string().default("[]"),
+  titre: z.string().optional(),
+  telephone: z.string().optional(),
 });
 
 export type UserState =
@@ -50,7 +54,7 @@ export async function createUser(
     return { errors: validated.error.flatten().fieldErrors };
   }
 
-  const { name, email, password, role, permissions } = validated.data;
+  const { name, email, password, role, permissions, titre, telephone } = validated.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -59,7 +63,7 @@ export async function createUser(
 
   const hash = await bcrypt.hash(password, 10);
   await prisma.user.create({
-    data: { name, email, password: hash, role, permissions },
+    data: { name, email, password: hash, role, permissions, titre: titre || null, telephone: telephone || null },
   });
 
   revalidatePath("/utilisateurs");
@@ -81,7 +85,7 @@ export async function updateUser(
     return { errors: validated.error.flatten().fieldErrors };
   }
 
-  const { name, email, password, role, permissions } = validated.data;
+  const { name, email, password, role, permissions, titre, telephone } = validated.data;
 
   // Empêche de rétrograder son propre accès
   if (id === current.id && !isFullAccessRole(role)) {
@@ -98,8 +102,10 @@ export async function updateUser(
     email: string;
     role: string;
     permissions: string;
+    titre: string | null;
+    telephone: string | null;
     password?: string;
-  } = { name, email, role, permissions };
+  } = { name, email, role, permissions, titre: titre || null, telephone: telephone || null };
 
   if (password && password.length > 0) {
     data.password = await bcrypt.hash(password, 10);

@@ -84,6 +84,8 @@ export default async function UtilisateurDetailPage({
           email: user.email,
           role: user.role,
           permissions: userPermissions,
+          titre: (user as { titre?: string | null }).titre ?? null,
+          telephone: (user as { telephone?: string | null }).telephone ?? null,
         }}
         isEdit
       />

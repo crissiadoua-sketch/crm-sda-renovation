@@ -59,10 +59,16 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     if (!password) {
       return { errors: { password: ["Le mot de passe est requis."] } };
     }
-    const fullName = `${prenom} ${nom}`;
-    identifier = fullName;
+    identifier = `${prenom} ${nom}`;
+    // Recherche flexible : le name contient à la fois le prénom ET le nom,
+    // quel que soit l'ordre ou la casse (ex. "Christopher Siadoua" ou "SIADOUA Christopher")
     user = await prisma.user.findFirst({
-      where: { name: { equals: fullName, mode: "insensitive" } },
+      where: {
+        AND: [
+          { name: { contains: prenom, mode: "insensitive" } },
+          { name: { contains: nom,    mode: "insensitive" } },
+        ],
+      },
     });
   } else {
     const validated = loginSchema.safeParse({

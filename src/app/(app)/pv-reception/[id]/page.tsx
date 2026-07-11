@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/dal";
 import { PvReceptionEditor } from "./pv-editor";
+import { envoyerPvReceptionParEmail } from "@/lib/actions/email-documents";
 
 export default async function PvReceptionDetailPage({
   params,
@@ -96,6 +97,7 @@ export default async function PvReceptionDetailPage({
         role: ROLE_LABELS[user.role] ?? user.role,
         email: user.email,
       }}
+      envoyerParEmail={envoyerPvReceptionParEmail.bind(null, pvr.id)}
     />
   );
 }

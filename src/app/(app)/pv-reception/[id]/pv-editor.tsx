@@ -10,6 +10,7 @@ import {
   supprimerPvReception,
 } from "@/lib/actions/pv-reception";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
+import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -106,8 +107,10 @@ function getLabels(categorie: string) {
   };
 }
 
+type EmailAction = (prev: unknown, formData: FormData) => Promise<{ ok: boolean; error?: string }>;
+
 export function PvReceptionEditor({
-  pvr, fournisseurs, chantiers, clients, sousTraitants, contratsSTR, currentUser,
+  pvr, fournisseurs, chantiers, clients, sousTraitants, contratsSTR, currentUser, envoyerParEmail,
 }: {
   pvr: PVR;
   fournisseurs: { id: string; nom: string; email?: string | null; telephone?: string | null; contact?: string | null }[];
@@ -116,6 +119,7 @@ export function PvReceptionEditor({
   sousTraitants: { id: string; nom: string; specialite?: string | null; contact?: string | null; email?: string | null; telephone?: string | null; representant?: string | null; qualiteRepresentant?: string | null }[];
   contratsSTR:  { id: string; reference: string; objet: string | null; sousTraitantId: string; chantierId: string | null; montantHT: number | null; sousTraitant: { id: string; nom: string }; chantier: { id: string; nom: string } | null }[];
   currentUser:  { name: string; role: string; email: string };
+  envoyerParEmail?: EmailAction;
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved]               = useState(false);
@@ -482,6 +486,13 @@ export function PvReceptionEditor({
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
             🖨 Imprimer
           </button>
+          {envoyerParEmail && (
+            <EnvoyerEmailModal
+              action={envoyerParEmail}
+              defaultTo={pvr.emailPrestataire ?? pvr.emailRepMO ?? ""}
+              documentLabel="le PV de réception"
+            />
+          )}
           <a href={`/api/pv-reception/${pvr.id}/word`}
             className="rounded-lg border border-[#29ABE2] px-4 py-2 text-sm font-medium text-[#29ABE2] hover:bg-blue-50 transition">
             Word

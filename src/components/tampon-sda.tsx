@@ -50,7 +50,7 @@ export async function TamponSDA({ className = "", compact = false }: TamponSDAPr
             className="font-black"
             style={{
               fontSize: 32,
-              background: "linear-gradient(135deg, #1976D2, #1B3F94)",
+              background: "linear-gradient(135deg, #F7941E, #E6471D)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               lineHeight: 1,
@@ -62,7 +62,7 @@ export async function TamponSDA({ className = "", compact = false }: TamponSDAPr
             className="font-black"
             style={{
               fontSize: 32,
-              background: "linear-gradient(135deg, #5BA8E5, #1B3F94)",
+              background: "linear-gradient(135deg, #F7941E, #E6471D)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               lineHeight: 1,

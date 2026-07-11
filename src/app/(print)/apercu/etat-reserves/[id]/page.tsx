@@ -60,11 +60,6 @@ export default async function ApercuEtatReservesPage({
             </div>
           </div>
 
-          {/* Bannière type document */}
-          <div className="mb-5 border-b-2 border-t-2 border-[#1E2F6E]/20 bg-[#1E2F6E]/5 px-4 py-2 text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#1E2F6E]">État des réserves — document officiel</p>
-          </div>
-
           {/* Nature des réserves */}
           <div className="mb-5">
             <p className="mb-2 font-semibold text-slate-700">Nature des réserves :</p>

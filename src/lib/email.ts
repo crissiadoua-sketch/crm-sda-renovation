@@ -19,6 +19,7 @@ export async function envoyerEmail(params: {
   subject: string;
   html: string;
   text?: string;
+  from?: string; // ex. "Prénom Nom <prenom.nom@sda-renovation.com>"
 }): Promise<{ ok: boolean; error?: string }> {
   const c = getClient();
   if (!c) {
@@ -30,7 +31,7 @@ export async function envoyerEmail(params: {
 
   try {
     const { error } = await c.emails.send({
-      from: "SDA Rénovation <contact@sda-renovation.com>",
+      from: params.from ?? "SDA Rénovation <contact@sda-renovation.com>",
       to: params.to,
       subject: params.subject,
       html: params.html,

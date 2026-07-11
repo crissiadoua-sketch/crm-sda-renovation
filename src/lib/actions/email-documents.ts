@@ -68,6 +68,15 @@ function signatureHtml(s: Signataire): string {
 </table>`;
 }
 
+function fromAddress(signataire: Signataire | undefined): string {
+  const defaut = "SDA Rénovation <contact@sda-renovation.com>";
+  if (!signataire || signataire.externe) return defaut;
+  if (signataire.email.endsWith("@sda-renovation.com")) {
+    return `${signataire.name} <${signataire.email}>`;
+  }
+  return defaut;
+}
+
 async function getSignataire(): Promise<Signataire | undefined> {
   try {
     const { getUser } = await import("@/lib/dal");
@@ -279,6 +288,7 @@ export async function envoyerDevisParEmail(
   };
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `Devis ${devis.numero} — SDA Rénovation`,
     html: emailLayout(`Devis N° ${devis.numero}`, corps, signataire),
@@ -349,6 +359,7 @@ export async function envoyerFactureParEmail(
     + signature();
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — SDA Rénovation`,
     html: emailLayout(`${typeLabel[facture.type] ?? "Facture"} N° ${facture.numero}`, corps, signataire),
@@ -411,6 +422,7 @@ export async function envoyerBcParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `Bon de Commande ${bc.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de Commande N° ${bc.numero}`, corps, signataire),
@@ -459,6 +471,7 @@ export async function envoyerBcBetonParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `BC Béton ${bcb.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de Commande Béton N° ${bcb.numero}`, corps, signataire),
@@ -509,6 +522,7 @@ export async function envoyerContratSTParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `Contrat de sous-traitance ${contrat.numero} — SDA Rénovation`,
     html: emailLayout(`Contrat de sous-traitance N° ${contrat.numero}`, corps, signataire),
@@ -565,6 +579,7 @@ export async function envoyerOrdreMissionParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `Ordre de mission ${om.numero} — SDA Rénovation`,
     html: emailLayout(`Ordre de mission N° ${om.numero}`, corps, signataire),
@@ -612,6 +627,7 @@ export async function envoyerEtatReservesParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `État des réserves ${etat.numero} — SDA Rénovation`,
     html: emailLayout(`État des réserves N° ${etat.numero}`, corps, signataire),
@@ -660,6 +676,7 @@ export async function envoyerMemoireTechniqueParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `Mémoire technique ${mt.reference} — SDA Rénovation`,
     html: emailLayout(`Mémoire technique ${mt.reference}`, corps, signataire),
@@ -707,6 +724,7 @@ export async function envoyerPpspsParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `PPSPS — ${ppsps.titre} — SDA Rénovation`,
     html: emailLayout(`PPSPS — ${ppsps.titre}`, corps, signataire),
@@ -752,6 +770,7 @@ export async function envoyerDoeParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `DOE — ${doe.titre} — SDA Rénovation`,
     html: emailLayout(`DOE — ${doe.titre}`, corps, signataire),
@@ -794,6 +813,7 @@ export async function envoyerFicheTechniqueParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `Fiche technique — ${fiche.designation} — SDA Rénovation`,
     html: emailLayout(`Fiche technique — ${fiche.designation}`, corps, signataire),
@@ -842,6 +862,7 @@ export async function envoyerBrpParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `Réservation pompe ${brp.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de réservation pompe N° ${brp.numero}`, corps, signataire),
@@ -898,6 +919,7 @@ export async function envoyerBcfParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `BC Fournitures ${bcf.numero} — SDA Rénovation`,
     html: emailLayout(`BC Fournitures N° ${bcf.numero}`, corps, signataire),
@@ -940,6 +962,7 @@ export async function envoyerAgrementProduitParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `Agrément produit ${fiche.numero} — SDA Rénovation`,
     html: emailLayout(`Agrément produit N° ${fiche.numero}`, corps, signataire),
@@ -989,6 +1012,7 @@ export async function envoyerPreDimParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `Pré-dimensionnement ${pdim.numero} — SDA Rénovation`,
     html: emailLayout(`Pré-dimensionnement N° ${pdim.numero}`, corps, signataire),
@@ -1057,6 +1081,7 @@ export async function envoyerPlanningGanttParEmail(
     ${signature()}`;
 
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: `Planning ${chantier.nom} — SDA Rénovation`,
     html: emailLayout(`Planning Gantt — ${chantier.nom}`, corps, signataire),
@@ -1074,7 +1099,10 @@ export async function testerConfigurationEmail(
   const to = (formData.get("to") as string)?.trim();
   if (!to) return { ok: false, error: "Adresse email manquante." };
 
+  const signataire = await getSignataire();
+
   return envoyerEmail({
+    from: fromAddress(signataire),
     to,
     subject: "Test de configuration SMTP — CRM SDA Rénovation",
     html: emailLayout("Test de configuration email", `

@@ -49,6 +49,7 @@ import {
   TrendingUp,
   AlertCircle,
   Clock,
+  Send,
   LayoutDashboard as LayoutDash2,
   type LucideIcon,
 } from "lucide-react";
@@ -58,6 +59,7 @@ export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  onlyRoles?: string[];
 };
 
 export type NavGroup = {
@@ -198,6 +200,7 @@ export const navGroups: NavGroup[] = [
       { href: "/parametres", label: "Paramètres", icon: Settings },
       { href: "/parametres/codifications", label: "Codifications", icon: Settings2 },
       { href: "/utilisateurs", label: "Utilisateurs", icon: UserCog },
+      { href: "/emails-envoyes", label: "Emails envoyés", icon: Send, onlyRoles: ["DIRIGEANT"] },
       { href: "/maintenance", label: "Maintenance & Qualité", icon: ShieldCheck },
       { href: "/securite", label: "Sécurité — Alba-ayla IA", icon: ShieldAlert },
     ],
@@ -211,7 +214,10 @@ export function filterNavGroups(
   return navGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => canAccess(role, permissions, item.href)),
+      items: group.items.filter((item) => {
+        if (item.onlyRoles && !item.onlyRoles.includes(role)) return false;
+        return canAccess(role, permissions, item.href);
+      }),
     }))
     .filter((group) => group.items.length > 0);
 }

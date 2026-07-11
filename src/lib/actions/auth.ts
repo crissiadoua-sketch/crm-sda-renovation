@@ -45,23 +45,41 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     };
   }
 
-  const validated = loginSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
+  const password = (formData.get("password") as string) ?? "";
 
-  if (!validated.success) {
-    return { errors: validated.error.flatten().fieldErrors };
+  // Déterminer le mode de connexion : prénom+nom ou email
+  const prenom = (formData.get("prenom") as string | null)?.trim();
+  const nom = (formData.get("nom") as string | null)?.trim();
+  const usingNameLogin = !!(prenom && nom);
+
+  let user: Awaited<ReturnType<typeof prisma.user.findFirst>> = null;
+  let identifier: string;
+
+  if (usingNameLogin) {
+    if (!password) {
+      return { errors: { password: ["Le mot de passe est requis."] } };
+    }
+    const fullName = `${prenom} ${nom}`;
+    identifier = fullName;
+    user = await prisma.user.findFirst({
+      where: { name: { equals: fullName, mode: "insensitive" } },
+    });
+  } else {
+    const validated = loginSchema.safeParse({
+      email: formData.get("email"),
+      password,
+    });
+    if (!validated.success) {
+      return { errors: validated.error.flatten().fieldErrors };
+    }
+    identifier = validated.data.email;
+    user = await prisma.user.findUnique({ where: { email: identifier } });
   }
 
-  const { email, password } = validated.data;
-
-  const user = await prisma.user.findUnique({ where: { email } });
-
   if (!user) {
-    // Agent Vigil — log tentative échouée (email inconnu)
-    await enregistrerTentative(email, ip, false, undefined, ua);
-    await detecterEtBloquer(ip, email);
+    // Agent Vigil — log tentative échouée (identifiant inconnu)
+    await enregistrerTentative(identifier, ip, false, undefined, ua);
+    await detecterEtBloquer(ip, identifier);
     return { errors: { global: ["Identifiants incorrects."] } };
   }
 
@@ -69,13 +87,13 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
 
   if (!passwordMatch) {
     // Agent Vigil — log tentative échouée (mauvais mot de passe)
-    await enregistrerTentative(email, ip, false, user.id, ua);
-    await detecterEtBloquer(ip, email);
+    await enregistrerTentative(identifier, ip, false, user.id, ua);
+    await detecterEtBloquer(ip, identifier);
     return { errors: { global: ["Identifiants incorrects."] } };
   }
 
   // Agent Vigil — log connexion réussie
-  await enregistrerTentative(email, ip, true, user.id, ua);
+  await enregistrerTentative(identifier, ip, true, user.id, ua);
 
   // Agent Trace — audit de connexion
   await journaliser({

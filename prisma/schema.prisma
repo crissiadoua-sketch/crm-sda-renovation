@@ -2748,3 +2748,24 @@ model BilanExercice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ---------------------------------------------------------------------------
+// Historique des emails envoyés depuis le CRM
+// ---------------------------------------------------------------------------
+
+model EmailLog {
+  id           String   @id @default(cuid())
+  documentType String
+  documentId   String
+  documentRef  String
+  to           String
+  cc           String?
+  subject      String
+  vue          String?
+  sentBy       String
+  sentAt       DateTime @default(now())
+
+  @@index([documentType, documentId])
+  @@index([sentAt])
+  @@index([to])
+}

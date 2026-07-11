@@ -9,6 +9,35 @@ import { formatEuros, formatDate, clientDisplayName } from "@/lib/format";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.com";
 
 // ---------------------------------------------------------------------------
+// Wrapper envoyerEmail + journalisation automatique dans EmailLog
+// ---------------------------------------------------------------------------
+type LogMeta = { type: string; documentId: string; documentRef: string; sentBy: string; vue?: string };
+
+async function sendAndLog(
+  params: Parameters<typeof envoyerEmail>[0],
+  meta: LogMeta,
+): Promise<{ ok: boolean; error?: string }> {
+  const result = await envoyerEmail(params);
+  if (result.ok) {
+    try {
+      await prisma.emailLog.create({
+        data: {
+          documentType: meta.type,
+          documentId: meta.documentId,
+          documentRef: meta.documentRef,
+          to: params.to,
+          cc: params.cc ?? null,
+          subject: params.subject,
+          vue: meta.vue ?? null,
+          sentBy: meta.sentBy,
+        },
+      });
+    } catch { /* journalisation non bloquante */ }
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Template HTML partagé
 // ---------------------------------------------------------------------------
 type Signataire = { name: string; titre?: string | null; telephone?: string | null; email: string; societe?: string | null; adresse?: string | null; externe?: boolean };
@@ -277,13 +306,15 @@ export async function envoyerDevisParEmail(
     synthese: "Vue synthèse", sans_prix: "Vue sans prix",
   };
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `Devis ${devis.numero} — SDA Rénovation`,
     html: emailLayout(`Devis N° ${devis.numero}`, corps, signataire),
     text: `Bonjour,\n\n${message ? message + "\n\n" : ""}Devis ${devis.numero} — Chantier : ${devis.chantier.nom}\n${devis.objet ? `Objet : ${devis.objet}\n` : ""}${vue !== "sans_prix" ? `Montant TTC : ${formatEuros(devis.totalTTC ?? 0)}\n` : ""}${devis.dateValidite ? `Offre valable jusqu'au ${formatDate(devis.dateValidite)}\n` : ""}${vue === "client" && consulterUrl ? `Consultez votre devis : ${consulterUrl}\n` : signatureUrl ? `Consultez et signez : ${signatureUrl}\n` : ""}\nCordialement,\nSDA Rénovation\n[${vueLabel[vue] ?? vue}]`,
-  });
+    cc,
+    bcc,
+  }, { type: "devis", documentId: id, documentRef: String(devis.numero), sentBy: signataire?.name ?? "", vue: vue });
 }
 
 // ---------------------------------------------------------------------------
@@ -351,13 +382,15 @@ export async function envoyerFactureParEmail(
     + `<p style="margin:0;font-size:13px;color:#64748b">Merci de bien vouloir procéder au règlement avant l'échéance indiquée. Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>`
     + signature();
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — SDA Rénovation`,
     html: emailLayout(`${typeLabel[facture.type] ?? "Facture"} N° ${facture.numero}`, corps, signataire),
     text: `Bonjour,\n\n${message ? message + "\n\n" : ""}${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — ${facture.chantier.nom}\nMontant TTC : ${formatEuros(facture.totalTTC)}\n${facture.dateEcheance ? `Échéance : ${formatDate(facture.dateEcheance)}\n` : ""}${resteDu > 0 ? `Reste à payer : ${formatEuros(resteDu)}\n` : ""}\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "facture", documentId: id, documentRef: String(facture.numero), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -417,13 +450,15 @@ export async function envoyerBcParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Merci de bien vouloir accuser réception de cette commande. Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `Bon de Commande ${bc.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de Commande N° ${bc.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Bon de Commande ${bc.numero}\nFournisseur : ${bc.fournisseur.nom}\n${bc.chantier ? `Chantier : ${bc.chantier.nom}\n` : ""}Total TTC : ${formatEuros(bc.totalTTC)}\n\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "bon-commande", documentId: id, documentRef: String(bc.numero), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -469,13 +504,15 @@ export async function envoyerBcBetonParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Merci de bien vouloir confirmer la disponibilité. Contact : <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `BC Béton ${bcb.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de Commande Béton N° ${bcb.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}BC Béton ${bcb.numero}\n${bcb.fournisseur ? `Centrale : ${bcb.fournisseur.nom}\n` : ""}${bcb.chantier ? `Chantier : ${bcb.chantier.nom}\n` : ""}${bcb.qteTotale ? `Volume : ${bcb.qteTotale} m³\n` : ""}\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "bc-beton", documentId: id, documentRef: String(bcb.numero), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -523,13 +560,15 @@ export async function envoyerContratSTParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `Contrat de sous-traitance ${contrat.numero} — SDA Rénovation`,
     html: emailLayout(`Contrat de sous-traitance N° ${contrat.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Contrat ${contrat.numero}\nSous-traitant : ${contrat.sousTraitant.nom}\nChantier : ${contrat.chantier.nom}\n${contrat.montantHT != null ? `Montant HT : ${formatEuros(contrat.montantHT)}\n` : ""}\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "contrat-st", documentId: id, documentRef: String(contrat.numero), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -583,13 +622,15 @@ export async function envoyerOrdreMissionParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `Ordre de mission ${om.numero} — SDA Rénovation`,
     html: emailLayout(`Ordre de mission N° ${om.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Ordre de mission ${om.numero} — ${om.titre}\nIntervenant : ${intervenant}\n${om.chantier ? `Chantier : ${om.chantier.nom}\n` : ""}Du ${formatDate(om.dateDebut)}${om.dateFin ? ` au ${formatDate(om.dateFin)}` : ""}\n\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "ordre-mission", documentId: id, documentRef: String(om.numero), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -634,13 +675,15 @@ export async function envoyerEtatReservesParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `État des réserves ${etat.numero} — SDA Rénovation`,
     html: emailLayout(`État des réserves N° ${etat.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}État des réserves ${etat.numero}\n${etat.chantier ? `Chantier : ${etat.chantier.nom}\n` : ""}${etat.client ? `Client : ${etat.client.nom}\n` : ""}Date : ${formatDate(etat.dateDocument)}\n\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "etat-reserves", documentId: id, documentRef: String(etat.numero), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -686,7 +729,7 @@ export async function envoyerMemoireTechniqueParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `Mémoire technique ${mt.reference} — SDA Rénovation`,
@@ -694,7 +737,7 @@ export async function envoyerMemoireTechniqueParEmail(
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Mémoire technique ${mt.reference} — ${mt.titre}\nChantier : ${mt.chantier.nom}\n\nCordialement,\nSDA Rénovation`,
       cc,
       bcc,
-  });
+  }, { type: "memoire-technique", documentId: id, documentRef: String(mt.reference), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -739,13 +782,15 @@ export async function envoyerPpspsParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `PPSPS — ${ppsps.titre} — SDA Rénovation`,
     html: emailLayout(`PPSPS — ${ppsps.titre}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}PPSPS — ${ppsps.titre}\nChantier : ${ppsps.chantier.nom}\n${ppsps.nomOperation ? `Opération : ${ppsps.nomOperation}\n` : ""}\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "ppsps", documentId: id, documentRef: String(ppsps.reference ?? ppsps.titre ?? id), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -788,7 +833,7 @@ export async function envoyerDoeParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `DOE — ${doe.titre} — SDA Rénovation`,
@@ -796,7 +841,7 @@ export async function envoyerDoeParEmail(
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}DOE — ${doe.titre}\nChantier : ${doe.chantier.nom}\n\nCordialement,\nSDA Rénovation`,
       cc,
       bcc,
-  });
+  }, { type: "doe", documentId: id, documentRef: String(id), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -836,13 +881,15 @@ export async function envoyerFicheTechniqueParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `Fiche technique — ${fiche.designation} — SDA Rénovation`,
     html: emailLayout(`Fiche technique — ${fiche.designation}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Fiche technique : ${fiche.designation}\n${fiche.marque ? `Marque : ${fiche.marque}\n` : ""}${fiche.reference ? `Référence : ${fiche.reference}\n` : ""}Corps d'état : ${fiche.corpsEtat}\n\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "fiche-technique", documentId: id, documentRef: String(fiche.designation ?? id), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -888,13 +935,15 @@ export async function envoyerBrpParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Merci de bien vouloir confirmer la disponibilité. Contact : <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `Réservation pompe ${brp.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de réservation pompe N° ${brp.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Bon de réservation pompe ${brp.numero}\nFournisseur : ${brp.fournisseur.nom}\n${nomChantier ? `Chantier : ${nomChantier}\n` : ""}${brp.dateReservation ? `Date : ${formatDate(brp.dateReservation)}\n` : ""}\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "brp", documentId: id, documentRef: String(brp.numero), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -948,7 +997,7 @@ export async function envoyerBcfParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Merci de bien vouloir accuser réception de cette commande. Contact : <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `BC Fournitures ${bcf.numero} — SDA Rénovation`,
@@ -956,7 +1005,7 @@ export async function envoyerBcfParEmail(
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}BC Fournitures ${bcf.numero}\nFournisseur : ${bcf.fournisseur.nom}\nTotal TTC : ${formatEuros(bcf.totalTTC)}\n\nCordialement,\nSDA Rénovation`,
       cc,
       bcc,
-  });
+  }, { type: "bcf", documentId: id, documentRef: String(bcf.numero), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -996,13 +1045,15 @@ export async function envoyerAgrementProduitParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `Agrément produit ${fiche.numero} — SDA Rénovation`,
     html: emailLayout(`Agrément produit N° ${fiche.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Agrément produit ${fiche.numero}\n${fiche.marque ? `Marque : ${fiche.marque}\n` : ""}${fiche.chantier ? `Chantier : ${fiche.chantier.nom}\n` : ""}\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "agrement-produit", documentId: id, documentRef: String(fiche.numero), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -1049,13 +1100,15 @@ export async function envoyerPreDimParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `Pré-dimensionnement ${pdim.numero} — SDA Rénovation`,
     html: emailLayout(`Pré-dimensionnement N° ${pdim.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Pré-dimensionnement ${pdim.numero}\n${pdim.titre ? `${pdim.titre}\n` : ""}Élément : ${typeElementLabel[pdim.typeElement] ?? pdim.typeElement} — Matériau : ${materiauLabel[pdim.materiau] ?? pdim.materiau}\n${pdim.chantier ? `Chantier : ${pdim.chantier.reference} — ${pdim.chantier.nom}\n` : ""}${pdim.resultatLabel ? `Résultat : ${pdim.resultatLabel}\n` : ""}\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "pre-dim", documentId: id, documentRef: String(pdim.chantier?.reference ?? id), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -1121,13 +1174,15 @@ export async function envoyerPlanningGanttParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `Planning ${chantier.nom} — SDA Rénovation`,
     html: emailLayout(`Planning Gantt — ${chantier.nom}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Planning Gantt — ${chantier.nom} (${chantier.reference})\n${chantier.tachesGantt.map(t => `- ${t.nom} : ${formatDate(t.dateDebut)} → ${formatDate(t.dateFin)} (${statutGanttLabel[t.statut] ?? t.statut})`).join("\n")}\n\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "planning-gantt", documentId: chantierId, documentRef: String(chantier.reference ?? chantierId), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -1176,13 +1231,15 @@ export async function envoyerPvReceptionParEmail(
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
-  return envoyerEmail({
+  return sendAndLog({
     from: fromAddress(signataire),
     to,
     subject: customSubject || `PV de réception ${pvr.numero}${pvr.objet ? ` — ${pvr.objet}` : ""} — SDA Rénovation`,
     html: emailLayout(`Procès-Verbal de Réception N° ${pvr.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}PV de réception ${pvr.numero}${pvr.objet ? `\nObjet : ${pvr.objet}` : ""}${pvr.chantier ? `\nChantier : ${pvr.chantier.nom}` : ""}${pvr.dateReception ? `\nDate de réception : ${formatDate(pvr.dateReception)}` : ""}${pvr.resultat ? `\nRésultat : ${resultatLabel[pvr.resultat] ?? pvr.resultat}` : ""}${shareUrl ? `\n\nLien : ${shareUrl}` : ""}\n\nCordialement,\nSDA Rénovation`,
-  });
+    cc,
+    bcc,
+  }, { type: "pv-reception", documentId: id, documentRef: String(pvr.numero), sentBy: signataire?.name ?? "" });
 }
 
 // ---------------------------------------------------------------------------

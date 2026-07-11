@@ -21,13 +21,18 @@ export function LoginForm() {
     }
   }, []);
 
-  function handleSubmit() {
-    if (loginMode === "email") {
-      if (rememberMe) {
-        localStorage.setItem("sda_crm_email", emailValue);
-      } else {
-        localStorage.removeItem("sda_crm_email");
-      }
+  function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    setEmailValue(val);
+    if (rememberMe) localStorage.setItem("sda_crm_email", val);
+  }
+
+  function handleRememberChange(checked: boolean) {
+    setRememberMe(checked);
+    if (checked && emailValue) {
+      localStorage.setItem("sda_crm_email", emailValue);
+    } else {
+      localStorage.removeItem("sda_crm_email");
     }
   }
 
@@ -35,7 +40,7 @@ export function LoginForm() {
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30";
 
   return (
-    <form action={formAction} onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-4">
       {/* Toggle mode */}
       <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs font-medium">
         <button
@@ -75,7 +80,7 @@ export function LoginForm() {
             autoComplete="email"
             required
             value={emailValue}
-            onChange={(e) => setEmailValue(e.target.value)}
+            onChange={handleEmailChange}
             className={inputCls}
           />
           {state?.errors?.email && (
@@ -142,7 +147,7 @@ export function LoginForm() {
           <input
             type="checkbox"
             checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
+            onChange={(e) => handleRememberChange(e.target.checked)}
             className="rounded border-slate-300 accent-brand-blue"
           />
           Se souvenir de cette adresse

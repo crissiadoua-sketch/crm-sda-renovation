@@ -100,7 +100,7 @@ export default async function ApercuFacturePage({
           <div className="mb-6">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white">
+                <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white">
                   <th className="px-3 py-2 text-left font-semibold text-xs w-16">Code</th>
                   <th className="px-3 py-2 text-left font-semibold text-xs">Désignation</th>
                   <th className="px-3 py-2 text-center font-semibold text-xs w-14">Unité</th>

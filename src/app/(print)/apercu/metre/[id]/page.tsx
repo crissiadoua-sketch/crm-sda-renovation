@@ -62,7 +62,7 @@ export default async function ApercuMetrePage({
 
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white text-[10px]">
+              <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white text-[10px]">
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Désignation</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Type</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-right font-semibold">Valeur</th>

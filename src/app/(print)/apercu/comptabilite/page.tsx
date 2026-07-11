@@ -71,7 +71,7 @@ export default async function ApercuComptabilitePage({
           <p className="mb-2 text-sm font-bold text-[#1E2F6E]">Journal des ventes — {factures.length} facture{factures.length !== 1 ? "s" : ""}</p>
           <table className="mb-6 w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white text-[10px]">
+              <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white text-[10px]">
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Date</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Numéro</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Client</th>
@@ -111,7 +111,7 @@ export default async function ApercuComptabilitePage({
           <p className="mb-2 text-sm font-bold text-[#1E2F6E]">Journal des achats — dépenses &amp; charges</p>
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white text-[10px]">
+              <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white text-[10px]">
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Date</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Libellé</th>
                 <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold">Catégorie</th>

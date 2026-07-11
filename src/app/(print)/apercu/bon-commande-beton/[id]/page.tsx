@@ -123,7 +123,7 @@ export default async function ApercuBonCommandeBetonPage({
 
           {/* ── Spécifications béton NF EN 206 ──────────────────────────────── */}
           <div className="mb-5">
-            <div className="rounded-t-lg bg-gradient-to-r from-[#1976D2] to-[#1B3F94] px-4 py-2 flex items-center gap-2">
+            <div className="rounded-t-lg bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] px-4 py-2 flex items-center gap-2">
               <span className="text-white font-bold text-xs uppercase tracking-widest">
                 Spécifications du béton — NF EN 206 / CN
               </span>
@@ -200,7 +200,7 @@ export default async function ApercuBonCommandeBetonPage({
 
           {/* ── Commande ────────────────────────────────────────────────────── */}
           <div className="mb-5">
-            <div className="rounded-t-lg bg-gradient-to-r from-[#1976D2] to-[#1B3F94] px-4 py-2">
+            <div className="rounded-t-lg bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] px-4 py-2">
               <span className="text-white font-bold text-xs uppercase tracking-widest">Commande</span>
             </div>
             <div className="rounded-b-lg border border-[#1E2F6E]/20 overflow-hidden">
@@ -285,7 +285,7 @@ export default async function ApercuBonCommandeBetonPage({
           {/* ── Planning de livraison ────────────────────────────────────────── */}
           {(bcb.dateLivraison != null || bcb.livraisons.length > 0) && (
             <div className="mb-5">
-              <div className="rounded-t-lg bg-gradient-to-r from-[#1976D2] to-[#1B3F94] px-4 py-2">
+              <div className="rounded-t-lg bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] px-4 py-2">
                 <span className="text-white font-bold text-xs uppercase tracking-widest">Planning de livraison</span>
               </div>
               <div className="rounded-b-lg border border-[#1E2F6E]/20 overflow-hidden">

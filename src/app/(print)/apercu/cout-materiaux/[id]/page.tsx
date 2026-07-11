@@ -63,7 +63,7 @@ export default async function ApercuCoutMateriauxPage({
             <table className="w-full border-collapse text-xs">
               <thead>
                 {/* Ligne 1 : groupes */}
-                <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white text-[10px]">
+                <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white text-[10px]">
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold" rowSpan={2}>Réf</th>
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-left font-semibold" rowSpan={2}>Désignation Matériaux</th>
                   <th className="border border-[#29ABE2] px-2 py-1.5 text-center font-semibold" rowSpan={2}>U</th>
@@ -106,7 +106,7 @@ export default async function ApercuCoutMateriauxPage({
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white font-bold">
+                <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white font-bold">
                   <td className="border border-[#29ABE2] px-2 py-2 text-xs" colSpan={11}>Coût moyen pondéré (moyenne)</td>
                   <td className="border border-[#29ABE2] px-2 py-2 text-right text-sm">{formatEuros(avg)}</td>
                 </tr>

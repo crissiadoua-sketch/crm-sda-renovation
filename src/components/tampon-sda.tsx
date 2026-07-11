@@ -28,7 +28,7 @@ export async function TamponSDA({ className = "", compact = false }: TamponSDAPr
   return (
     <div className={`inline-flex rounded-xl border border-[#1E2F6E]/20 overflow-hidden shadow-md ${className}`} style={{ minWidth: 340 }}>
       {/* Panneau gauche — identité visuelle */}
-      <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1E2F6E] to-[#1B3F94] px-5 py-4 gap-2">
+      <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1976D2] to-[#1B3F94] px-5 py-4 gap-2">
         {/* Logo SDA */}
         <div
           className="flex items-end justify-center gap-0 leading-none select-none"
@@ -50,7 +50,7 @@ export async function TamponSDA({ className = "", compact = false }: TamponSDAPr
             className="font-black"
             style={{
               fontSize: 32,
-              background: "linear-gradient(135deg, #29ABE2, #1B3F94)",
+              background: "linear-gradient(135deg, #1976D2, #1B3F94)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               lineHeight: 1,
@@ -62,7 +62,7 @@ export async function TamponSDA({ className = "", compact = false }: TamponSDAPr
             className="font-black"
             style={{
               fontSize: 32,
-              background: "linear-gradient(135deg, #29ABE2, #1E2F6E)",
+              background: "linear-gradient(135deg, #5BA8E5, #1B3F94)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               lineHeight: 1,
@@ -74,7 +74,7 @@ export async function TamponSDA({ className = "", compact = false }: TamponSDAPr
         <p className="text-white font-black text-[11px] tracking-[0.25em] uppercase">RÉNOVATION</p>
         <div className="w-full h-px bg-white/20 my-1" />
         <p className="text-white/70 text-[9px] tracking-wider">{COMPANY.site}</p>
-        <p className="text-[#29ABE2] text-[9px] font-semibold tracking-widest uppercase">Tous Corps d'État</p>
+        <p className="text-[#90CAF9] text-[9px] font-semibold tracking-widest uppercase">Tous Corps d'État</p>
       </div>
 
       {/* Panneau droit — coordonnées */}
@@ -88,7 +88,7 @@ export async function TamponSDA({ className = "", compact = false }: TamponSDAPr
           <p className="text-[11px] text-slate-600 leading-snug">{COMPANY.adresse}</p>
           <p className="text-[11px] text-slate-600 leading-snug">{COMPANY.codePostal} {COMPANY.ville}</p>
           <p className="text-[11px] text-slate-600 leading-snug mt-1">{COMPANY.telephone}</p>
-          <p className="text-[11px] text-[#29ABE2] leading-snug"><EmailsDocument separator=" · " /></p>
+          <p className="text-[11px] text-[#1976D2] leading-snug"><EmailsDocument separator=" · " /></p>
         </div>
 
         <div className="h-0.5 w-full bg-gradient-to-r from-[#F7941E] to-[#E6471D] rounded-full mt-1" />
@@ -109,7 +109,7 @@ export async function TamponSDA({ className = "", compact = false }: TamponSDAPr
 export async function TamponSDAprint({ className = "" }: { className?: string }) {
   return (
     <div className={`flex rounded border border-[#1E2F6E]/30 overflow-hidden ${className}`} style={{ width: 280, fontSize: 0 }}>
-      <div className="flex flex-col items-center justify-center px-3 py-2 gap-1" style={{ background: "linear-gradient(to bottom, #1E2F6E, #1B3F94)" }}>
+      <div className="flex flex-col items-center justify-center px-3 py-2 gap-1" style={{ background: "linear-gradient(to bottom, #1976D2, #1B3F94)" }}>
         <span style={{ fontSize: 18, fontWeight: 900, color: "#F7941E", lineHeight: 1 }}>SDA</span>
         <span style={{ fontSize: 6, fontWeight: 700, color: "white", letterSpacing: "0.2em" }}>RÉNOVATION</span>
         <span style={{ fontSize: 5, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>{COMPANY.site}</span>

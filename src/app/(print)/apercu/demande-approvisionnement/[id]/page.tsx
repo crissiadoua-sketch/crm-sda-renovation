@@ -113,7 +113,7 @@ export default async function ApercuDemandeApprovisionnementPage({
           <div className="mb-5">
             <table className="w-full border-collapse text-xs">
               <thead>
-                <tr className="bg-gradient-to-r from-[#1976D2] to-[#1B3F94] text-white">
+                <tr className="bg-gradient-to-r from-[#FFA726] via-[#F7941E] to-[#E6471D] text-white">
                   <th className="px-2 py-1.5 text-left font-semibold w-6">#</th>
                   <th className="px-2 py-1.5 text-left font-semibold">Désignation</th>
                   <th className="px-2 py-1.5 text-left font-semibold w-20">Référence</th>

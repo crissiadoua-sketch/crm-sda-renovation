@@ -308,6 +308,7 @@ export async function envoyerDevisParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `Devis ${devis.numero} — SDA Rénovation`,
     html: emailLayout(`Devis N° ${devis.numero}`, corps, signataire),
@@ -384,6 +385,7 @@ export async function envoyerFactureParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — SDA Rénovation`,
     html: emailLayout(`${typeLabel[facture.type] ?? "Facture"} N° ${facture.numero}`, corps, signataire),
@@ -452,6 +454,7 @@ export async function envoyerBcParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `Bon de Commande ${bc.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de Commande N° ${bc.numero}`, corps, signataire),
@@ -506,6 +509,7 @@ export async function envoyerBcBetonParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `BC Béton ${bcb.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de Commande Béton N° ${bcb.numero}`, corps, signataire),
@@ -562,6 +566,7 @@ export async function envoyerContratSTParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `Contrat de sous-traitance ${contrat.numero} — SDA Rénovation`,
     html: emailLayout(`Contrat de sous-traitance N° ${contrat.numero}`, corps, signataire),
@@ -624,6 +629,7 @@ export async function envoyerOrdreMissionParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `Ordre de mission ${om.numero} — SDA Rénovation`,
     html: emailLayout(`Ordre de mission N° ${om.numero}`, corps, signataire),
@@ -677,6 +683,7 @@ export async function envoyerEtatReservesParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `État des réserves ${etat.numero} — SDA Rénovation`,
     html: emailLayout(`État des réserves N° ${etat.numero}`, corps, signataire),
@@ -731,6 +738,7 @@ export async function envoyerMemoireTechniqueParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `Mémoire technique ${mt.reference} — SDA Rénovation`,
     html: emailLayout(`Mémoire technique ${mt.reference}`, corps, signataire),
@@ -784,6 +792,7 @@ export async function envoyerPpspsParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `PPSPS — ${ppsps.titre} — SDA Rénovation`,
     html: emailLayout(`PPSPS — ${ppsps.titre}`, corps, signataire),
@@ -835,6 +844,7 @@ export async function envoyerDoeParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `DOE — ${doe.titre} — SDA Rénovation`,
     html: emailLayout(`DOE — ${doe.titre}`, corps, signataire),
@@ -883,6 +893,7 @@ export async function envoyerFicheTechniqueParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `Fiche technique — ${fiche.designation} — SDA Rénovation`,
     html: emailLayout(`Fiche technique — ${fiche.designation}`, corps, signataire),
@@ -937,6 +948,7 @@ export async function envoyerBrpParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `Réservation pompe ${brp.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de réservation pompe N° ${brp.numero}`, corps, signataire),
@@ -999,6 +1011,7 @@ export async function envoyerBcfParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `BC Fournitures ${bcf.numero} — SDA Rénovation`,
     html: emailLayout(`BC Fournitures N° ${bcf.numero}`, corps, signataire),
@@ -1047,6 +1060,7 @@ export async function envoyerAgrementProduitParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `Agrément produit ${fiche.numero} — SDA Rénovation`,
     html: emailLayout(`Agrément produit N° ${fiche.numero}`, corps, signataire),
@@ -1102,6 +1116,7 @@ export async function envoyerPreDimParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `Pré-dimensionnement ${pdim.numero} — SDA Rénovation`,
     html: emailLayout(`Pré-dimensionnement N° ${pdim.numero}`, corps, signataire),
@@ -1176,6 +1191,7 @@ export async function envoyerPlanningGanttParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `Planning ${chantier.nom} — SDA Rénovation`,
     html: emailLayout(`Planning Gantt — ${chantier.nom}`, corps, signataire),
@@ -1233,6 +1249,7 @@ export async function envoyerPvReceptionParEmail(
 
   return sendAndLog({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: customSubject || `PV de réception ${pvr.numero}${pvr.objet ? ` — ${pvr.objet}` : ""} — SDA Rénovation`,
     html: emailLayout(`Procès-Verbal de Réception N° ${pvr.numero}`, corps, signataire),
@@ -1256,6 +1273,7 @@ export async function testerConfigurationEmail(
 
   return envoyerEmail({
     from: fromAddress(signataire),
+      replyTo: signataire?.email,
     to,
     subject: "Test de configuration SMTP — CRM SDA Rénovation",
     html: emailLayout("Test de configuration email", `

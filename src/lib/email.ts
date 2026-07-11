@@ -20,6 +20,7 @@ export async function envoyerEmail(params: {
   html: string;
   text?: string;
   from?: string;
+  replyTo?: string;
   cc?: string;
   bcc?: string;
 }): Promise<{ ok: boolean; error?: string }> {
@@ -38,6 +39,7 @@ export async function envoyerEmail(params: {
       subject: params.subject,
       html: params.html,
       text: params.text,
+      ...(params.replyTo ? { reply_to: params.replyTo } : {}),
       ...(params.cc  ? { cc:  params.cc.split(",").map(s => s.trim()).filter(Boolean) } : {}),
       ...(params.bcc ? { bcc: params.bcc.split(",").map(s => s.trim()).filter(Boolean) } : {}),
     });

@@ -571,6 +571,7 @@ export async function signerDevis(
   const dateSignature = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(new Date());
   await envoyerEmail({
     to: "contact@sda-renovation.com",
+      cc: "christopher.siadoua@sda-renovation.com,facturation@sda-renovation.com",
     subject: `✅ Devis accepté — ${devis.numero} · ${clientNom}`,
     html: `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif">
@@ -634,6 +635,7 @@ export async function refuserDevis(
   const lienDevis = `${APP_URL}/devis/${devis.id}`;
   await envoyerEmail({
     to: "contact@sda-renovation.com",
+      cc: "christopher.siadoua@sda-renovation.com,facturation@sda-renovation.com",
     subject: `❌ Devis refusé — ${devis.numero} · ${clientNom}`,
     html: `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif">

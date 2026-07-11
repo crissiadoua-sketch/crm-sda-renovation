@@ -20,13 +20,18 @@ function signatureHtml(s: Signataire): string {
     return `
 <table cellpadding="0" cellspacing="0" style="margin-top:16px;border-top:1px solid #e2e8f0;padding-top:16px;width:100%">
   <tr>
-    <td style="vertical-align:top">
+    <td style="vertical-align:top;padding-bottom:12px">
       <p style="margin:0;font-size:13px;font-weight:bold;color:#1e293b">${s.name}</p>
       ${s.titre ? `<p style="margin:2px 0 0;font-size:12px;color:#475569">${s.titre}</p>` : ""}
-      ${s.societe ? `<p style="margin:6px 0 0;font-size:12px;font-weight:600;color:#1e293b">${s.societe}</p>` : ""}
-      ${adresseLines ? `<p style="margin:2px 0 0;font-size:12px;color:#475569;line-height:1.5">${adresseLines}</p>` : ""}
+      ${s.societe ? `<p style="margin:8px 0 0;font-size:12px;font-weight:600;color:#1e293b">${s.societe}</p>` : ""}
+      ${adresseLines ? `<p style="margin:2px 0 0;font-size:12px;color:#475569;line-height:1.6">${adresseLines}</p>` : ""}
       ${tel ? `<p style="margin:6px 0 0;font-size:12px;color:#1e293b">Tél : <a href="tel:${tel}" style="color:#1e293b;text-decoration:none">${tel}</a></p>` : ""}
       <p style="margin:3px 0 0;font-size:12px"><a href="mailto:${s.email}" style="color:#1e293b;text-decoration:underline">${s.email}</a></p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding-top:10px">
+      <img src="${APP_URL}/logo-oec.jpg" alt="Ordre des Experts-Comptables" width="180" style="display:block;max-width:180px">
     </td>
   </tr>
 </table>`;

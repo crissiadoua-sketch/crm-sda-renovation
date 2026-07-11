@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useActionState, useMemo, useState } from "react";
-import { Plus, Trash2, Truck, AlertTriangle, Maximize2, Minimize2 } from "lucide-react";
+import React, { useActionState, useMemo, useState, useTransition } from "react";
+import { Plus, Trash2, Truck, AlertTriangle, Maximize2, Minimize2, Sparkles, X, Loader2 } from "lucide-react";
+import { genererPlanningIA, type TacheIA } from "@/lib/actions/gantt-ia";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -210,6 +211,11 @@ export function GanttClient({
   const [vue, setVue] = useState<VueGantt>("SEMAINE");
   const [pleinEcran, setPleinEcran] = useState(false);
 
+  // IA planning
+  const [isPendingIA, startIA] = useTransition();
+  const [iaModal, setIaModal] = useState<{ taches: TacheIA[]; devisInfo: string } | null>(null);
+  const [iaError, setIaError] = useState<string | null>(null);
+
   React.useEffect(() => {
     if (!pleinEcran) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -361,6 +367,50 @@ export function GanttClient({
       });
       return [...base, ...nouvelles];
     });
+  }
+
+  function lancerIA() {
+    setIaError(null);
+    setIaModal(null);
+    startIA(async () => {
+      const result = await genererPlanningIA(chantierId);
+      if ("error" in result) {
+        setIaError(result.error);
+      } else {
+        setIaModal(result);
+      }
+    });
+  }
+
+  function insererTachesIA(taches: TacheIA[]) {
+    setRows((cur) => {
+      const estVide = cur.length === 1 && !cur[0].nom && !cur[0].corpsEtat && cur[0].predecesseurKeys.length === 0;
+      const base = estVide ? [] : cur;
+      const newKeys = taches.map(() => newKey());
+      const ordreToKey: Record<number, string> = {};
+      taches.forEach((t, i) => { ordreToKey[t.ordre] = newKeys[i]; });
+      const nouvelles: TaskRow[] = taches.map((t, i) => ({
+        key: newKeys[i],
+        nom: t.nom,
+        duree: String(t.duree),
+        dateDebut: chantierDateDebut?.slice(0, 10) ?? format(new Date(), "yyyy-MM-dd"),
+        avancement: 0,
+        statut: "A_FAIRE" as const,
+        priorite: t.priorite,
+        corpsEtat: t.corpsEtat,
+        ressource: "",
+        intervenantType: "" as const,
+        intervenantId: "",
+        dateDebutReelle: "",
+        dateFinReelle: "",
+        notes: t.notes ?? "",
+        predecesseurKeys: t.predecesseurOrdres
+          .map((ord) => ordreToKey[ord])
+          .filter((k): k is string => Boolean(k)),
+      }));
+      return [...base, ...nouvelles];
+    });
+    setIaModal(null);
   }
 
   function removeRow(key: string) {
@@ -981,9 +1031,112 @@ export function GanttClient({
           >
             <Plus className="h-3.5 w-3.5" /> Modèle type SDA (corps de métier)
           </button>
+          <button
+            type="button"
+            onClick={lancerIA}
+            disabled={isPendingIA}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#F7941E]/40 bg-gradient-to-r from-[#FFF3E0] to-[#FFF8F0] px-3 py-1.5 text-xs font-semibold text-[#E6471D] hover:from-[#FFE0B2] hover:to-[#FFF3E0] disabled:opacity-60"
+          >
+            {isPendingIA
+              ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Analyse en cours…</>
+              : <><Sparkles className="h-3.5 w-3.5" /> Générer avec l&apos;IA</>
+            }
+          </button>
+          {iaError && (
+            <p className="text-xs text-red-600 max-w-xs">{iaError}</p>
+          )}
         </div>
         <SubmitButton pendingLabel="Enregistrement…">Enregistrer le planning</SubmitButton>
       </div>
+
+      {/* Modal prévisualisation planning IA */}
+      {iaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="flex flex-col w-full max-w-2xl max-h-[90vh] rounded-2xl bg-white shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-[#FFA726] to-[#F7941E] px-5 py-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-white" />
+                <div>
+                  <p className="font-bold text-white text-sm">Planning généré par l&apos;IA</p>
+                  <p className="text-white/80 text-xs">{iaModal.devisInfo}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setIaModal(null)} className="text-white/80 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Liste des tâches */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <p className="mb-3 text-xs text-slate-500">
+                {iaModal.taches.length} tâche{iaModal.taches.length > 1 ? "s" : ""} générée{iaModal.taches.length > 1 ? "s" : ""} — vérifiez avant d&apos;appliquer. Vous pourrez les modifier après.
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {iaModal.taches.map((t) => (
+                  <div key={t.ordre} className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                    <span className="shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#F7941E]/15 text-[10px] font-bold text-[#E6471D]">
+                      {t.ordre}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{t.nom}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {t.corpsEtat && (
+                          <span className="rounded bg-brand-blue/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-blue uppercase">
+                            {t.corpsEtat}
+                          </span>
+                        )}
+                        <span className="text-[11px] text-slate-500">{t.duree} jour{t.duree > 1 ? "s" : ""}</span>
+                        {t.predecesseurOrdres.length > 0 && (
+                          <span className="text-[11px] text-slate-400">↳ dépend de : {t.predecesseurOrdres.join(", ")}</span>
+                        )}
+                        {t.priorite !== "NORMALE" && (
+                          <span className={`text-[10px] font-semibold ${t.priorite === "HAUTE" ? "text-orange-600" : t.priorite === "URGENTE" ? "text-red-600" : "text-slate-400"}`}>
+                            {t.priorite}
+                          </span>
+                        )}
+                      </div>
+                      {t.notes && <p className="mt-0.5 text-[11px] text-slate-400 italic">{t.notes}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setIaModal(null)}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={lancerIA}
+                  disabled={isPendingIA}
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Regénérer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (rows.some((r) => r.nom || r.corpsEtat) && !window.confirm("Remplacer / compléter le planning actuel avec les tâches générées par l'IA ?")) return;
+                    insererTachesIA(iaModal.taches);
+                  }}
+                  className="rounded-lg bg-gradient-to-r from-[#F7941E] to-[#E6471D] px-5 py-2 text-sm font-bold text-white shadow hover:opacity-90"
+                >
+                  <Sparkles className="inline h-4 w-4 mr-1.5" />
+                  Appliquer au planning
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

@@ -7,7 +7,7 @@ export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, undefined);
   const [loginMode, setLoginMode] = useState<"email" | "name">("email");
   const [rememberMe, setRememberMe] = useState(false);
-  const [emailValue, setEmailValue] = useState("contact@sda-renovation.com");
+  const [emailValue, setEmailValue] = useState("");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -16,6 +16,8 @@ export function LoginForm() {
     if (saved) {
       setEmailValue(saved);
       setRememberMe(true);
+    } else {
+      setEmailValue("");
     }
   }, []);
 

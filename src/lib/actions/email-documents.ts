@@ -11,18 +11,21 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.c
 // ---------------------------------------------------------------------------
 // Template HTML partagé
 // ---------------------------------------------------------------------------
-type Signataire = { name: string; titre?: string | null; telephone?: string | null; email: string; externe?: boolean };
+type Signataire = { name: string; titre?: string | null; telephone?: string | null; email: string; societe?: string | null; adresse?: string | null; externe?: boolean };
 
 function signatureHtml(s: Signataire): string {
   const tel = s.telephone ?? "";
   if (s.externe) {
+    const adresseLines = s.adresse ? s.adresse.replace(/\n/g, "<br>") : "";
     return `
 <table cellpadding="0" cellspacing="0" style="margin-top:16px;border-top:1px solid #e2e8f0;padding-top:16px;width:100%">
   <tr>
     <td style="vertical-align:top">
       <p style="margin:0;font-size:13px;font-weight:bold;color:#1e293b">${s.name}</p>
-      ${s.titre ? `<p style="margin:1px 0 0;font-size:12px;color:#475569">${s.titre}</p>` : ""}
-      ${tel ? `<p style="margin:8px 0 0;font-size:12px;color:#1e293b"><a href="tel:${tel}" style="color:#1e293b;text-decoration:none">${tel}</a></p>` : ""}
+      ${s.titre ? `<p style="margin:2px 0 0;font-size:12px;color:#475569">${s.titre}</p>` : ""}
+      ${s.societe ? `<p style="margin:6px 0 0;font-size:12px;font-weight:600;color:#1e293b">${s.societe}</p>` : ""}
+      ${adresseLines ? `<p style="margin:2px 0 0;font-size:12px;color:#475569;line-height:1.5">${adresseLines}</p>` : ""}
+      ${tel ? `<p style="margin:6px 0 0;font-size:12px;color:#1e293b">Tél : <a href="tel:${tel}" style="color:#1e293b;text-decoration:none">${tel}</a></p>` : ""}
       <p style="margin:3px 0 0;font-size:12px"><a href="mailto:${s.email}" style="color:#1e293b;text-decoration:underline">${s.email}</a></p>
     </td>
   </tr>
@@ -69,6 +72,8 @@ async function getSignataire(): Promise<Signataire | undefined> {
       titre: (u as { titre?: string | null }).titre ?? null,
       telephone: (u as { telephone?: string | null }).telephone ?? null,
       email: u.email,
+      societe: (u as { societe?: string | null }).societe ?? null,
+      adresse: (u as { adresse?: string | null }).adresse ?? null,
       externe: u.role === "EXPERT_COMPTABLE",
     };
   } catch {

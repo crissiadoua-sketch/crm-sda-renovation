@@ -22,6 +22,8 @@ model User {
   permissions         String    @default("[]") // JSON string[] — routes autorisées pour les rôles restreints
   telephone           String?
   titre               String?   // ex. "Directeur", "Commercial", "Chargé d'affaires"
+  societe             String?   // Cabinet / société (ex. "SEGEC AUDIT")
+  adresse             String?   // Adresse complète (ex. "101, bd de Suisse\n31200 TOULOUSE")
   passwordChangedAt   DateTime? // null = jamais changé depuis la création du compte
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

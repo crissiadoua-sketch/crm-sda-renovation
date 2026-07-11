@@ -22,6 +22,8 @@ type UserFormProps = {
     permissions?: string[];
     telephone?: string | null;
     titre?: string | null;
+    societe?: string | null;
+    adresse?: string | null;
   };
   isEdit?: boolean;
 };
@@ -148,6 +150,24 @@ export function UserForm({ action, defaultValues, isEdit }: UserFormProps) {
                 defaultValue={defaultValues?.telephone ?? ""}
                 className={inputClasses}
                 placeholder="06 XX XX XX XX"
+              />
+            </Field>
+            <Field label="Cabinet / Société" error={err?.societe?.[0]}>
+              <input
+                name="societe"
+                type="text"
+                defaultValue={defaultValues?.societe ?? ""}
+                className={inputClasses}
+                placeholder="ex. SEGEC AUDIT"
+              />
+            </Field>
+            <Field label="Adresse professionnelle" error={err?.adresse?.[0]}>
+              <textarea
+                name="adresse"
+                defaultValue={defaultValues?.adresse ?? ""}
+                className={inputClasses}
+                rows={2}
+                placeholder={"101, bd de Suisse\n31200 TOULOUSE"}
               />
             </Field>
           </div>

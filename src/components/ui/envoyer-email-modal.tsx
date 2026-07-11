@@ -107,7 +107,8 @@ export function EnvoyerEmailModal({
 
             {/* Formulaire */}
             {!state?.ok && (
-              <form action={formAction} className="flex flex-col gap-4 px-5 py-4 overflow-y-auto flex-1">
+              <form action={formAction} className="flex flex-col overflow-hidden flex-1">
+              <div className="flex flex-col gap-4 px-5 py-4 overflow-y-auto flex-1">
 
                 {/* Erreur */}
                 {state?.error && (
@@ -248,7 +249,10 @@ export function EnvoyerEmailModal({
                   />
                 </div>
 
-                <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-2 shrink-0">
+                </div>{/* fin du div scrollable */}
+
+                {/* Footer fixe — toujours visible */}
+                <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 shrink-0">
                   <p className="text-xs text-slate-400">
                     Envoyé depuis{" "}
                     <span className="font-medium">contact@sda-renovation.com</span>

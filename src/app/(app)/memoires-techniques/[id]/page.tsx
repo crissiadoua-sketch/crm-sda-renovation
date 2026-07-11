@@ -46,7 +46,7 @@ export default async function MemoireTechniquePage({
           action={envoyerMemoireTechniqueParEmail.bind(null, mt.id)}
           defaultTo={mt.chantier.client?.email ?? ""}
           documentLabel={`Mémoire technique ${mt.reference}`}
-          defaultSubject={`Mémoire technique ${mt.reference} — SDA Rénovation`}
+          defaultSubject={`Mémoire technique ${mt.reference}${mt.titre ? ` — ${mt.titre}` : ""} — SDA Rénovation`}
         />
       </div>
       <EditeurMemoire

@@ -178,7 +178,7 @@ export default async function DevisDetailPage({
           action={envoyerDevisParEmail.bind(null, devis.id)}
           defaultTo={devis.client.email ?? ""}
           documentLabel={`devis ${devis.numero}`}
-          defaultSubject={`Devis ${devis.numero} — SDA Rénovation`}
+          defaultSubject={`Devis ${devis.numero}${devis.objet ? ` — ${devis.objet}` : ""} — SDA Rénovation`}
           vueOptions={[
             { value: "client",      label: "Vue client",       description: "Résumé + lien de consultation sécurisé",   icon: "✉️" },
             { value: "commerciale", label: "Vue commerciale",  description: "Détail complet avec prix ligne par ligne",  icon: "📋" },

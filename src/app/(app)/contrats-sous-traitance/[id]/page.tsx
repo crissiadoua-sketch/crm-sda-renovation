@@ -65,6 +65,7 @@ export default async function ContratDetailPage({ params }: { params: Promise<{ 
             action={envoyerContratSTParEmail.bind(null, id)}
             defaultTo={contrat.sousTraitant.email ?? ""}
             documentLabel={`Contrat ${contrat.numero}`}
+          defaultSubject={`Contrat de sous-traitance ${contrat.numero} — SDA Rénovation`}
           />
           <Link
             href={`/apercu/contrat-sous-traitance/${id}`}

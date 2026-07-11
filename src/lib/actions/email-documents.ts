@@ -151,6 +151,9 @@ export async function envoyerDevisParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
   // Vue : "client" | "commerciale" | "synthese" | "sans_prix"
   const vue     = (formData.get("vue") as string) || "client";
 
@@ -277,7 +280,7 @@ export async function envoyerDevisParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `Devis ${devis.numero} — SDA Rénovation`,
+    subject: customSubject || `Devis ${devis.numero} — SDA Rénovation`,
     html: emailLayout(`Devis N° ${devis.numero}`, corps, signataire),
     text: `Bonjour,\n\n${message ? message + "\n\n" : ""}Devis ${devis.numero} — Chantier : ${devis.chantier.nom}\n${devis.objet ? `Objet : ${devis.objet}\n` : ""}${vue !== "sans_prix" ? `Montant TTC : ${formatEuros(devis.totalTTC ?? 0)}\n` : ""}${devis.dateValidite ? `Offre valable jusqu'au ${formatDate(devis.dateValidite)}\n` : ""}${vue === "client" && consulterUrl ? `Consultez votre devis : ${consulterUrl}\n` : signatureUrl ? `Consultez et signez : ${signatureUrl}\n` : ""}\nCordialement,\nSDA Rénovation\n[${vueLabel[vue] ?? vue}]`,
   });
@@ -293,6 +296,9 @@ export async function envoyerFactureParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -348,7 +354,7 @@ export async function envoyerFactureParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — SDA Rénovation`,
+    subject: customSubject || `${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — SDA Rénovation`,
     html: emailLayout(`${typeLabel[facture.type] ?? "Facture"} N° ${facture.numero}`, corps, signataire),
     text: `Bonjour,\n\n${message ? message + "\n\n" : ""}${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — ${facture.chantier.nom}\nMontant TTC : ${formatEuros(facture.totalTTC)}\n${facture.dateEcheance ? `Échéance : ${formatDate(facture.dateEcheance)}\n` : ""}${resteDu > 0 ? `Reste à payer : ${formatEuros(resteDu)}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
@@ -364,6 +370,9 @@ export async function envoyerBcParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -411,7 +420,7 @@ export async function envoyerBcParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `Bon de Commande ${bc.numero} — SDA Rénovation`,
+    subject: customSubject || `Bon de Commande ${bc.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de Commande N° ${bc.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Bon de Commande ${bc.numero}\nFournisseur : ${bc.fournisseur.nom}\n${bc.chantier ? `Chantier : ${bc.chantier.nom}\n` : ""}Total TTC : ${formatEuros(bc.totalTTC)}\n\nCordialement,\nSDA Rénovation`,
   });
@@ -427,6 +436,9 @@ export async function envoyerBcBetonParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -460,7 +472,7 @@ export async function envoyerBcBetonParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `BC Béton ${bcb.numero} — SDA Rénovation`,
+    subject: customSubject || `BC Béton ${bcb.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de Commande Béton N° ${bcb.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}BC Béton ${bcb.numero}\n${bcb.fournisseur ? `Centrale : ${bcb.fournisseur.nom}\n` : ""}${bcb.chantier ? `Chantier : ${bcb.chantier.nom}\n` : ""}${bcb.qteTotale ? `Volume : ${bcb.qteTotale} m³\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
@@ -476,6 +488,9 @@ export async function envoyerContratSTParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -511,7 +526,7 @@ export async function envoyerContratSTParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `Contrat de sous-traitance ${contrat.numero} — SDA Rénovation`,
+    subject: customSubject || `Contrat de sous-traitance ${contrat.numero} — SDA Rénovation`,
     html: emailLayout(`Contrat de sous-traitance N° ${contrat.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Contrat ${contrat.numero}\nSous-traitant : ${contrat.sousTraitant.nom}\nChantier : ${contrat.chantier.nom}\n${contrat.montantHT != null ? `Montant HT : ${formatEuros(contrat.montantHT)}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
@@ -527,6 +542,9 @@ export async function envoyerOrdreMissionParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -568,7 +586,7 @@ export async function envoyerOrdreMissionParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `Ordre de mission ${om.numero} — SDA Rénovation`,
+    subject: customSubject || `Ordre de mission ${om.numero} — SDA Rénovation`,
     html: emailLayout(`Ordre de mission N° ${om.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Ordre de mission ${om.numero} — ${om.titre}\nIntervenant : ${intervenant}\n${om.chantier ? `Chantier : ${om.chantier.nom}\n` : ""}Du ${formatDate(om.dateDebut)}${om.dateFin ? ` au ${formatDate(om.dateFin)}` : ""}\n\nCordialement,\nSDA Rénovation`,
   });
@@ -584,6 +602,9 @@ export async function envoyerEtatReservesParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -616,7 +637,7 @@ export async function envoyerEtatReservesParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `État des réserves ${etat.numero} — SDA Rénovation`,
+    subject: customSubject || `État des réserves ${etat.numero} — SDA Rénovation`,
     html: emailLayout(`État des réserves N° ${etat.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}État des réserves ${etat.numero}\n${etat.chantier ? `Chantier : ${etat.chantier.nom}\n` : ""}${etat.client ? `Client : ${etat.client.nom}\n` : ""}Date : ${formatDate(etat.dateDocument)}\n\nCordialement,\nSDA Rénovation`,
   });
@@ -632,6 +653,9 @@ export async function envoyerMemoireTechniqueParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -665,9 +689,11 @@ export async function envoyerMemoireTechniqueParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `Mémoire technique ${mt.reference} — SDA Rénovation`,
+    subject: customSubject || `Mémoire technique ${mt.reference} — SDA Rénovation`,
     html: emailLayout(`Mémoire technique ${mt.reference}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Mémoire technique ${mt.reference} — ${mt.titre}\nChantier : ${mt.chantier.nom}\n\nCordialement,\nSDA Rénovation`,
+      cc,
+      bcc,
   });
 }
 
@@ -681,6 +707,9 @@ export async function envoyerPpspsParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -713,7 +742,7 @@ export async function envoyerPpspsParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `PPSPS — ${ppsps.titre} — SDA Rénovation`,
+    subject: customSubject || `PPSPS — ${ppsps.titre} — SDA Rénovation`,
     html: emailLayout(`PPSPS — ${ppsps.titre}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}PPSPS — ${ppsps.titre}\nChantier : ${ppsps.chantier.nom}\n${ppsps.nomOperation ? `Opération : ${ppsps.nomOperation}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
@@ -729,6 +758,9 @@ export async function envoyerDoeParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -759,9 +791,11 @@ export async function envoyerDoeParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `DOE — ${doe.titre} — SDA Rénovation`,
+    subject: customSubject || `DOE — ${doe.titre} — SDA Rénovation`,
     html: emailLayout(`DOE — ${doe.titre}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}DOE — ${doe.titre}\nChantier : ${doe.chantier.nom}\n\nCordialement,\nSDA Rénovation`,
+      cc,
+      bcc,
   });
 }
 
@@ -775,6 +809,9 @@ export async function envoyerFicheTechniqueParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -802,7 +839,7 @@ export async function envoyerFicheTechniqueParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `Fiche technique — ${fiche.designation} — SDA Rénovation`,
+    subject: customSubject || `Fiche technique — ${fiche.designation} — SDA Rénovation`,
     html: emailLayout(`Fiche technique — ${fiche.designation}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Fiche technique : ${fiche.designation}\n${fiche.marque ? `Marque : ${fiche.marque}\n` : ""}${fiche.reference ? `Référence : ${fiche.reference}\n` : ""}Corps d'état : ${fiche.corpsEtat}\n\nCordialement,\nSDA Rénovation`,
   });
@@ -818,6 +855,9 @@ export async function envoyerBrpParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -851,7 +891,7 @@ export async function envoyerBrpParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `Réservation pompe ${brp.numero} — SDA Rénovation`,
+    subject: customSubject || `Réservation pompe ${brp.numero} — SDA Rénovation`,
     html: emailLayout(`Bon de réservation pompe N° ${brp.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Bon de réservation pompe ${brp.numero}\nFournisseur : ${brp.fournisseur.nom}\n${nomChantier ? `Chantier : ${nomChantier}\n` : ""}${brp.dateReservation ? `Date : ${formatDate(brp.dateReservation)}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
@@ -867,6 +907,9 @@ export async function envoyerBcfParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -908,9 +951,11 @@ export async function envoyerBcfParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `BC Fournitures ${bcf.numero} — SDA Rénovation`,
+    subject: customSubject || `BC Fournitures ${bcf.numero} — SDA Rénovation`,
     html: emailLayout(`BC Fournitures N° ${bcf.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}BC Fournitures ${bcf.numero}\nFournisseur : ${bcf.fournisseur.nom}\nTotal TTC : ${formatEuros(bcf.totalTTC)}\n\nCordialement,\nSDA Rénovation`,
+      cc,
+      bcc,
   });
 }
 
@@ -924,6 +969,9 @@ export async function envoyerAgrementProduitParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -951,7 +999,7 @@ export async function envoyerAgrementProduitParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `Agrément produit ${fiche.numero} — SDA Rénovation`,
+    subject: customSubject || `Agrément produit ${fiche.numero} — SDA Rénovation`,
     html: emailLayout(`Agrément produit N° ${fiche.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Agrément produit ${fiche.numero}\n${fiche.marque ? `Marque : ${fiche.marque}\n` : ""}${fiche.chantier ? `Chantier : ${fiche.chantier.nom}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
@@ -967,6 +1015,9 @@ export async function envoyerPreDimParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -1001,7 +1052,7 @@ export async function envoyerPreDimParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `Pré-dimensionnement ${pdim.numero} — SDA Rénovation`,
+    subject: customSubject || `Pré-dimensionnement ${pdim.numero} — SDA Rénovation`,
     html: emailLayout(`Pré-dimensionnement N° ${pdim.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Pré-dimensionnement ${pdim.numero}\n${pdim.titre ? `${pdim.titre}\n` : ""}Élément : ${typeElementLabel[pdim.typeElement] ?? pdim.typeElement} — Matériau : ${materiauLabel[pdim.materiau] ?? pdim.materiau}\n${pdim.chantier ? `Chantier : ${pdim.chantier.reference} — ${pdim.chantier.nom}\n` : ""}${pdim.resultatLabel ? `Résultat : ${pdim.resultatLabel}\n` : ""}\nCordialement,\nSDA Rénovation`,
   });
@@ -1017,6 +1068,9 @@ export async function envoyerPlanningGanttParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -1070,7 +1124,7 @@ export async function envoyerPlanningGanttParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `Planning ${chantier.nom} — SDA Rénovation`,
+    subject: customSubject || `Planning ${chantier.nom} — SDA Rénovation`,
     html: emailLayout(`Planning Gantt — ${chantier.nom}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Planning Gantt — ${chantier.nom} (${chantier.reference})\n${chantier.tachesGantt.map(t => `- ${t.nom} : ${formatDate(t.dateDebut)} → ${formatDate(t.dateFin)} (${statutGanttLabel[t.statut] ?? t.statut})`).join("\n")}\n\nCordialement,\nSDA Rénovation`,
   });
@@ -1086,6 +1140,9 @@ export async function envoyerPvReceptionParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   const to      = (formData.get("to") as string)?.trim();
   const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc  = (formData.get("cc")  as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -1122,7 +1179,7 @@ export async function envoyerPvReceptionParEmail(
   return envoyerEmail({
     from: fromAddress(signataire),
     to,
-    subject: `PV de réception ${pvr.numero}${pvr.objet ? ` — ${pvr.objet}` : ""} — SDA Rénovation`,
+    subject: customSubject || `PV de réception ${pvr.numero}${pvr.objet ? ` — ${pvr.objet}` : ""} — SDA Rénovation`,
     html: emailLayout(`Procès-Verbal de Réception N° ${pvr.numero}`, corps, signataire),
     text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}PV de réception ${pvr.numero}${pvr.objet ? `\nObjet : ${pvr.objet}` : ""}${pvr.chantier ? `\nChantier : ${pvr.chantier.nom}` : ""}${pvr.dateReception ? `\nDate de réception : ${formatDate(pvr.dateReception)}` : ""}${pvr.resultat ? `\nRésultat : ${resultatLabel[pvr.resultat] ?? pvr.resultat}` : ""}${shareUrl ? `\n\nLien : ${shareUrl}` : ""}\n\nCordialement,\nSDA Rénovation`,
   });

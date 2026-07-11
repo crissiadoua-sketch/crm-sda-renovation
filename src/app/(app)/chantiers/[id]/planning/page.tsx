@@ -169,6 +169,7 @@ export default async function ChantierPlanningPage({
             action={envoyerPlanningGanttParEmail.bind(null, chantier.id)}
             defaultTo=""
             documentLabel={`Planning ${chantier.nom}`}
+              defaultSubject={`Planning chantier ${chantier.reference} — SDA Rénovation`}
           />
         </div>
       </div>

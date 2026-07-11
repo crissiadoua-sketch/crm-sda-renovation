@@ -19,7 +19,9 @@ export async function envoyerEmail(params: {
   subject: string;
   html: string;
   text?: string;
-  from?: string; // ex. "Prénom Nom <prenom.nom@sda-renovation.com>"
+  from?: string;
+  cc?: string;
+  bcc?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const c = getClient();
   if (!c) {
@@ -36,6 +38,8 @@ export async function envoyerEmail(params: {
       subject: params.subject,
       html: params.html,
       text: params.text,
+      ...(params.cc  ? { cc:  params.cc.split(",").map(s => s.trim()).filter(Boolean) } : {}),
+      ...(params.bcc ? { bcc: params.bcc.split(",").map(s => s.trim()).filter(Boolean) } : {}),
     });
     if (error) return { ok: false, error: error.message };
     return { ok: true };

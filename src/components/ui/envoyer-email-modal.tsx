@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Mail, X, Send, CheckCircle, AlertCircle } from "lucide-react";
+import { Mail, X, Send, CheckCircle, AlertCircle, Maximize2, Minimize2, ChevronDown } from "lucide-react";
 
 type EmailAction = (prev: unknown, formData: FormData) => Promise<{ ok: boolean; error?: string }>;
 
@@ -17,10 +17,9 @@ interface EnvoyerEmailModalProps {
   defaultTo?: string;
   documentLabel?: string;
   buttonVariant?: "default" | "small";
-  /** Options de vue disponibles — si absent, pas de sélecteur de vue */
   vueOptions?: VueOption[];
-  /** Valeur par défaut du sélecteur de vue */
   defaultVue?: string;
+  defaultSubject?: string;
 }
 
 export function EnvoyerEmailModal({
@@ -30,15 +29,21 @@ export function EnvoyerEmailModal({
   buttonVariant = "default",
   vueOptions,
   defaultVue,
+  defaultSubject = "",
 }: EnvoyerEmailModalProps) {
   const [open, setOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [showCcBcc, setShowCcBcc] = useState(false);
   const [state, formAction, isPending] = useActionState(action, null);
   const [selectedVue, setSelectedVue] = useState(defaultVue ?? vueOptions?.[0]?.value ?? "client");
 
   function handleClose() {
     setOpen(false);
+    setFullscreen(false);
+    setShowCcBcc(false);
   }
 
+  const inputCls = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue";
   const buttonCls =
     "inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-brand-blue/40 hover:bg-brand-blue/5 hover:text-brand-blue";
 
@@ -51,27 +56,38 @@ export function EnvoyerEmailModal({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="relative w-full max-w-lg rounded-xl bg-white shadow-2xl">
+          <div className={`relative w-full rounded-xl bg-white shadow-2xl flex flex-col transition-all ${fullscreen ? "max-w-3xl h-[92vh]" : "max-w-lg max-h-[90vh]"}`}>
+
             {/* En-tête */}
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 shrink-0">
               <div className="flex items-center gap-2">
                 <Mail className="h-5 w-5 text-brand-blue" />
                 <h3 className="font-semibold text-brand-navy">
                   Envoyer {documentLabel} par email
                 </h3>
               </div>
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setFullscreen(!fullscreen)}
+                  title={fullscreen ? "Réduire" : "Plein écran"}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             {/* Résultat succès */}
             {state?.ok && (
-              <div className="px-5 py-4">
+              <div className="px-5 py-4 flex-1 overflow-y-auto">
                 <div className="flex flex-col items-center gap-3 py-6 text-center">
                   <CheckCircle className="h-12 w-12 text-emerald-500" />
                   <p className="font-semibold text-emerald-700">Email envoyé avec succès !</p>
@@ -91,7 +107,8 @@ export function EnvoyerEmailModal({
 
             {/* Formulaire */}
             {!state?.ok && (
-              <form action={formAction} className="flex flex-col gap-4 px-5 py-4">
+              <form action={formAction} className="flex flex-col gap-4 px-5 py-4 overflow-y-auto flex-1">
+
                 {/* Erreur */}
                 {state?.error && (
                   <div className="flex items-start gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -107,7 +124,7 @@ export function EnvoyerEmailModal({
                   </div>
                 )}
 
-                {/* Sélecteur de vue (si plusieurs options disponibles) */}
+                {/* Sélecteur de vue */}
                 {vueOptions && vueOptions.length > 1 && (
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -149,6 +166,20 @@ export function EnvoyerEmailModal({
                   <input type="hidden" name="vue" value={vueOptions[0].value} />
                 )}
 
+                {/* Objet */}
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Objet
+                  </label>
+                  <input
+                    type="text"
+                    name="subject"
+                    defaultValue={defaultSubject}
+                    placeholder="Objet de l'email…"
+                    className={inputCls}
+                  />
+                </div>
+
                 {/* Destinataire */}
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
@@ -160,9 +191,48 @@ export function EnvoyerEmailModal({
                     defaultValue={defaultTo}
                     required
                     placeholder="email@exemple.fr"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                    className={inputCls}
                   />
                 </div>
+
+                {/* CC / BCC toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowCcBcc(!showCcBcc)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand-blue transition -mt-2"
+                >
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showCcBcc ? "rotate-180" : ""}`} />
+                  {showCcBcc ? "Masquer" : "Ajouter"} Cc / Cci
+                </button>
+
+                {showCcBcc && (
+                  <>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                        En copie (Cc)
+                        <span className="ml-1 text-xs font-normal text-slate-400">— séparez plusieurs adresses par une virgule</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="cc"
+                        placeholder="copie@exemple.fr, autre@exemple.fr"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                        En copie masquée (Cci / Bcc)
+                        <span className="ml-1 text-xs font-normal text-slate-400">— destinataire invisible pour les autres</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="bcc"
+                        placeholder="masque@exemple.fr"
+                        className={inputCls}
+                      />
+                    </div>
+                  </>
+                )}
 
                 {/* Message personnalisé */}
                 <div>
@@ -172,13 +242,13 @@ export function EnvoyerEmailModal({
                   </label>
                   <textarea
                     name="message"
-                    rows={3}
+                    rows={fullscreen ? 6 : 3}
                     placeholder="Ajoutez un message personnalisé qui apparaîtra dans l'email…"
-                    className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                    className={`${inputCls} resize-none`}
                   />
                 </div>
 
-                <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-2">
+                <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-2 shrink-0">
                   <p className="text-xs text-slate-400">
                     Envoyé depuis{" "}
                     <span className="font-medium">contact@sda-renovation.com</span>

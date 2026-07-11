@@ -36,6 +36,7 @@ export default async function BonReservationPompePage({
           action={envoyerBrpParEmail.bind(null, brp.id)}
           defaultTo={brp.fournisseur?.email ?? ""}
           documentLabel={`Réservation pompe ${brp.numero}`}
+          defaultSubject={`Réservation pompe ${brp.numero} — SDA Rénovation`}
         />
       </div>
       <BonReservationPompeEditor

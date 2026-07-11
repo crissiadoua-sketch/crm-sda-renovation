@@ -72,6 +72,7 @@ export default async function FicheTechniqueDetailPage({
             action={envoyerFicheTechniqueParEmail.bind(null, fiche.id)}
             defaultTo=""
             documentLabel={`Fiche technique ${fiche.designation}`}
+          defaultSubject={`Fiche technique — ${fiche.designation} — SDA Rénovation`}
           />
           {fiche.fichierPdf && (
             <a

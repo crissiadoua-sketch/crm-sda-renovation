@@ -39,6 +39,7 @@ export default async function BonCommandePage({
           action={envoyerBcParEmail.bind(null, id)}
           defaultTo={fournisseurEmail}
           documentLabel={`BC ${bc.numero}`}
+          defaultSubject={`Bon de Commande ${bc.numero} — SDA Rénovation`}
         />
       </div>
       <BonCommandeDetail

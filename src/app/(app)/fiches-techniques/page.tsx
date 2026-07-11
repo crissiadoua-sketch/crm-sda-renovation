@@ -295,6 +295,7 @@ export default async function FichesTechniquesPage({
                         action={envoyerFicheTechniqueParEmail.bind(null, fiche.id)}
                         defaultTo=""
                         documentLabel={`fiche technique ${fiche.designation}`}
+              defaultSubject={`Fiche technique — ${fiche.designation} — SDA Rénovation`}
                         buttonVariant="small"
                       />
                     </>

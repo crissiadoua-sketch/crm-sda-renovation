@@ -491,6 +491,7 @@ export function PvReceptionEditor({
               action={envoyerParEmail}
               defaultTo={pvr.emailPrestataire ?? pvr.emailRepMO ?? ""}
               documentLabel="le PV de réception"
+              defaultSubject={`PV de réception ${pvr.numero} — SDA Rénovation`}
             />
           )}
           <a href={`/api/pv-reception/${pvr.id}/word`}

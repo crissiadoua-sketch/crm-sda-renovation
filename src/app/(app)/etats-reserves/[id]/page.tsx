@@ -78,6 +78,7 @@ export default async function EtatReservesDetailPage({
             action={envoyerEtatReservesParEmail.bind(null, etat.id)}
             defaultTo={etat.client?.email ?? ""}
             documentLabel={`État des réserves ${etat.numero}`}
+          defaultSubject={`État des réserves ${etat.numero} — SDA Rénovation`}
           />
           <a
             href={`/apercu/etat-reserves/${etat.id}`}

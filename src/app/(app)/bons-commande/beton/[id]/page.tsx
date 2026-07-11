@@ -36,6 +36,7 @@ export default async function BonCommandeBetonPage({
           action={envoyerBcBetonParEmail.bind(null, id)}
           defaultTo={bcb.fournisseur?.email ?? ""}
           documentLabel={`BC Béton ${bcb.numero}`}
+          defaultSubject={`BC Béton ${bcb.numero} — SDA Rénovation`}
         />
       </div>
     <BonCommandeBetonEditor

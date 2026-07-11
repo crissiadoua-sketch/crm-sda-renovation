@@ -57,6 +57,7 @@ export default async function FicheAgrementDetailPage({
             action={envoyerAgrementProduitParEmail.bind(null, fiche.id)}
             defaultTo=""
             documentLabel={`Agrément produit ${fiche.numero}`}
+          defaultSubject={`Agrément produit ${fiche.numero} — SDA Rénovation`}
           />
         </div>
       </div>

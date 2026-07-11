@@ -171,6 +171,7 @@ export default async function PPSPSDetailPage({
             action={envoyerPpspsParEmail.bind(null, ppsps.id)}
             defaultTo=""
             documentLabel={`PPSPS ${ppsps.titre}`}
+          defaultSubject={`PPSPS — ${ppsps.titre} — SDA Rénovation`}
           />
           <DeleteButton
             action={deletePPSPS.bind(null, ppsps.id)}

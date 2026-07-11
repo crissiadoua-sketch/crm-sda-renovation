@@ -150,6 +150,7 @@ export default async function FactureDetailPage({
               action={envoyerFactureParEmail.bind(null, facture.id)}
               defaultTo={facture.client.email ?? ""}
               documentLabel={`facture ${facture.numero}`}
+          defaultSubject={`Facture ${facture.numero} — SDA Rénovation`}
             />
             <PdfPreviewModal
               href={`/apercu/facture/${facture.id}`}

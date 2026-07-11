@@ -56,6 +56,7 @@ export default async function PreDimensionnementDetailPage({
             action={envoyerPreDimParEmail.bind(null, pdim.id)}
             defaultTo=""
             documentLabel={`Pré-dimensionnement ${pdim.numero}`}
+          defaultSubject={`Pré-dimensionnement ${pdim.numero} — SDA Rénovation`}
           />
           <a
             href={`/apercu/pre-dimensionnement/${pdim.id}`}

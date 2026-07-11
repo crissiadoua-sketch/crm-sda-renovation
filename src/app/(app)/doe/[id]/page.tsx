@@ -137,6 +137,7 @@ export default async function DOEDetailPage({
             action={envoyerDoeParEmail.bind(null, doe.id)}
             defaultTo=""
             documentLabel={`DOE ${doe.titre}`}
+          defaultSubject={`DOE — ${doe.titre} — SDA Rénovation`}
           />
           <button
             disabled

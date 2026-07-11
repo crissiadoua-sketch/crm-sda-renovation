@@ -33,6 +33,7 @@ export default async function BcFournituresDetailPage({
           action={envoyerBcfParEmail.bind(null, bcf.id)}
           defaultTo={bcf.fournisseur?.email ?? ""}
           documentLabel={`BCF ${bcf.numero}`}
+          defaultSubject={`BC Fournitures ${bcf.numero} — SDA Rénovation`}
         />
       </div>
       <BcFournituresEditor

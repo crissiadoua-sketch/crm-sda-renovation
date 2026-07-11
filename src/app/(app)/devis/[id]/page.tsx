@@ -178,18 +178,33 @@ export default async function DevisDetailPage({
           action={envoyerDevisParEmail.bind(null, devis.id)}
           defaultTo={devis.client.email ?? ""}
           documentLabel={`devis ${devis.numero}`}
-          vueOptions={[{ value: "client", label: "Vue client", description: "Résumé + lien de consultation sécurisé", icon: "✉️" }]}
+          vueOptions={[
+            { value: "client",      label: "Vue client",       description: "Résumé + lien de consultation sécurisé",   icon: "✉️" },
+            { value: "commerciale", label: "Vue commerciale",  description: "Détail complet avec prix ligne par ligne",  icon: "📋" },
+            { value: "synthese",    label: "Vue synthèse",     description: "Totaux HT / TVA / TTC uniquement",          icon: "📊" },
+            { value: "sans_prix",   label: "Sans prix",        description: "Désignations et quantités, sans montants",  icon: "🔒" },
+          ]}
           defaultVue="client"
-        />
-        <PdfPreviewModal
-          href={`/apercu/devis/${devis.id}?descriptif=1`}
-          label={`Aperçu PDF client — ${devis.numero}`}
-          buttonLabel="📄 PDF client (descriptif)"
         />
         <PdfPreviewModal
           href={`/apercu/devis/${devis.id}`}
           label={`Aperçu PDF interne — ${devis.numero}`}
           buttonLabel="📄 PDF interne (avec prix)"
+        />
+        <PdfPreviewModal
+          href={`/apercu/devis/${devis.id}?descriptif=1`}
+          label={`Aperçu PDF descriptif — ${devis.numero}`}
+          buttonLabel="📄 PDF descriptif (sous-totaux)"
+        />
+        <PdfPreviewModal
+          href={`/apercu/devis/${devis.id}?synthese=1`}
+          label={`Aperçu PDF synthèse — ${devis.numero}`}
+          buttonLabel="📄 PDF synthèse (totaux)"
+        />
+        <PdfPreviewModal
+          href={`/apercu/devis/${devis.id}?sansPrix=1`}
+          label={`Aperçu PDF sans prix — ${devis.numero}`}
+          buttonLabel="📄 PDF sans prix"
         />
         {devis.type === "INITIAL" && (
           <form action={creerAvenant.bind(null, devis.id)}>

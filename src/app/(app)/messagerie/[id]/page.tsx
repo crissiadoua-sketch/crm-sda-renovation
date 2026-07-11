@@ -4,9 +4,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/dal";
-import { cleanupExpiredMessages, marquerCommeLu } from "@/lib/actions/messagerie";
 import { MessageThread } from "@/components/messagerie/message-thread";
-import { MessageSquare, ChevronLeft, Users, Lock, Clock } from "lucide-react";
+import { ChevronLeft, Users, Lock, Clock } from "lucide-react";
 
 const SUPPRESSION_LABELS: Record<string, string> = {
   JAMAIS: "Conservation permanente",
@@ -23,8 +22,11 @@ export default async function ConversationPage({
   const { id } = await params;
   const user = await getUser();
 
-  // Déclencher le nettoyage automatique + marquer comme lu
-  await Promise.all([cleanupExpiredMessages(id), marquerCommeLu(id)]);
+  // Marquer comme lu (inline, sans revalidatePath pendant le rendu)
+  await prisma.conversationParticipant.updateMany({
+    where: { conversationId: id, userId: user.id },
+    data: { luAt: new Date() },
+  }).catch(() => null);
 
   const conv = await prisma.conversation.findUnique({
     where: { id },
@@ -47,6 +49,13 @@ export default async function ConversationPage({
   // Vérifier que l'utilisateur est participant
   const isParticipant = conv.participants.some(p => p.userId === user.id);
   if (!isParticipant) notFound();
+
+  // Nettoyage messages expirés (inline, silencieux)
+  if (conv.suppressionAuto !== "JAMAIS") {
+    const days = conv.suppressionAuto === "7_JOURS" ? 7 : conv.suppressionAuto === "30_JOURS" ? 30 : 90;
+    const cutoff = new Date(Date.now() - days * 86400000);
+    prisma.message.deleteMany({ where: { conversationId: id, createdAt: { lt: cutoff } } }).catch(() => null);
+  }
 
   const others = conv.participants.filter(p => p.userId !== user.id).map(p => p.user);
   const nom = conv.nom || (conv.type === "DIRECT" && others[0]?.name) || others.map(u => u.name).join(", ");

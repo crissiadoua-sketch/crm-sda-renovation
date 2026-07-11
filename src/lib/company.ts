@@ -15,6 +15,7 @@ export const COMPANY = {
   telephone: "06 25 43 54 64",
   email: "contact@sda-renovation.com",
   emailDirecteur: "christopher.siadoua@sda-renovation.com",
+  emailFacturation: "facturation@sda-renovation.com",
   site: "www.sda-renovation.com",
   activite: "Tous Corps d'État",
   slogan: "Qualité · Transparence · Respect des délais",

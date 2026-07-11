@@ -38,7 +38,7 @@ export default async function ApercuBonCommandePage({
               </div>
               <div className="mt-2 text-xs text-slate-500 space-y-0.5">
                 <p>{COMPANY.adresse} — {COMPANY.codePostal} {COMPANY.ville}</p>
-                <p>{COMPANY.email} · {COMPANY.emailDirecteur} · {COMPANY.site}</p>
+                <p>{COMPANY.email} · {COMPANY.emailFacturation} · {COMPANY.site}</p>
                 <p>SIREN {COMPANY.siren}</p>
               </div>
             </div>

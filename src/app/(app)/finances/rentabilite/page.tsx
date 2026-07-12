@@ -60,6 +60,7 @@ export default async function RentabilitePage({
     contratsSTR,
     notesFrais,
     budgets,
+    paiements,
   ] = await Promise.all([
     prisma.facture.findMany({
       where: { dateEmission: { gte: debut, lte: fin }, statut: { notIn: ["BROUILLON", "ANNULEE"] } },
@@ -125,6 +126,10 @@ export default async function RentabilitePage({
       where: { annee },
       orderBy: [{ type: "asc" }, { categorie: "asc" }],
     }),
+    prisma.paiement.findMany({
+      where: { date: { gte: debut, lte: fin } },
+      select: { montant: true },
+    }),
   ]);
 
   // ── DONNÉES ANNÉE N-1 ────────────────────────────────────────────────
@@ -153,6 +158,7 @@ export default async function RentabilitePage({
 
   // ── CA ───────────────────────────────────────────────────────────────
   const caHT = factures.reduce((s, f) => s + f.totalHT, 0);
+  const caEncaissé = paiements.reduce((s, p) => s + p.montant, 0);
 
   // ── CHARGES VARIABLES RÉELLES ────────────────────────────────────────
   const dep = (cat: string) => depenses.filter((d) => d.categorie === cat).reduce((s, d) => s + d.montant, 0);
@@ -398,9 +404,9 @@ export default async function RentabilitePage({
       {/* ── KPI CARDS ─────────────────────────────────────────────────── */}
       <div className="kpi-grid grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
-          title="Chiffre d'affaires"
+          title="Chiffre d'affaires (facturé)"
           value={formatEuros(caHT)}
-          sub={`${factures.length} facture${factures.length > 1 ? "s" : ""} émises`}
+          sub={`Encaissé : ${formatEuros(caEncaissé)}`}
           color="blue"
           icon={<Receipt className="h-5 w-5" />}
         />
@@ -719,8 +725,10 @@ export default async function RentabilitePage({
           </thead>
           <tbody>
             <SectionHeader label="Chiffre d'affaires HT" />
-            <DataRow label="Factures émises (hors brouillon / annulées)" icon={<Receipt className="h-3.5 w-3.5 text-emerald-500" />}
+            <DataRow label="Factures émises (base engagement)" icon={<Receipt className="h-3.5 w-3.5 text-emerald-500" />}
               budget={caBudget || undefined} reel={caHT} hasBudget={hasBudget} link="/factures" inverse />
+            <DataRow label="Encaissements réels (paiements reçus)" icon={<Wallet className="h-3.5 w-3.5 text-blue-400" />}
+              reel={caEncaissé} hasBudget={hasBudget} link="/factures" inverse />
 
             <SectionHeader label="Charges variables" color="orange" />
             <DataRow label="Achats matériaux (BC + dépenses)" icon={<ShoppingCart className="h-3.5 w-3.5 text-slate-400" />}

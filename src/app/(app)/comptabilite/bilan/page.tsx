@@ -2,13 +2,16 @@ export const dynamic = "force-dynamic";
 
 import { FileSpreadsheet, FileText } from "lucide-react";
 import { calculerBilan } from "@/lib/bilan-template";
-import { formatEuros } from "@/lib/format";
+import { formatEuros, formatDate } from "@/lib/format";
 import { BilanForm } from "./bilan-form";
 
-function LigneTable({ label, valeur, gras = false }: { label: string; valeur: number; gras?: boolean }) {
+function LigneTable({ label, valeur, gras = false, badge }: { label: string; valeur: number; gras?: boolean; badge?: React.ReactNode }) {
   return (
     <tr className={gras ? "border-t border-slate-200 bg-slate-50" : ""}>
-      <td className={`px-4 py-1.5 ${gras ? "font-semibold text-slate-700" : "text-slate-600"}`}>{label}</td>
+      <td className={`px-4 py-1.5 ${gras ? "font-semibold text-slate-700" : "text-slate-600"}`}>
+        {label}
+        {badge}
+      </td>
       <td className={`px-4 py-1.5 text-right ${gras ? "font-bold text-brand-navy" : "text-slate-700"}`}>
         {formatEuros(valeur)}
       </td>
@@ -113,7 +116,16 @@ export default async function BilanPage({
               <LigneTable label="Immobilisations financières (net)" valeur={data.actif.immobilise.financieres.net} />
               <LigneTable label="Total Actif immobilisé" valeur={data.actif.immobilise.total} gras />
               {data.actif.circulant.lignes.map((l) => (
-                <LigneTable key={l.key} label={l.label} valeur={l.valeur} />
+                <LigneTable
+                  key={l.key}
+                  label={l.label}
+                  valeur={l.valeur}
+                  badge={l.key === "disponibilites" && data.disponibilitesSource ? (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                      Auto · Relevé du {formatDate(data.disponibilitesSource.dateImport)}{data.disponibilitesSource.banque ? ` · ${data.disponibilitesSource.banque}` : ""}
+                    </span>
+                  ) : undefined}
+                />
               ))}
               <LigneTable label="Total Actif circulant" valeur={data.actif.circulant.total} gras />
               <LigneTable label="TOTAL ACTIF" valeur={data.actif.totalActif} gras />

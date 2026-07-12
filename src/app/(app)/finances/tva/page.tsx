@@ -14,17 +14,29 @@ export default async function TVAPage({
 }) {
   const { annee: anneeParam, regime: regimeParam } = await searchParams;
   const annee = parseInt(anneeParam ?? "") || new Date().getFullYear();
-  const regime = regimeParam === "encaissements" ? "encaissements" : "debit";
+  const regime = regimeParam === "debit" ? "debit" : "encaissements";
   const years = Array.from({ length: 4 }, (_, i) => annee - 1 + i);
 
   const debut = new Date(annee, 0, 1);
   const fin = new Date(annee, 11, 31, 23, 59, 59);
 
-  const [factures, bonsCommande, contratsAL] = await Promise.all([
-    prisma.facture.findMany({
-      where: { dateEmission: { gte: debut, lte: fin }, statut: { notIn: ["BROUILLON", "ANNULEE"] } },
-      select: { totalHT: true, totalTVA: true, dateEmission: true, statut: true, numero: true },
-    }),
+  const [facturesData, paiementsData, bonsCommande, contratsAL] = await Promise.all([
+    regime === "debit"
+      ? prisma.facture.findMany({
+          where: { dateEmission: { gte: debut, lte: fin }, statut: { notIn: ["BROUILLON", "ANNULEE"] } },
+          select: { totalHT: true, totalTVA: true, dateEmission: true },
+        })
+      : Promise.resolve([] as { totalHT: number; totalTVA: number; dateEmission: Date }[]),
+    regime === "encaissements"
+      ? prisma.paiement.findMany({
+          where: { date: { gte: debut, lte: fin } },
+          select: {
+            montant: true,
+            date: true,
+            facture: { select: { totalHT: true, totalTVA: true, totalTTC: true } },
+          },
+        })
+      : Promise.resolve([] as { montant: number; date: Date; facture: { totalHT: number; totalTVA: number; totalTTC: number } }[]),
     prisma.bonCommande.findMany({
       where: { dateCreation: { gte: debut, lte: fin }, statut: { in: ["CONFIRME", "RECU_PARTIEL", "RECU"] } },
       select: { totalHT: true, totalTVA: true, dateCreation: true },
@@ -57,11 +69,21 @@ export default async function TVAPage({
     achatsHT: 0,
   }));
 
-  factures.forEach((f) => {
-    const m = new Date(f.dateEmission).getMonth();
-    parMois[m].tvaCollectee += f.totalTVA;
-    parMois[m].caHT += f.totalHT;
-  });
+  if (regime === "debit") {
+    facturesData.forEach((f) => {
+      const m = new Date(f.dateEmission).getMonth();
+      parMois[m].tvaCollectee += f.totalTVA;
+      parMois[m].caHT += f.totalHT;
+    });
+  } else {
+    // Régime encaissements : TVA due au moment du paiement, pro-rata TTC
+    paiementsData.forEach((p) => {
+      const m = new Date(p.date).getMonth();
+      const frac = p.facture.totalTTC > 0 ? p.montant / p.facture.totalTTC : 0;
+      parMois[m].tvaCollectee += p.facture.totalTVA * frac;
+      parMois[m].caHT += p.facture.totalHT * frac;
+    });
+  }
 
   bonsCommande.forEach((bc) => {
     const m = new Date(bc.dateCreation).getMonth();
@@ -111,15 +133,44 @@ export default async function TVAPage({
             TVA collectée · TVA déductible · Auto-liquidation sous-traitance · Éléments CA3
           </p>
         </div>
-        <div className="flex rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm">
-          {years.map((y) => (
-            <Link key={y} href={`?annee=${y}`}
-              className={`px-3 py-1.5 text-sm font-medium transition ${y === annee ? "bg-brand-navy text-white" : "text-slate-600 hover:bg-slate-50"}`}>
-              {y}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm">
+            {years.map((y) => (
+              <Link key={y} href={`?annee=${y}&regime=${regime}`}
+                className={`px-3 py-1.5 text-sm font-medium transition ${y === annee ? "bg-brand-navy text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+                {y}
+              </Link>
+            ))}
+          </div>
+          <div className="flex rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm text-xs">
+            <Link
+              href={`?annee=${annee}&regime=debit`}
+              className={`px-3 py-1.5 font-medium transition ${regime === "debit" ? "bg-brand-navy text-white" : "text-slate-600 hover:bg-slate-50"}`}
+            >
+              Débit (engagement)
             </Link>
-          ))}
+            <Link
+              href={`?annee=${annee}&regime=encaissements`}
+              className={`px-3 py-1.5 font-medium transition ${regime === "encaissements" ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+            >
+              Encaissements
+            </Link>
+          </div>
         </div>
       </div>
+
+      {regime === "encaissements" && (
+        <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">Régime TVA sur encaissements actif</p>
+            <p className="text-xs mt-0.5 text-emerald-700">
+              La TVA collectée est calculée à la date des paiements reçus (pas à la date de facturation).
+              La TVA déductible sur achats reste toujours calculée à la date des bons de commande (régime débit).
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Info auto-liquidation */}
       <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
@@ -135,8 +186,11 @@ export default async function TVAPage({
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <TvaKpi label="TVA collectée (CA)" value={totalTVACollectee} color="emerald"
-          sub={`CA HT : ${formatEuros(totalCAHT)}`} />
+        <TvaKpi
+          label={regime === "encaissements" ? "TVA collectée (encaissements)" : "TVA collectée (CA)"}
+          value={totalTVACollectee} color="emerald"
+          sub={regime === "encaissements" ? `Encaissé HT : ${formatEuros(totalCAHT)}` : `CA HT : ${formatEuros(totalCAHT)}`}
+        />
         <TvaKpi label="TVA déductible (Achats)" value={totalTVADeductible} color="blue"
           sub={`Achats HT : ${formatEuros(totalAchatsHT)}`} />
         <TvaKpi label="TVA auto-liquidation" value={totalTVAAutoLiq} color="violet"
@@ -151,8 +205,11 @@ export default async function TVAPage({
 
       {/* Tableau mensuel */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="bg-brand-navy px-5 py-3">
+        <div className="bg-brand-navy px-5 py-3 flex items-center justify-between">
           <h3 className="font-semibold text-white">Récapitulatif mensuel — {annee}</h3>
+          {regime === "encaissements" && (
+            <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-xs font-medium text-white">Encaissements</span>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

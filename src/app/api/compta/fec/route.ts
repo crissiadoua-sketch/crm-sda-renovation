@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   const debut = new Date(annee, 0, 1);
   const fin = new Date(annee, 11, 31, 23, 59, 59);
 
-  const [factures, depenses, bonsCommande, bulletins] = await Promise.all([
+  const [factures, depenses, bonsCommande, bulletins, lignesBancaires] = await Promise.all([
     prisma.facture.findMany({
       where: { dateEmission: { gte: debut, lte: fin }, statut: { notIn: ["BROUILLON", "ANNULEE"] } },
       include: { client: { select: { nom: true, reference: true } } },
@@ -52,6 +52,14 @@ export async function GET(req: NextRequest) {
       },
       include: { salarie: { select: { nom: true, prenom: true, matricule: true } } },
       orderBy: { createdAt: "asc" },
+    }),
+    prisma.ligneReleveBancaire.findMany({
+      where: { statut: "RAPPROCHE", date: { gte: debut, lte: fin } },
+      include: {
+        paiement: { include: { facture: { include: { client: { select: { nom: true, reference: true } } } } } },
+        depense: { include: { fournisseur: { select: { nom: true, reference: true } } } },
+      },
+      orderBy: { date: "asc" },
     }),
   ]);
 
@@ -180,6 +188,29 @@ export async function GET(req: NextRequest) {
       `BP-${b.id.slice(0, 8)}`, date, `Cotisations ${b.periode}`,
       "0,00", fmtAmt(chargesTotal - b.netAPayer), "", "", date, "", ""
     ));
+  });
+
+  // ── JOURNAL BANQUE (BQ) ─────────────────────────────────────────────
+  lignesBancaires.forEach((l, idx) => {
+    const num = `BQ${String(idx + 1).padStart(4, "0")}`;
+    const date = fmtDate(new Date(l.date));
+    const libelle = (l.libelle || (l.montant > 0 ? "Encaissement" : "Décaissement")).slice(0, 60);
+    const ref = l.reference ?? `BQ-${l.id.slice(0, 8)}`;
+    const amt = Math.abs(l.montant);
+
+    if (l.montant > 0) {
+      // Encaissement client : D 512000 Banque / C 411000 Clients
+      const clientCode = l.paiement?.facture?.client?.reference ?? "";
+      const clientLib = l.paiement?.facture?.client?.nom ?? "Client";
+      lines.push(row("BQ", "Banque", num, date, "512000", "Banques", "", "", ref, date, libelle, fmtAmt(amt), "0,00", "", "", date, "", ""));
+      lines.push(row("BQ", "Banque", num, date, "411000", "Clients", clientCode, clientLib, ref, date, libelle, "0,00", fmtAmt(amt), "", "", date, "", ""));
+    } else {
+      // Décaissement : D 401000 Fournisseurs / C 512000 Banque
+      const fournCode = l.depense?.fournisseur?.reference ?? "";
+      const fournLib = l.depense?.fournisseur?.nom ?? "Fournisseur";
+      lines.push(row("BQ", "Banque", num, date, "401000", "Fournisseurs", fournCode, fournLib, ref, date, libelle, fmtAmt(amt), "0,00", "", "", date, "", ""));
+      lines.push(row("BQ", "Banque", num, date, "512000", "Banques", "", "", ref, date, libelle, "0,00", fmtAmt(amt), "", "", date, "", ""));
+    }
   });
 
   const content = lines.join("\r\n");

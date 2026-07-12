@@ -26,10 +26,16 @@ export function ImportReleveForm({ action }: { action: Action }) {
         <Field label="Fichier (.csv, .ofx ou .pdf)" htmlFor="fichier">
           <input id="fichier" name="fichier" type="file" accept=".csv,.ofx,.pdf,text/csv,application/pdf" required className={inputClasses} />
         </Field>
+        <Field label="Solde d'ouverture (€, optionnel)" htmlFor="soldeDebut">
+          <input id="soldeDebut" name="soldeDebut" type="number" step="0.01" placeholder="Ex : 12 450,00" className={inputClasses} />
+        </Field>
+        <Field label="Solde de clôture (€, optionnel)" htmlFor="soldeFin">
+          <input id="soldeFin" name="soldeFin" type="number" step="0.01" placeholder="Ex : 14 230,50" className={inputClasses} />
+        </Field>
       </div>
       <p className="mt-2 text-xs text-slate-400">
         Export CSV attendu : colonnes Date, Libellé, Montant (ou Débit/Crédit séparés). Export OFX standard également pris en charge.
-        PDF : pris en charge en best effort si le texte est sélectionnable (export direct banque) — une vérification des lignes importées est recommandée.
+        PDF : best effort si le texte est sélectionnable. Le solde de clôture alimentera automatiquement la ligne &quot;Disponibilités&quot; du bilan.
       </p>
       <div className="mt-4 flex justify-end">
         <SubmitButton pendingLabel="Import…">Importer</SubmitButton>

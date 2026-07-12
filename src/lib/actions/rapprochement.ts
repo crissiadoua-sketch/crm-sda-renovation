@@ -14,6 +14,10 @@ export async function importReleve(
   const fichier = formData.get("fichier") as File | null;
   const nom = (formData.get("nom") as string | null)?.trim();
   const banque = (formData.get("banque") as string | null)?.trim() || null;
+  const soldeDebutRaw = formData.get("soldeDebut") as string | null;
+  const soldeFinRaw = formData.get("soldeFin") as string | null;
+  const soldeDebut = soldeDebutRaw ? parseFloat(soldeDebutRaw) : null;
+  const soldeFin = soldeFinRaw ? parseFloat(soldeFinRaw) : null;
 
   if (!fichier || fichier.size === 0) return { error: "Sélectionnez un fichier de relevé (CSV, OFX ou PDF)." };
   if (!nom) return { error: "Le nom du relevé est requis." };
@@ -46,6 +50,8 @@ export async function importReleve(
     data: {
       nom,
       banque,
+      soldeDebut: soldeDebut !== null && !isNaN(soldeDebut) ? soldeDebut : null,
+      soldeFin: soldeFin !== null && !isNaN(soldeFin) ? soldeFin : null,
       lignes: {
         create: lignes.map((l) => ({
           date: l.date,

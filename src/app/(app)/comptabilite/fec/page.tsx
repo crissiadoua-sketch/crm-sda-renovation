@@ -48,11 +48,12 @@ export default async function FecPage({
         <h3 className="font-semibold text-brand-navy mb-3">Contenu du FEC généré</h3>
         <ul className="flex flex-col gap-2">
           {[
-            { label: "Journal Ventes (VE)", desc: "Toutes les factures émises — 411 / 706 / TVA 44571", ok: true },
-            { label: "Journal Achats (AC)", desc: "Bons de commande confirmés — 601 / TVA 44566 / 401", ok: true },
-            { label: "Opérations Diverses (OD)", desc: "Dépenses réelles — 606 / 401", ok: true },
-            { label: "Journal Salaires (SA)", desc: "Bulletins de paie validés — 641 / 645 / 421 / 431", ok: true },
-          ].map(({ label, desc, ok }) => (
+            { label: "Journal Ventes (VE)", desc: "Toutes les factures émises — 411 / 706 / TVA 44571" },
+            { label: "Journal Achats (AC)", desc: "Bons de commande confirmés — 601 / TVA 44566 / 401" },
+            { label: "Opérations Diverses (OD)", desc: "Dépenses réelles — 606 / 401" },
+            { label: "Journal Salaires (SA)", desc: "Bulletins de paie validés — 641 / 645 / 421 / 431" },
+            { label: "Journal Banque (BQ)", desc: "Lignes de relevé rapprochées — 512 / 411 / 401" },
+          ].map(({ label, desc }) => (
             <li key={label} className="flex items-start gap-3 text-sm">
               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
               <div>
@@ -65,9 +66,9 @@ export default async function FecPage({
         <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           <p>
-            Le FEC généré est une base simplifiée. Il ne contient pas les journaux de banque,
-            les opérations de clôture, ni les écritures d'inventaire. Faites valider par votre
-            expert-comptable avant de le remettre à l'administration.
+            Le FEC généré est une base simplifiée. Il ne contient pas les opérations de clôture
+            ni les écritures d'inventaire. Le journal BQ n'inclut que les lignes de relevé rapprochées.
+            Faites valider par votre expert-comptable avant de le remettre à l'administration.
           </p>
         </div>
       </div>

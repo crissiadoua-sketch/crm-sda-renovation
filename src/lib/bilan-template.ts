@@ -21,6 +21,16 @@ export async function calculerBilan(annee: number) {
     donneesComptables(String(annee)),
   ]);
 
+  // Solde de clôture du relevé bancaire le plus récent de l'exercice → Disponibilités auto
+  const releveAvecSolde = await prisma.releveBancaire.findFirst({
+    where: {
+      soldeFin: { not: null },
+      dateImport: { gte: new Date(annee, 0, 1), lte: new Date(annee, 11, 31, 23, 59, 59) },
+    },
+    orderBy: { dateImport: "desc" },
+    select: { soldeFin: true, dateImport: true, nom: true, banque: true },
+  });
+
   const b = bilan ?? ({} as Partial<NonNullable<typeof bilan>>);
   const n = (v: number | null | undefined) => v ?? 0;
 
@@ -88,13 +98,19 @@ export async function calculerBilan(annee: number) {
 
   const creancesClients = b.creancesClientsManuel ?? creancesClientsAuto;
 
+  // Disponibilités : valeur manuelle saisie si présente, sinon soldeFin du relevé bancaire le plus récent
+  const disponibilitesAuto = releveAvecSolde?.soldeFin ?? null;
+  const disponibilitesManuelle = b.disponibilites != null && b.disponibilites !== 0 ? b.disponibilites : null;
+  const disponibilites = disponibilitesManuelle ?? disponibilitesAuto ?? 0;
+  const disponibilitesSource = disponibilitesManuelle == null && disponibilitesAuto !== null ? releveAvecSolde : null;
+
   const actifCirculant: LigneBilan[] = [
     { key: "stocksEnCours", label: "Stocks et en-cours", valeur: n(b.stocksEnCours), manuel: true },
     { key: "avancesAcomptesVerses", label: "Avances et acomptes versés sur commandes", valeur: n(b.avancesAcomptesVerses), manuel: true },
     { key: "creancesClientsManuel", label: "Créances clients et comptes rattachés", valeur: creancesClients, manuel: true },
     { key: "autresCreances", label: "Autres créances", valeur: n(b.autresCreances), manuel: true },
     { key: "valeursMobilieresPlacement", label: "Valeurs mobilières de placement", valeur: n(b.valeursMobilieresPlacement), manuel: true },
-    { key: "disponibilites", label: "Disponibilités", valeur: n(b.disponibilites), manuel: true },
+    { key: "disponibilites", label: "Disponibilités", valeur: disponibilites, manuel: true },
     { key: "chargesConstateesAvance", label: "Charges constatées d'avance", valeur: n(b.chargesConstateesAvance), manuel: true },
   ];
   const totalActifCirculant = actifCirculant.reduce((s, l) => s + l.valeur, 0);
@@ -174,6 +190,7 @@ export async function calculerBilan(annee: number) {
       resultatNet,
     },
     equilibre: totalActif - totalPassif,
+    disponibilitesSource,
   };
 }
 

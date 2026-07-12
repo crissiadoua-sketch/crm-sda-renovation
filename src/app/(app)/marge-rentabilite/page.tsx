@@ -89,8 +89,10 @@ export default async function MargeRentabilitePage() {
     const coutsEngagés = coutBC + coutBCB + coutCST + coutDepenses + coutPompe;
 
     const margeBrute = caFacturé - coutsEngagés;
+    const margeEncaissée = montantEncaissé - coutsEngagés;
     const margePrevisionnelle = caPrévu - coutsEngagés;
     const rentabilité = caFacturé > 0 ? (margeBrute / caFacturé) * 100 : null;
+    const rentabilitéEncaissée = montantEncaissé > 0 ? (margeEncaissée / montantEncaissé) * 100 : null;
     const dérive = caPrévu > 0 && coutsEngagés > caPrévu;
     const écartDS = dsPrévu > 0 ? coutsEngagés - dsPrévu : null;
 
@@ -111,8 +113,10 @@ export default async function MargeRentabilitePage() {
       coutDepenses,
       coutPompe,
       margeBrute,
+      margeEncaissée,
       margePrevisionnelle,
       rentabilité,
+      rentabilitéEncaissée,
       dérive,
       écartDS,
     };
@@ -132,8 +136,10 @@ export default async function MargeRentabilitePage() {
   const totalCaPrévu = data.reduce((s, d) => s + d.caPrévu, 0);
   const totalDSPrévu = data.reduce((s, d) => s + d.dsPrévu, 0);
   const totalCaFacturé = data.reduce((s, d) => s + d.caFacturé, 0);
+  const totalEncaissé = data.reduce((s, d) => s + d.montantEncaissé, 0);
   const totalCouts = data.reduce((s, d) => s + d.coutsEngagés, 0);
   const totalMarge = totalCaFacturé - totalCouts;
+  const totalMargeEncaissée = totalEncaissé - totalCouts;
   const rentabilitéGlobale = totalCaFacturé > 0 ? (totalMarge / totalCaFacturé) * 100 : 0;
   const nbEnDérive = data.filter((d) => d.dérive).length;
   const totalÉcartDS = totalDSPrévu > 0 ? totalCouts - totalDSPrévu : null;
@@ -156,9 +162,14 @@ export default async function MargeRentabilitePage() {
       </div>
 
       {/* KPIs globaux */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
         <KpiCard label="CA prévu (devis)" value={formatEuros(totalCaPrévu)} />
         <KpiCard label="CA facturé" value={formatEuros(totalCaFacturé)} />
+        <KpiCard
+          label="CA encaissé"
+          value={formatEuros(totalEncaissé)}
+          tone={totalEncaissé < totalCaFacturé ? "warn" : "good"}
+        />
         <KpiCard
           label="DS prévu (devis)"
           value={totalDSPrévu > 0 ? formatEuros(totalDSPrévu) : "—"}
@@ -175,10 +186,16 @@ export default async function MargeRentabilitePage() {
           tone={totalÉcartDS === null ? "neutral" : totalÉcartDS > 0 ? "bad" : "good"}
         />
         <KpiCard
-          label="Marge brute globale"
+          label="Marge (CA facturé)"
           value={formatEuros(totalMarge)}
           sub={`${rentabilitéGlobale.toFixed(1)} % de rentabilité`}
           tone={totalMarge >= 0 ? "good" : "bad"}
+        />
+        <KpiCard
+          label="Marge (encaissée)"
+          value={formatEuros(totalMargeEncaissée)}
+          sub={totalEncaissé > 0 ? `${((totalMargeEncaissée / totalEncaissé) * 100).toFixed(1)} % rentab.` : ""}
+          tone={totalMargeEncaissée >= 0 ? "good" : "bad"}
         />
       </div>
 
@@ -200,12 +217,12 @@ export default async function MargeRentabilitePage() {
               <th className="px-4 py-3">Statut</th>
               <th className="px-4 py-3 text-right">CA prévu</th>
               <th className="px-4 py-3 text-right">CA facturé</th>
+              <th className="px-4 py-3 text-right">Encaissé</th>
               <th className="px-4 py-3 text-right">DS prévu</th>
               <th className="px-4 py-3 text-right">DS réel</th>
               <th className="px-4 py-3 text-right">Écart DS</th>
-              <th className="px-4 py-3 min-w-[160px]">Avancement</th>
-              <th className="px-4 py-3 text-right">Marge HT</th>
-              <th className="px-4 py-3 text-right">Rentabilité</th>
+              <th className="px-4 py-3 min-w-[140px]">Avancement</th>
+              <th className="px-4 py-3 text-right">Marge / Rentab.</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -242,6 +259,14 @@ export default async function MargeRentabilitePage() {
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-sm text-slate-700">
                     {row.caFacturé > 0 ? formatEuros(row.caFacturé) : <span className="text-slate-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-sm">
+                    <span className={row.montantEncaissé >= row.caFacturé ? "text-emerald-600" : "text-amber-600"}>
+                      {row.montantEncaissé > 0 ? formatEuros(row.montantEncaissé) : <span className="text-slate-300">—</span>}
+                    </span>
+                    {row.caFacturé > 0 && row.montantEncaissé < row.caFacturé && (
+                      <p className="text-[10px] text-slate-400">{((row.montantEncaissé / row.caFacturé) * 100).toFixed(0)}% encaissé</p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-sm text-amber-700">
                     {row.dsPrévu > 0 ? formatEuros(row.dsPrévu) : <span className="text-slate-300">—</span>}
@@ -290,10 +315,17 @@ export default async function MargeRentabilitePage() {
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-sm">
                     {row.caFacturé > 0 ? (
-                      <span className={row.margeBrute >= 0 ? "text-green-600" : "text-red-600"}>
-                        {row.margeBrute >= 0 ? "+" : ""}
-                        {formatEuros(row.margeBrute)}
-                      </span>
+                      <div>
+                        <span className={row.margeBrute >= 0 ? "text-green-600" : "text-red-600"}>
+                          {row.margeBrute >= 0 ? "+" : ""}
+                          {formatEuros(row.margeBrute)}
+                        </span>
+                        {row.montantEncaissé > 0 && (
+                          <p className={`text-[10px] ${row.margeEncaissée >= 0 ? "text-emerald-500" : "text-red-400"}`}>
+                            enc. {row.margeEncaissée >= 0 ? "+" : ""}{formatEuros(row.margeEncaissée)}
+                          </p>
+                        )}
+                      </div>
                     ) : row.caPrévu > 0 ? (
                       <span className="text-slate-400 text-xs" title="Prévisionnel (aucune facture)">
                         {row.margePrevisionnelle >= 0 ? "~+" : "~"}
@@ -305,10 +337,17 @@ export default async function MargeRentabilitePage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {row.rentabilité !== null ? (
-                      <span className={`text-sm ${rentaColor(row.rentabilité)}`}>
-                        {row.rentabilité >= 0 ? "+" : ""}
-                        {row.rentabilité.toFixed(1)}%
-                      </span>
+                      <div>
+                        <span className={`text-sm ${rentaColor(row.rentabilité)}`}>
+                          {row.rentabilité >= 0 ? "+" : ""}
+                          {row.rentabilité.toFixed(1)}%
+                        </span>
+                        {row.rentabilitéEncaissée !== null && (
+                          <p className={`text-[10px] ${row.rentabilitéEncaissée >= 0 ? "text-emerald-500" : "text-red-400"}`}>
+                            enc. {row.rentabilitéEncaissée >= 0 ? "+" : ""}{row.rentabilitéEncaissée.toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
                     ) : row.caPrévu > 0 ? (
                       <span className="text-xs text-slate-400">non facturé</span>
                     ) : (
@@ -342,6 +381,7 @@ export default async function MargeRentabilitePage() {
                 </td>
                 <td className="px-4 py-3 text-right font-mono">{formatEuros(totalCaPrévu)}</td>
                 <td className="px-4 py-3 text-right font-mono">{formatEuros(totalCaFacturé)}</td>
+                <td className="px-4 py-3 text-right font-mono text-amber-600">{formatEuros(totalEncaissé)}</td>
                 <td className="px-4 py-3 text-right font-mono text-amber-700">
                   {totalDSPrévu > 0 ? formatEuros(totalDSPrévu) : "—"}
                 </td>
@@ -359,6 +399,11 @@ export default async function MargeRentabilitePage() {
                     {totalMarge >= 0 ? "+" : ""}
                     {formatEuros(totalMarge)}
                   </span>
+                  {totalEncaissé > 0 && (
+                    <p className={`text-[10px] ${totalMargeEncaissée >= 0 ? "text-emerald-500" : "text-red-400"}`}>
+                      enc. {totalMargeEncaissée >= 0 ? "+" : ""}{formatEuros(totalMargeEncaissée)}
+                    </p>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <span className={`${rentaColor(rentabilitéGlobale)}`}>

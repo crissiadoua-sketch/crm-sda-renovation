@@ -42,7 +42,7 @@ export default async function TacheDetailPage({
       include: {
         assigneA: { select: { name: true, role: true } },
         creePar: { select: { name: true } },
-        chantier: { select: { nom: true, reference: true } },
+        chantier: { select: { id: true, nom: true, reference: true } },
       },
     }),
     prisma.user.findMany({ select: { id: true, name: true, role: true }, orderBy: { name: "asc" } }),
@@ -59,12 +59,18 @@ export default async function TacheDetailPage({
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1.5 text-sm text-slate-500">
+        <Link href="/" className="hover:text-brand-blue">Accueil</Link>
+        <span>›</span>
+        <Link href="/taches" className="hover:text-brand-blue">Tâches</Link>
+        <span>›</span>
+        <span className="font-medium text-slate-700 line-clamp-1">{tache.titre}</span>
+      </nav>
+
       <div className="flex items-center justify-between">
         <div>
-          <Link href="/taches" className="text-sm text-brand-blue hover:underline">
-            ← Retour aux tâches
-          </Link>
-          <div className="mt-1 flex items-center gap-3">
+          <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold text-brand-navy">{tache.titre}</h2>
             <Badge tone={STATUT_TONES[tache.statut] ?? "gray"}>
               {STATUT_LABELS[tache.statut] ?? tache.statut}
@@ -73,6 +79,17 @@ export default async function TacheDetailPage({
           {tache.creePar && (
             <p className="mt-0.5 text-xs text-slate-400">
               Créée par {tache.creePar.name} · {formatDate(tache.createdAt)}
+            </p>
+          )}
+          {tache.chantier && (
+            <p className="mt-1 text-xs text-slate-500">
+              Chantier :{" "}
+              <Link
+                href={`/chantiers/${tache.chantier.id}`}
+                className="font-medium text-brand-blue hover:underline"
+              >
+                {tache.chantier.reference} — {tache.chantier.nom}
+              </Link>
             </p>
           )}
         </div>

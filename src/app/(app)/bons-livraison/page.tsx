@@ -15,14 +15,15 @@ const STATUT_CONFIG: Record<string, { label: string; tone: "green" | "blue" | "o
 export default async function BonsLivraisonPage({
   searchParams,
 }: {
-  searchParams: Promise<{ statut?: string; q?: string }>;
+  searchParams: Promise<{ statut?: string; q?: string; chantierId?: string }>;
 }) {
-  const { statut, q } = await searchParams;
+  const { statut, q, chantierId } = await searchParams;
 
   const [bls, fournisseurs, chantiers, bcsDisponibles] = await Promise.all([
     prisma.bonLivraison.findMany({
       where: {
         ...(statut ? { statut } : {}),
+        ...(chantierId ? { chantierId } : {}),
         ...(q ? { OR: [{ numero: { contains: q } }, { fournisseur: { nom: { contains: q } } }] } : {}),
       },
       include: {
@@ -87,8 +88,12 @@ export default async function BonsLivraisonPage({
           <option value="">Tous les statuts</option>
           {Object.entries(STATUT_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
+        <select name="chantierId" defaultValue={chantierId ?? ""} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <option value="">Tous les chantiers</option>
+          {chantiers.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
+        </select>
         <button type="submit" className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white">Filtrer</button>
-        {(statut || q) && (
+        {(statut || q || chantierId) && (
           <Link href="/bons-livraison" className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Réinitialiser</Link>
         )}
       </form>

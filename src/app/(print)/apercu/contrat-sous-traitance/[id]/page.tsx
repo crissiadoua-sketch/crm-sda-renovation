@@ -51,7 +51,7 @@ export default async function ApercuContratSousTraitancePage({
 
       {/* ─── PAGE 1 : Couverture ─── */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">
-        <div className="px-12 py-8 print:px-8 print:py-3">
+        <div className="px-12 py-8 print:px-7 print:py-4">
 
           {/* En-tête */}
           <div className="flex items-start justify-between border-b-2 border-[#F7941E] pb-4 mb-6">
@@ -125,7 +125,7 @@ export default async function ApercuContratSousTraitancePage({
 
       {/* ─── PAGE 2 : Préambule + Art. 1 + Art. 2 ─── */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none print:pb pb">
-        <div className="px-12 py-8 print:px-8 print:py-3">
+        <div className="px-12 py-8 print:px-7 print:py-4">
           <p className="text-[10px] text-slate-400 text-center mb-6">
             {COMPANY.adresse} – {COMPANY.codePostal} {COMPANY.ville} | {COMPANY.email} | {COMPANY.telephone} | SIRET : {COMPANY.siren}
           </p>
@@ -174,7 +174,7 @@ export default async function ApercuContratSousTraitancePage({
 
       {/* ─── PAGE 3 : Article 3 ─── */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none pb">
-        <div className="px-12 py-8 print:px-8 print:py-3">
+        <div className="px-12 py-8 print:px-7 print:py-4">
           <p className="text-[10px] text-slate-400 text-center mb-6">
             {COMPANY.adresse} – {COMPANY.codePostal} {COMPANY.ville} | {COMPANY.email} | {COMPANY.telephone} | SIRET : {COMPANY.siren}
           </p>
@@ -211,7 +211,7 @@ export default async function ApercuContratSousTraitancePage({
 
       {/* ─── PAGE 4 : Art. 4 + Art. 5 ─── */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none pb">
-        <div className="px-12 py-8 print:px-8 print:py-3">
+        <div className="px-12 py-8 print:px-7 print:py-4">
           <p className="text-[10px] text-slate-400 text-center mb-6">
             {COMPANY.adresse} – {COMPANY.codePostal} {COMPANY.ville} | {COMPANY.email} | {COMPANY.telephone} | SIRET : {COMPANY.siren}
           </p>
@@ -238,7 +238,7 @@ export default async function ApercuContratSousTraitancePage({
 
       {/* ─── PAGE 5 : Art. 6 + Art. 7 + Art. 8 ─── */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none pb">
-        <div className="px-12 py-8 print:px-8 print:py-3">
+        <div className="px-12 py-8 print:px-7 print:py-4">
           <p className="text-[10px] text-slate-400 text-center mb-6">
             {COMPANY.adresse} – {COMPANY.codePostal} {COMPANY.ville} | {COMPANY.email} | {COMPANY.telephone} | SIRET : {COMPANY.siren}
           </p>
@@ -273,7 +273,7 @@ export default async function ApercuContratSousTraitancePage({
 
       {/* ─── PAGE 6 : Art. 9 Responsabilité + Art. 9 Force majeure ─── */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none pb">
-        <div className="px-12 py-8 print:px-8 print:py-3">
+        <div className="px-12 py-8 print:px-7 print:py-4">
           <p className="text-[10px] text-slate-400 text-center mb-6">
             {COMPANY.adresse} – {COMPANY.codePostal} {COMPANY.ville} | {COMPANY.email} | {COMPANY.telephone} | SIRET : {COMPANY.siren}
           </p>
@@ -300,7 +300,7 @@ export default async function ApercuContratSousTraitancePage({
 
       {/* ─── PAGE 7 : Art. 10 à 13 ─── */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none pb">
-        <div className="px-12 py-8 print:px-8 print:py-3">
+        <div className="px-12 py-8 print:px-7 print:py-4">
           <p className="text-[10px] text-slate-400 text-center mb-6">
             {COMPANY.adresse} – {COMPANY.codePostal} {COMPANY.ville} | {COMPANY.email} | {COMPANY.telephone} | SIRET : {COMPANY.siren}
           </p>
@@ -339,7 +339,7 @@ export default async function ApercuContratSousTraitancePage({
 
       {/* ─── PAGE 8 : Signatures ─── */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none pb">
-        <div className="px-12 py-8 print:px-8 print:py-3">
+        <div className="px-12 py-8 print:px-7 print:py-4">
           <p className="text-[10px] text-slate-400 text-center mb-8">
             {COMPANY.adresse} – {COMPANY.codePostal} {COMPANY.ville} | {COMPANY.email} | {COMPANY.telephone} | SIRET : {COMPANY.siren}
           </p>
@@ -377,7 +377,7 @@ export default async function ApercuContratSousTraitancePage({
 
       {/* ─── PAGE 9 : Annexe 1 ─── */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none pb">
-        <div className="px-12 py-8 print:px-8 print:py-3">
+        <div className="px-12 py-8 print:px-7 print:py-4">
           <p className="text-[10px] text-slate-400 text-center mb-8">
             {COMPANY.adresse} – {COMPANY.codePostal} {COMPANY.ville} | {COMPANY.email} | {COMPANY.telephone} | SIRET : {COMPANY.siren}
           </p>

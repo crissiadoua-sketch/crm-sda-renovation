@@ -104,7 +104,7 @@ export default async function ApercuPvReceptionPage({
       <PrintToolbar label={`${titrePV} ${pvr.numero}`} />
 
       <div className="mx-auto my-6 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">
-        <div className="px-10 py-8 print:px-8 print:py-3 text-sm">
+        <div className="px-10 py-8 print:px-7 print:py-4 text-sm">
 
           {/* ══ EN-TÊTE ═══════════════════════════════════════════════════════ */}
           <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-4 mb-4">

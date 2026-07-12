@@ -28,7 +28,7 @@ export default async function ApercuComptabilitePage({
       <PrintToolbar label={`Bilan comptable — ${periodeLabel}`} />
 
       <div className="mx-auto my-8 w-full max-w-[297mm] bg-white shadow-xl print:my-0 print:shadow-none">
-        <div className="px-10 py-8 print:px-8 print:py-3">
+        <div className="px-10 py-8 print:px-7 print:py-4">
           {/* En-tête SDA */}
           <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-5">
             <div>

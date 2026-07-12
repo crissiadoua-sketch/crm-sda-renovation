@@ -16,10 +16,14 @@ import { LigneActions } from "./ligne-actions";
 
 export default async function RapprochementDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ auto?: string; total?: string }>;
 }) {
   const { id } = await params;
+  const { auto: autoParam, total: totalParam } = await searchParams;
+  const autoRapproches = autoParam !== undefined ? parseInt(autoParam) : null;
 
   const releve = await prisma.releveBancaire.findUnique({
     where: { id },
@@ -69,8 +73,35 @@ export default async function RapprochementDetailPage({
   const nbRapprochees = releve.lignes.filter((l) => l.statut === "RAPPROCHE").length;
   const nbIgnorees = releve.lignes.filter((l) => l.statut === "IGNORE").length;
 
+  const totalParam2 = totalParam !== undefined ? parseInt(totalParam) : null;
+
   return (
     <div className="flex flex-col gap-6">
+
+      {autoRapproches !== null && (
+        <div className={`rounded-xl border px-4 py-3 text-sm ${
+          autoRapproches > 0
+            ? "border-green-200 bg-green-50 text-green-800"
+            : "border-blue-200 bg-blue-50 text-blue-800"
+        }`}>
+          {autoRapproches > 0 ? (
+            <>
+              <span className="font-semibold">Auto-rapprochement terminé :</span>{" "}
+              {autoRapproches} transaction{autoRapproches > 1 ? "s ont été rapprochées" : " a été rapprochée"} automatiquement
+              {totalParam2 !== null && autoRapproches < totalParam2 && (
+                <> · <span className="font-semibold">{totalParam2 - autoRapproches} en attente</span> de traitement manuel ci-dessous</>
+              )}.
+            </>
+          ) : (
+            <>
+              <span className="font-semibold">Import terminé :</span>{" "}
+              {totalParam2 ?? releve.lignes.length} transaction{(totalParam2 ?? releve.lignes.length) > 1 ? "s importées" : " importée"} — aucune correspondance exacte trouvée automatiquement.
+              Traitez les lignes ci-dessous manuellement.
+            </>
+          )}
+        </div>
+      )}
+
       <div className="flex items-start justify-between">
         <div>
           <Link href="/comptabilite/rapprochement" className="text-sm text-brand-blue hover:underline">

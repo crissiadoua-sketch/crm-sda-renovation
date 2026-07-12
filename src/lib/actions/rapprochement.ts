@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { parseCsvReleve, parseOfxReleve, parsePdfReleve } from "@/lib/rapprochement";
+import { parseCsvReleve, parseOfxReleve, parsePdfReleve, proposerCorrespondance, type CibleRapprochement } from "@/lib/rapprochement";
 
 export type ImportReleveState = { error?: string } | undefined;
 
@@ -55,10 +55,62 @@ export async function importReleve(
         })),
       },
     },
+    include: { lignes: { orderBy: { date: "asc" } } },
   });
 
+  // Auto-matching : rapprocher automatiquement les transactions exactes (montant + date ≤ 3 jours)
+  let autoRapproches = 0;
+  const lignesCreees = releve.lignes;
+
+  if (lignesCreees.length > 0) {
+    const timestamps = lignesCreees.map((l) => l.date.getTime());
+    const debut = new Date(Math.min(...timestamps) - 30 * 86400000);
+    const fin = new Date(Math.max(...timestamps) + 30 * 86400000);
+
+    const [paiements, depenses] = await Promise.all([
+      prisma.paiement.findMany({ where: { date: { gte: debut, lte: fin }, ligneReleve: null } }),
+      prisma.depense.findMany({ where: { date: { gte: debut, lte: fin }, ligneReleve: null } }),
+    ]);
+
+    const ciblesPaiements: CibleRapprochement[] = paiements.map((p) => ({
+      id: p.id, montant: p.montant, date: p.date, label: "",
+    }));
+    const ciblesDepenses: CibleRapprochement[] = depenses.map((d) => ({
+      id: d.id, montant: d.montant, date: d.date, label: "",
+    }));
+
+    const usedPaiements = new Set<string>();
+    const usedDepenses = new Set<string>();
+
+    for (const ligne of lignesCreees) {
+      if (ligne.montant > 0) {
+        const disponibles = ciblesPaiements.filter((c) => !usedPaiements.has(c.id));
+        const match = proposerCorrespondance({ montant: ligne.montant, date: ligne.date }, disponibles);
+        if (match?.confiance === "EXACTE") {
+          await prisma.ligneReleveBancaire.update({
+            where: { id: ligne.id },
+            data: { statut: "RAPPROCHE", paiementId: match.cible.id },
+          });
+          usedPaiements.add(match.cible.id);
+          autoRapproches++;
+        }
+      } else if (ligne.montant < 0) {
+        const disponibles = ciblesDepenses.filter((c) => !usedDepenses.has(c.id));
+        const match = proposerCorrespondance({ montant: ligne.montant, date: ligne.date }, disponibles);
+        if (match?.confiance === "EXACTE") {
+          await prisma.ligneReleveBancaire.update({
+            where: { id: ligne.id },
+            data: { statut: "RAPPROCHE", depenseId: match.cible.id },
+          });
+          usedDepenses.add(match.cible.id);
+          autoRapproches++;
+        }
+      }
+    }
+  }
+
   revalidatePath("/comptabilite/rapprochement");
-  redirect(`/comptabilite/rapprochement/${releve.id}`);
+  redirect(`/comptabilite/rapprochement/${releve.id}?auto=${autoRapproches}&total=${lignesCreees.length}`);
 }
 
 export async function validerCorrespondance(

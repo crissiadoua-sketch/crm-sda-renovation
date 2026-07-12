@@ -112,8 +112,8 @@ export function parseOfxReleve(contenu: string): LigneImportee[] {
 const DATE_TOKEN = /\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/;
 const MONTANT_TOKEN = /(-?\d{1,3}(?:[ .]\d{3})*,\d{2})\s*€?\s*$/;
 
-// Unescape PDF string literals (\n \r \t \\ \( \) \ooo)
-function unescapePdfString(s: string): string {
+// Unescape PDF literal string (\n \r \t \\ \( \) \ooo)
+function unescapePdf(s: string): string {
   return s.replace(/\\([nrt\\()0-7]{1,3})/g, (_, c) => {
     if (c === "n") return "\n";
     if (c === "r") return "\r";
@@ -123,29 +123,45 @@ function unescapePdfString(s: string): string {
   });
 }
 
-// Extract visible text from a decompressed PDF content stream
-function textFromContentStream(stream: string): string {
+// Decode hex string <4865...> → text
+function hexToStr(hex: string): string {
+  const h = hex.replace(/\s/g, "");
+  let r = "";
+  for (let i = 0; i < h.length - 1; i += 2)
+    r += String.fromCharCode(parseInt(h.slice(i, i + 2), 16));
+  return r;
+}
+
+// Extract text from ONE decompressed content stream using PDF text operators
+function extractFromStream(s: string): string {
   const parts: string[] = [];
-  const btEt = /BT([\s\S]*?)ET/g;
-  let m1;
-  while ((m1 = btEt.exec(stream)) !== null) {
-    const block = m1[1];
-    // (string) Tj  or  (string) TJ
-    const reTj = /\(([^)\\]*(?:\\.[^)\\]*)*)\)\s*T[jJ]/g;
-    let m2;
-    while ((m2 = reTj.exec(block)) !== null) {
-      const t = unescapePdfString(m2[1]);
+
+  // Work on the whole stream (not just BT/ET — some PDFs omit them)
+  const target = s.includes("BT") ? s : s;
+
+  // Match any text-showing operator: literal or hex, single or array
+  // (string) Tj / TJ  |  <hex> Tj / TJ  |  [(str/-kern/...)] TJ
+  const re = /(?:\(([^)\\]*(?:\\.[^)\\]*)*)\)|<([0-9a-fA-F\s]+)>|\[([^\]]*)\])\s*T[jJ]/g;
+  let m;
+  while ((m = re.exec(target)) !== null) {
+    if (m[1] !== undefined) {
+      // Literal string
+      const t = unescapePdf(m[1]);
       if (t.trim()) parts.push(t);
-    }
-    // [(str1) kern (str2)] TJ
-    const reTJArr = /\[([^\]]*)\]\s*TJ/g;
-    let m3;
-    while ((m3 = reTJArr.exec(block)) !== null) {
-      const inner = m3[1];
-      const reStr = /\(([^)\\]*(?:\\.[^)\\]*)*)\)/g;
-      let m4;
+    } else if (m[2] !== undefined) {
+      // Hex string
+      const t = hexToStr(m[2]);
+      if (t.trim()) parts.push(t);
+    } else if (m[3] !== undefined) {
+      // Array: mix of literals, hex, and kern numbers
+      const inner = m[3];
       const chunk: string[] = [];
-      while ((m4 = reStr.exec(inner)) !== null) chunk.push(unescapePdfString(m4[1]));
+      const reEl = /\(([^)\\]*(?:\\.[^)\\]*)*)\)|<([0-9a-fA-F\s]+)>/g;
+      let me;
+      while ((me = reEl.exec(inner)) !== null) {
+        const t = me[1] !== undefined ? unescapePdf(me[1]) : hexToStr(me[2]);
+        chunk.push(t);
+      }
       const joined = chunk.join("");
       if (joined.trim()) parts.push(joined);
     }
@@ -153,46 +169,29 @@ function textFromContentStream(stream: string): string {
   return parts.join("\n");
 }
 
-// Decompress a FlateDecode stream; returns null on failure
-function tryInflate(data: Buffer): Buffer | null {
+// Try zlib decompression; use raw bytes as fallback
+function decompressOrRaw(data: Buffer): Buffer {
   try { return inflateSync(data); } catch { /* */ }
   try { return inflateRawSync(data); } catch { /* */ }
-  return null;
+  return data;
 }
 
 /**
- * Parse un relevé bancaire au format PDF — extraction de texte native (zlib + opérateurs PDF),
- * sans dépendance externe. Fonctionne uniquement sur les PDFs texte (pas les scans/images).
+ * Parse un relevé bancaire PDF — extraction native Node.js (zlib + opérateurs PDF Tj/TJ).
+ * Tente la décompression sur chaque stream, gère chaînes littérales ET hex.
+ * Aucune dépendance externe.
  */
 export async function parsePdfReleve(buffer: Buffer): Promise<LigneImportee[]> {
-  // Parcourir les content streams du PDF
   const raw = buffer.toString("binary");
   const allText: string[] = [];
 
+  // Extraire et traiter chaque stream/endstream
   const reStream = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
   let sm;
   while ((sm = reStream.exec(raw)) !== null) {
-    // Chercher le dictionnaire juste avant ce stream pour connaître le filtre
-    const before = raw.slice(Math.max(0, sm.index - 800), sm.index);
-    const lastDict = before.lastIndexOf("<<");
-    const dictSnip = lastDict >= 0 ? before.slice(lastDict) : "";
-
-    const isFlate =
-      /\/Filter\s*\/FlateDecode\b/.test(dictSnip) ||
-      /\/Filter\s*\[\s*\/FlateDecode/.test(dictSnip);
-    const hasNoFilter = !/\/Filter\b/.test(dictSnip);
-
     const data = Buffer.from(sm[1], "binary");
-    let content: Buffer | null = null;
-
-    if (isFlate) {
-      content = tryInflate(data);
-    } else if (hasNoFilter) {
-      content = data;
-    }
-
-    if (!content) continue;
-    const text = textFromContentStream(content.toString("binary"));
+    const content = decompressOrRaw(data);
+    const text = extractFromStream(content.toString("binary"));
     if (text.trim()) allText.push(text);
   }
 

@@ -15,6 +15,7 @@ import {
 } from "@/lib/actions/rapprochement";
 import { rapprochementerFactureFournisseur } from "@/lib/actions/factures-fournisseur";
 import { LigneActions } from "./ligne-actions";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 
 export default async function RapprochementDetailPage({
   params,
@@ -85,13 +86,11 @@ export default async function RapprochementDetailPage({
     label: `${formatEuros(d.montant)} — ${d.libelle}${d.fournisseur ? ` (${d.fournisseur.nom})` : ""}`,
   }));
 
-  // Factures non réglées disponibles pour créer un paiement lors du rapprochement
   const facturesCandidats = facturesDisponibles.map((f) => ({
     id: f.id,
     label: `${f.numero} — ${clientDisplayName(f.client)} — ${formatEuros(f.totalTTC - f.montantPaye)} restant`,
   }));
 
-  // Factures fournisseurs à régler
   const facturesFournisseurCandidats = facturesFournisseurDisponibles.map((f) => ({
     id: f.id,
     label: `${f.numero} — ${f.fournisseur.nom} — ${formatEuros(f.montantTTC - f.montantPaye)} restant`,
@@ -101,6 +100,13 @@ export default async function RapprochementDetailPage({
   const nbIgnorees = releve.lignes.filter((l) => l.statut === "IGNORE").length;
 
   const totalParam2 = totalParam !== undefined ? parseInt(totalParam) : null;
+
+  const totalDebits = releve.lignes
+    .filter((l) => l.montant < 0)
+    .reduce((s, l) => s + Math.abs(l.montant), 0);
+  const totalCredits = releve.lignes
+    .filter((l) => l.montant > 0)
+    .reduce((s, l) => s + l.montant, 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -145,88 +151,174 @@ export default async function RapprochementDetailPage({
         </DeleteButton>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-100 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Libellé</th>
-              <th className="px-4 py-3 text-right">Montant</th>
-              <th className="px-4 py-3">Correspondance</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {releve.lignes.map((ligne) => {
-              const estCredit = ligne.montant > 0;
-              const type = estCredit ? "PAIEMENT" : "DEPENSE";
-              const candidats = estCredit ? cibleSPaiements : ciblesDepenses;
-              const suggestion =
-                ligne.statut === "NON_RAPPROCHE"
-                  ? proposerCorrespondance({ montant: ligne.montant, date: ligne.date }, candidats)
-                  : null;
-
-              return (
-                <tr key={ligne.id} className={ligne.statut === "IGNORE" ? "opacity-50" : ""}>
-                  <td className="px-4 py-3 whitespace-nowrap text-slate-500">{formatDate(ligne.date)}</td>
-                  <td className="px-4 py-3 text-slate-700">{ligne.libelle || "—"}</td>
-                  <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${estCredit ? "text-green-600" : "text-red-600"}`}>
-                    {estCredit ? "+" : ""}{formatEuros(ligne.montant)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {ligne.statut === "RAPPROCHE" ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-                        ✓ {ligne.paiement
-                          ? `Facture ${ligne.paiement.facture.numero} (${clientDisplayName(ligne.paiement.facture.client)})`
-                          : ligne.depense
-                            ? ligne.depense.libelle
-                            : ligne.factureFournisseur
-                              ? `Fact. fourn. ${ligne.factureFournisseur.numero} — ${ligne.factureFournisseur.fournisseur.nom}`
-                              : "Rapprochée"}
-                      </span>
-                    ) : ligne.statut === "IGNORE" ? (
-                      <span className="text-xs text-slate-400">Ignorée</span>
-                    ) : (
-                      <LigneActions
-                        ligneId={ligne.id}
-                        type={type}
-                        candidats={candidats.map((c) => ({ id: c.id, label: c.label }))}
-                        suggestionId={suggestion?.cible.id}
-                        confiance={suggestion?.confiance}
-                        validerAction={validerCorrespondance.bind(null, ligne.id, type)}
-                        factures={estCredit ? facturesCandidats : undefined}
-                        rapprochementerFactureAction={estCredit ? rapprochementerFacture.bind(null, ligne.id) : undefined}
-                        facturesFournisseur={!estCredit ? facturesFournisseurCandidats : undefined}
-                        rapprochementerFactureFournisseurAction={!estCredit ? rapprochementerFactureFournisseur.bind(null, ligne.id) : undefined}
-                      />
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {ligne.statut === "RAPPROCHE" ? (
-                      <form action={annulerCorrespondance.bind(null, ligne.id)}>
-                        <button type="submit" className="text-xs text-slate-400 hover:text-slate-600">Annuler</button>
-                      </form>
-                    ) : ligne.statut === "IGNORE" ? (
-                      <form action={annulerCorrespondance.bind(null, ligne.id)}>
-                        <button type="submit" className="text-xs text-brand-blue hover:underline">Réactiver</button>
-                      </form>
-                    ) : (
-                      <form action={ignorerLigne.bind(null, ligne.id)}>
-                        <button type="submit" className="text-xs text-slate-400 hover:text-slate-600">Ignorer</button>
-                      </form>
-                    )}
-                  </td>
+      {/* ── Relevé bancaire : vue identique au document original ── */}
+      <FullscreenToggle>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold text-slate-700">Relevé bancaire — détail ligne par ligne</h3>
+          {(releve.soldeDebut != null || releve.soldeFin != null) && (
+            <div className="flex gap-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm">
+              {releve.soldeDebut != null && (
+                <span className="text-slate-600">
+                  Solde début : <strong className="text-brand-navy">{formatEuros(releve.soldeDebut)}</strong>
+                </span>
+              )}
+              {releve.soldeFin != null && (
+                <span className="text-slate-600">
+                  Solde fin : <strong className="text-brand-navy">{formatEuros(releve.soldeFin)}</strong>
+                </span>
+              )}
+            </div>
+          )}
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table className="min-w-full divide-y divide-slate-100 text-sm">
+              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 whitespace-nowrap">Date opé</th>
+                  <th className="px-4 py-3">Libellé</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Débit (−)</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Crédit (+)</th>
+                  <th className="px-4 py-3 text-center">Statut</th>
                 </tr>
-              );
-            })}
-            {releve.lignes.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">Aucune ligne dans ce relevé.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {releve.lignes.map((ligne) => (
+                  <tr key={ligne.id} className={ligne.statut === "IGNORE" ? "opacity-40" : "hover:bg-slate-50/60"}>
+                    <td className="px-4 py-2.5 whitespace-nowrap text-xs text-slate-500">{formatDate(ligne.date)}</td>
+                    <td className="px-4 py-2.5 text-slate-700 max-w-xs">{ligne.libelle || "—"}</td>
+                    <td className="px-4 py-2.5 text-right font-medium text-red-600 whitespace-nowrap">
+                      {ligne.montant < 0 ? formatEuros(Math.abs(ligne.montant)) : ""}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-medium text-green-600 whitespace-nowrap">
+                      {ligne.montant > 0 ? formatEuros(ligne.montant) : ""}
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
+                      {ligne.statut === "RAPPROCHE" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                          ✓ Rapprochée
+                        </span>
+                      ) : ligne.statut === "IGNORE" ? (
+                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                          Ignorée
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                          En attente
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {releve.lignes.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                      Aucune ligne dans ce relevé.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+              {releve.lignes.length > 0 && (
+                <tfoot className="border-t-2 border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700">
+                  <tr>
+                    <td className="px-4 py-2.5" colSpan={2}>Total</td>
+                    <td className="px-4 py-2.5 text-right text-red-700">{formatEuros(totalDebits)}</td>
+                    <td className="px-4 py-2.5 text-right text-green-700">{formatEuros(totalCredits)}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </div>
+      </FullscreenToggle>
+
+      {/* ── Rapprochement interactif ── */}
+      <FullscreenToggle>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold text-slate-700">Rapprochement</h3>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table className="min-w-full divide-y divide-slate-100 text-sm">
+              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Libellé</th>
+                  <th className="px-4 py-3 text-right">Montant</th>
+                  <th className="px-4 py-3">Correspondance</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {releve.lignes.map((ligne) => {
+                  const estCredit = ligne.montant > 0;
+                  const type = estCredit ? "PAIEMENT" : "DEPENSE";
+                  const candidats = estCredit ? cibleSPaiements : ciblesDepenses;
+                  const suggestion =
+                    ligne.statut === "NON_RAPPROCHE"
+                      ? proposerCorrespondance({ montant: ligne.montant, date: ligne.date }, candidats)
+                      : null;
+
+                  return (
+                    <tr key={ligne.id} className={ligne.statut === "IGNORE" ? "opacity-50" : ""}>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-500">{formatDate(ligne.date)}</td>
+                      <td className="px-4 py-3 text-slate-700">{ligne.libelle || "—"}</td>
+                      <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${estCredit ? "text-green-600" : "text-red-600"}`}>
+                        {estCredit ? "+" : ""}{formatEuros(ligne.montant)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {ligne.statut === "RAPPROCHE" ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                            ✓ {ligne.paiement
+                              ? `Facture ${ligne.paiement.facture.numero} (${clientDisplayName(ligne.paiement.facture.client)})`
+                              : ligne.depense
+                                ? ligne.depense.libelle
+                                : ligne.factureFournisseur
+                                  ? `Fact. fourn. ${ligne.factureFournisseur.numero} — ${ligne.factureFournisseur.fournisseur.nom}`
+                                  : "Rapprochée"}
+                          </span>
+                        ) : ligne.statut === "IGNORE" ? (
+                          <span className="text-xs text-slate-400">Ignorée</span>
+                        ) : (
+                          <LigneActions
+                            ligneId={ligne.id}
+                            type={type}
+                            candidats={candidats.map((c) => ({ id: c.id, label: c.label }))}
+                            suggestionId={suggestion?.cible.id}
+                            confiance={suggestion?.confiance}
+                            validerAction={validerCorrespondance.bind(null, ligne.id, type)}
+                            factures={estCredit ? facturesCandidats : undefined}
+                            rapprochementerFactureAction={estCredit ? rapprochementerFacture.bind(null, ligne.id) : undefined}
+                            facturesFournisseur={!estCredit ? facturesFournisseurCandidats : undefined}
+                            rapprochementerFactureFournisseurAction={!estCredit ? rapprochementerFactureFournisseur.bind(null, ligne.id) : undefined}
+                          />
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {ligne.statut === "RAPPROCHE" ? (
+                          <form action={annulerCorrespondance.bind(null, ligne.id)}>
+                            <button type="submit" className="text-xs text-slate-400 hover:text-slate-600">Annuler</button>
+                          </form>
+                        ) : ligne.statut === "IGNORE" ? (
+                          <form action={annulerCorrespondance.bind(null, ligne.id)}>
+                            <button type="submit" className="text-xs text-brand-blue hover:underline">Réactiver</button>
+                          </form>
+                        ) : (
+                          <form action={ignorerLigne.bind(null, ligne.id)}>
+                            <button type="submit" className="text-xs text-slate-400 hover:text-slate-600">Ignorer</button>
+                          </form>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {releve.lignes.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-slate-400">Aucune ligne dans ce relevé.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </FullscreenToggle>
     </div>
   );
 }

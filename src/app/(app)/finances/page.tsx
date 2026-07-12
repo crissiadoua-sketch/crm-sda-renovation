@@ -366,7 +366,7 @@ export default async function FinancesPage({
         >
           <Clock className="h-5 w-5 shrink-0" />
           <div>
-            <p className="font-semibold">Trésorerie 31 jours</p>
+            <p className="font-semibold">Trésorerie 30 jours</p>
             <p className="text-xs text-emerald-500">Flux glissants avec échéances réelles</p>
           </div>
           <ChevronRight className="ml-auto h-4 w-4" />

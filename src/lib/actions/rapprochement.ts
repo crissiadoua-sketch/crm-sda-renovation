@@ -58,7 +58,7 @@ export async function importReleve(
     include: { lignes: { orderBy: { date: "asc" } } },
   });
 
-  // Auto-matching : rapprocher automatiquement les transactions exactes (montant + date ≤ 3 jours)
+  // Auto-matching : paiements, dépenses et factures non réglées
   let autoRapproches = 0;
   const lignesCreees = releve.lignes;
 
@@ -67,9 +67,16 @@ export async function importReleve(
     const debut = new Date(Math.min(...timestamps) - 30 * 86400000);
     const fin = new Date(Math.max(...timestamps) + 30 * 86400000);
 
-    const [paiements, depenses] = await Promise.all([
+    const [paiements, depenses, factures] = await Promise.all([
       prisma.paiement.findMany({ where: { date: { gte: debut, lte: fin }, ligneReleve: null } }),
       prisma.depense.findMany({ where: { date: { gte: debut, lte: fin }, ligneReleve: null } }),
+      prisma.facture.findMany({
+        where: {
+          dateEmission: { gte: debut, lte: fin },
+          statut: { notIn: ["BROUILLON", "ANNULEE", "PAYEE"] },
+        },
+        select: { id: true, numero: true, totalTTC: true, montantPaye: true, dateEmission: true, clientId: true },
+      }),
     ]);
 
     const ciblesPaiements: CibleRapprochement[] = paiements.map((p) => ({
@@ -78,25 +85,62 @@ export async function importReleve(
     const ciblesDepenses: CibleRapprochement[] = depenses.map((d) => ({
       id: d.id, montant: d.montant, date: d.date, label: "",
     }));
+    // Factures : montant restant dû, date d'émission comme référence temporelle
+    const ciblesFactures: CibleRapprochement[] = factures.map((f) => ({
+      id: f.id, montant: f.totalTTC - f.montantPaye, date: f.dateEmission, label: "",
+    }));
 
     const usedPaiements = new Set<string>();
     const usedDepenses = new Set<string>();
+    const usedFactures = new Set<string>();
 
     for (const ligne of lignesCreees) {
       if (ligne.montant > 0) {
-        const disponibles = ciblesPaiements.filter((c) => !usedPaiements.has(c.id));
-        const match = proposerCorrespondance({ montant: ligne.montant, date: ligne.date }, disponibles);
-        if (match?.confiance === "EXACTE") {
+        // 1. Chercher un paiement existant
+        const dispoPaiements = ciblesPaiements.filter((c) => !usedPaiements.has(c.id));
+        const matchPaiement = proposerCorrespondance({ montant: ligne.montant, date: ligne.date }, dispoPaiements);
+        if (matchPaiement?.confiance === "EXACTE") {
           await prisma.ligneReleveBancaire.update({
             where: { id: ligne.id },
-            data: { statut: "RAPPROCHE", paiementId: match.cible.id },
+            data: { statut: "RAPPROCHE", paiementId: matchPaiement.cible.id },
           });
-          usedPaiements.add(match.cible.id);
+          usedPaiements.add(matchPaiement.cible.id);
+          autoRapproches++;
+          continue;
+        }
+
+        // 2. Sinon, chercher une facture non réglée dont le restant dû correspond
+        const dispoFactures = ciblesFactures.filter((c) => !usedFactures.has(c.id));
+        const matchFacture = proposerCorrespondance({ montant: ligne.montant, date: ligne.date }, dispoFactures);
+        if (matchFacture?.confiance === "EXACTE") {
+          const facture = factures.find((f) => f.id === matchFacture.cible.id)!;
+          await prisma.$transaction(async (tx) => {
+            const paiement = await tx.paiement.create({
+              data: {
+                factureId: facture.id,
+                montant: ligne.montant,
+                date: ligne.date,
+                methode: "VIREMENT",
+                reference: ligne.reference ?? null,
+              },
+            });
+            const newMontantPaye = facture.montantPaye + ligne.montant;
+            const newStatut = newMontantPaye >= facture.totalTTC ? "PAYEE" : "PAYEE_PARTIELLE";
+            await tx.facture.update({
+              where: { id: facture.id },
+              data: { montantPaye: newMontantPaye, statut: newStatut },
+            });
+            await tx.ligneReleveBancaire.update({
+              where: { id: ligne.id },
+              data: { statut: "RAPPROCHE", paiementId: paiement.id },
+            });
+          });
+          usedFactures.add(matchFacture.cible.id);
           autoRapproches++;
         }
       } else if (ligne.montant < 0) {
-        const disponibles = ciblesDepenses.filter((c) => !usedDepenses.has(c.id));
-        const match = proposerCorrespondance({ montant: ligne.montant, date: ligne.date }, disponibles);
+        const dispoDepenses = ciblesDepenses.filter((c) => !usedDepenses.has(c.id));
+        const match = proposerCorrespondance({ montant: ligne.montant, date: ligne.date }, dispoDepenses);
         if (match?.confiance === "EXACTE") {
           await prisma.ligneReleveBancaire.update({
             where: { id: ligne.id },
@@ -110,6 +154,7 @@ export async function importReleve(
   }
 
   revalidatePath("/comptabilite/rapprochement");
+  revalidatePath("/factures");
   redirect(`/comptabilite/rapprochement/${releve.id}?auto=${autoRapproches}&total=${lignesCreees.length}`);
 }
 
@@ -129,6 +174,54 @@ export async function validerCorrespondance(
     },
   });
   revalidatePath("/comptabilite/rapprochement");
+}
+
+// Rapprocher une ligne de crédit bancaire en créant un paiement sur une facture
+export async function rapprochementerFacture(ligneId: string, formData: FormData) {
+  const factureId = formData.get("factureId") as string;
+  if (!factureId) return;
+
+  const ligne = await prisma.ligneReleveBancaire.findUniqueOrThrow({ where: { id: ligneId } });
+
+  await prisma.$transaction(async (tx) => {
+    const paiement = await tx.paiement.create({
+      data: {
+        factureId,
+        montant: ligne.montant,
+        date: ligne.date,
+        methode: "VIREMENT",
+        reference: ligne.reference ?? null,
+      },
+    });
+
+    const facture = await tx.facture.findUniqueOrThrow({
+      where: { id: factureId },
+      select: { montantPaye: true, totalTTC: true },
+    });
+
+    const newMontantPaye = facture.montantPaye + ligne.montant;
+    const newStatut = newMontantPaye >= facture.totalTTC
+      ? "PAYEE"
+      : newMontantPaye > 0
+        ? "PAYEE_PARTIELLE"
+        : undefined;
+
+    await tx.facture.update({
+      where: { id: factureId },
+      data: {
+        montantPaye: newMontantPaye,
+        ...(newStatut ? { statut: newStatut } : {}),
+      },
+    });
+
+    await tx.ligneReleveBancaire.update({
+      where: { id: ligneId },
+      data: { statut: "RAPPROCHE", paiementId: paiement.id },
+    });
+  });
+
+  revalidatePath("/comptabilite/rapprochement");
+  revalidatePath("/factures");
 }
 
 export async function annulerCorrespondance(ligneId: string) {

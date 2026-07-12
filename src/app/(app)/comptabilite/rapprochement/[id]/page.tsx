@@ -11,6 +11,7 @@ import {
   annulerCorrespondance,
   ignorerLigne,
   supprimerReleve,
+  rapprochementerFacture,
 } from "@/lib/actions/rapprochement";
 import { LigneActions } from "./ligne-actions";
 
@@ -44,7 +45,7 @@ export default async function RapprochementDetailPage({
   const debut = dates.length > 0 ? new Date(Math.min(...dates) - 30 * 86400000) : new Date(0);
   const fin = dates.length > 0 ? new Date(Math.max(...dates) + 30 * 86400000) : new Date();
 
-  const [paiementsDisponibles, depensesDisponibles] = await Promise.all([
+  const [paiementsDisponibles, depensesDisponibles, facturesDisponibles] = await Promise.all([
     prisma.paiement.findMany({
       where: { date: { gte: debut, lte: fin }, ligneReleve: null },
       include: { facture: { include: { client: true } } },
@@ -54,6 +55,13 @@ export default async function RapprochementDetailPage({
       where: { date: { gte: debut, lte: fin }, ligneReleve: null },
       include: { fournisseur: true },
       orderBy: { date: "desc" },
+    }),
+    prisma.facture.findMany({
+      where: {
+        statut: { notIn: ["BROUILLON", "ANNULEE", "PAYEE"] },
+      },
+      include: { client: true },
+      orderBy: { dateEmission: "desc" },
     }),
   ]);
 
@@ -68,6 +76,12 @@ export default async function RapprochementDetailPage({
     montant: -d.montant,
     date: d.date,
     label: `${formatEuros(d.montant)} — ${d.libelle}${d.fournisseur ? ` (${d.fournisseur.nom})` : ""}`,
+  }));
+
+  // Factures non réglées disponibles pour créer un paiement lors du rapprochement
+  const facturesCandidats = facturesDisponibles.map((f) => ({
+    id: f.id,
+    label: `${f.numero} — ${clientDisplayName(f.client)} — ${formatEuros(f.totalTTC - f.montantPaye)} restant`,
   }));
 
   const nbRapprochees = releve.lignes.filter((l) => l.statut === "RAPPROCHE").length;
@@ -165,6 +179,8 @@ export default async function RapprochementDetailPage({
                         suggestionId={suggestion?.cible.id}
                         confiance={suggestion?.confiance}
                         validerAction={validerCorrespondance.bind(null, ligne.id, type)}
+                        factures={estCredit ? facturesCandidats : undefined}
+                        rapprochementerFactureAction={estCredit ? rapprochementerFacture.bind(null, ligne.id) : undefined}
                       />
                     )}
                   </td>

@@ -26,11 +26,13 @@ function SidebarNav({
   navGroups,
   onNavigate,
   smtpConfigured,
+  messagesNonLus,
 }: {
   pathname: string;
   navGroups: NavGroup[];
   onNavigate?: () => void;
   smtpConfigured?: boolean;
+  messagesNonLus?: number;
 }) {
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -44,6 +46,7 @@ function SidebarNav({
               const active = isActive(pathname, item.href);
               const Icon = item.icon;
               const showSmtpAlert = item.href === "/messagerie" && smtpConfigured === false;
+              const showUnread = item.href === "/messagerie" && !!messagesNonLus && messagesNonLus > 0;
               return (
                 <li key={item.href}>
                   <Link
@@ -59,7 +62,15 @@ function SidebarNav({
                       className={`h-4.5 w-4.5 shrink-0 ${active ? "text-brand-orange" : ""}`}
                     />
                     <span className="truncate flex-1">{item.label}</span>
-                    {showSmtpAlert && (
+                    {showUnread && (
+                      <span className="relative flex shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-orange opacity-60" />
+                        <span className="relative inline-flex items-center justify-center rounded-full bg-brand-orange px-1.5 py-0.5 text-[10px] font-bold leading-none text-white min-w-[18px]">
+                          {messagesNonLus! > 99 ? "99+" : messagesNonLus}
+                        </span>
+                      </span>
+                    )}
+                    {!showUnread && showSmtpAlert && (
                       <span className="relative flex h-2.5 w-2.5 shrink-0">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                         <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
@@ -102,6 +113,7 @@ export function AppShell({
   children,
   banner,
   smtpConfigured,
+  messagesNonLus,
 }: {
   user: CurrentUser;
   userRole: string;
@@ -109,6 +121,7 @@ export function AppShell({
   children: React.ReactNode;
   banner?: React.ReactNode;
   smtpConfigured?: boolean;
+  messagesNonLus?: number;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -128,7 +141,7 @@ export function AppShell({
             <Logo variant="light" size="md" />
           </Link>
         </div>
-        <SidebarNav pathname={pathname} navGroups={navGroups} smtpConfigured={smtpConfigured} />
+        <SidebarNav pathname={pathname} navGroups={navGroups} smtpConfigured={smtpConfigured} messagesNonLus={messagesNonLus} />
         <UserFooter user={user} />
       </aside>
 
@@ -157,6 +170,7 @@ export function AppShell({
               navGroups={navGroups}
               onNavigate={() => setMobileOpen(false)}
               smtpConfigured={smtpConfigured}
+              messagesNonLus={messagesNonLus}
             />
             <UserFooter user={user} />
           </aside>

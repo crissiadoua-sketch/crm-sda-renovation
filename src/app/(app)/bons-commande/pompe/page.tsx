@@ -16,14 +16,15 @@ const STATUT_CONFIG: Record<string, { label: string; tone: "green" | "blue" | "o
 export default async function BonsReservationPompePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; chantierId?: string }>;
 }) {
-  const { q, statut } = await searchParams;
+  const { q, statut, chantierId } = await searchParams;
 
   const [brps, fournisseurs, chantiers, clients] = await Promise.all([
     prisma.bonReservationPompe.findMany({
       where: {
         ...(statut ? { statut } : {}),
+        ...(chantierId ? { chantierId } : {}),
         ...(q ? {
           OR: [
             { numero:       { contains: q } },
@@ -90,10 +91,14 @@ export default async function BonsReservationPompePage({
           <option value="">Tous les statuts</option>
           {Object.entries(STATUT_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
+        <select name="chantierId" defaultValue={chantierId ?? ""} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <option value="">Tous les chantiers</option>
+          {chantiers.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
+        </select>
         <button type="submit" className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white">
           Filtrer
         </button>
-        {(statut || q) && (
+        {(statut || q || chantierId) && (
           <Link href="/bons-commande/pompe"
             className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
             Réinitialiser
@@ -132,9 +137,19 @@ export default async function BonsReservationPompePage({
                 return (
                   <tr key={brp.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs font-bold text-brand-navy">{brp.numero}</td>
-                    <td className="px-4 py-3 font-medium text-slate-700">{brp.fournisseur.nom}</td>
+                    <td className="px-4 py-3 font-medium text-slate-700">
+                      <Link href={`/fournisseurs/${brp.fournisseurId}`} className="hover:underline text-brand-blue">
+                        {brp.fournisseur.nom}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3">
-                      <p className="text-slate-700 font-medium">{chantierLabel ?? "—"}</p>
+                      {brp.chantierId ? (
+                        <Link href={`/chantiers/${brp.chantierId}`} className="font-medium text-brand-blue hover:underline">
+                          {chantierLabel ?? "—"}
+                        </Link>
+                      ) : (
+                        <p className="text-slate-700 font-medium">{chantierLabel ?? "—"}</p>
+                      )}
                       {clientLabel && <p className="text-xs text-slate-400">{clientLabel}</p>}
                     </td>
                     <td className="px-4 py-3 text-slate-500 whitespace-nowrap">

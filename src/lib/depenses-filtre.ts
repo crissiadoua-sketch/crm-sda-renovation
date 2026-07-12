@@ -15,17 +15,18 @@ export function periodeDepenses(moisFilter?: string): { debut: Date; fin: Date }
   return { debut: new Date(y, m, 1), fin: new Date(y, m + 1, 0, 23, 59, 59) };
 }
 
-export async function depensesFiltrees(moisFilter?: string, categorie?: string) {
+export async function depensesFiltrees(moisFilter?: string, categorie?: string, chantierId?: string) {
   const { debut, fin } = periodeDepenses(moisFilter);
   return prisma.depense.findMany({
     where: {
       date: { gte: debut, lte: fin },
       type: "REEL",
       ...(categorie ? { categorie } : {}),
+      ...(chantierId ? { chantierId } : {}),
     },
     include: {
-      chantier: { select: { nom: true, reference: true } },
-      fournisseur: { select: { nom: true } },
+      chantier: { select: { id: true, nom: true, reference: true } },
+      fournisseur: { select: { id: true, nom: true } },
     },
     orderBy: { date: "desc" },
   });

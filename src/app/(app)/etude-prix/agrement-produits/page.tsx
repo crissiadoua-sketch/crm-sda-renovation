@@ -42,9 +42,9 @@ const avisTones: Record<string, BadgeTone> = {
 export default async function AgrementProduitsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; modele?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; modele?: string; chantierId?: string }>;
 }) {
-  const { q, statut, modele } = await searchParams;
+  const { q, statut, modele, chantierId } = await searchParams;
 
   const fiches = await prisma.ficheAgrementProduit.findMany({
     where: {
@@ -61,6 +61,7 @@ export default async function AgrementProduitsPage({
           : {},
         statut ? { statut } : {},
         modele ? { modele } : {},
+        chantierId ? { chantierId } : {},
       ],
     },
     include: { chantier: true, devis: true },
@@ -144,7 +145,7 @@ export default async function AgrementProduitsPage({
       </form>
 
       {/* Filtres */}
-      <form className="flex flex-wrap gap-3">
+      <form method="get" className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-48">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -166,9 +167,20 @@ export default async function AgrementProduitsPage({
           <option value="SDA">SDA</option>
           <option value="APPEL_OFFRE">Appel d'offre</option>
         </select>
+        <select name="chantierId" defaultValue={chantierId ?? ""} className={`${selectClasses} w-52`}>
+          <option value="">Tous les chantiers</option>
+          {chantiers.map((c) => (
+            <option key={c.id} value={c.id}>{c.reference} — {c.nom}</option>
+          ))}
+        </select>
         <button type="submit" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
           Filtrer
         </button>
+        {(q || statut || modele || chantierId) && (
+          <Link href="/etude-prix/agrement-produits" className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
+            Réinitialiser
+          </Link>
+        )}
       </form>
 
       {/* Tableau */}
@@ -209,7 +221,9 @@ export default async function AgrementProduitsPage({
                 <td className="px-4 py-3">
                   <p className="font-medium text-slate-700">{f.operation ?? "—"}</p>
                   {f.chantier && (
-                    <p className="text-xs text-slate-400">{f.chantier.nom}</p>
+                    <Link href={`/chantiers/${f.chantier.id}`} className="text-xs text-brand-blue hover:underline">
+                      {f.chantier.nom}
+                    </Link>
                   )}
                 </td>
                 <td className="px-4 py-3 text-slate-600">{f.lot ?? "—"}</td>

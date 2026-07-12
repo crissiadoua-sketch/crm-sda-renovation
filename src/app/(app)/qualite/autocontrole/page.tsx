@@ -20,9 +20,16 @@ const statutLabels: Record<string, string> = {
   AVEC_RESERVES: "Avec réserves",
 };
 
-export default async function FichesAutocontrolePage() {
+export default async function FichesAutocontrolePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ chantierId?: string }>;
+}) {
+  const { chantierId } = await searchParams;
+
   const [fiches, chantiers, clients] = await Promise.all([
     prisma.ficheAutocontrole.findMany({
+      where: chantierId ? { chantierId } : undefined,
       include: {
         chantier: { select: { nom: true } },
         client: { select: { nom: true } },
@@ -49,11 +56,40 @@ export default async function FichesAutocontrolePage() {
       </div>
 
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-bold text-brand-navy">Fiches d&apos;autocontrôle</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Contrôle qualité des ouvrages — points de vérification et conformité.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-brand-navy">Fiches d&apos;autocontrôle</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Contrôle qualité des ouvrages — points de vérification et conformité.
+          </p>
+        </div>
+        {/* Filtre par chantier */}
+        <form method="get" className="flex items-center gap-2">
+          <select
+            name="chantierId"
+            defaultValue={chantierId ?? ""}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30"
+          >
+            <option value="">Tous les chantiers</option>
+            {chantiers.map((c) => (
+              <option key={c.id} value={c.id}>{c.nom}</option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+          >
+            Filtrer
+          </button>
+          {chantierId && (
+            <Link
+              href="/qualite/autocontrole"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition"
+            >
+              ✕
+            </Link>
+          )}
+        </form>
       </div>
 
       {/* KPIs */}
@@ -77,6 +113,7 @@ export default async function FichesAutocontrolePage() {
         <form action={creerFicheAutocontrole} className="flex flex-wrap gap-3">
           <select
             name="chantierId"
+            defaultValue={chantierId ?? ""}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
           >
             <option value="">— Chantier (optionnel) —</option>
@@ -123,9 +160,13 @@ export default async function FichesAutocontrolePage() {
       {fiches.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center">
           <p className="text-2xl">✅</p>
-          <p className="mt-2 font-medium text-slate-600">Aucune fiche d&apos;autocontrôle</p>
+          <p className="mt-2 font-medium text-slate-600">
+            {chantierId ? "Aucune fiche pour ce chantier" : "Aucune fiche d'autocontrôle"}
+          </p>
           <p className="mt-1 text-sm text-slate-400">
-            Créez votre première fiche via le formulaire ci-dessus.
+            {chantierId
+              ? "Créez une fiche pour ce chantier via le formulaire ci-dessus."
+              : "Créez votre première fiche via le formulaire ci-dessus."}
           </p>
         </div>
       ) : (
@@ -135,6 +176,7 @@ export default async function FichesAutocontrolePage() {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                   <th className="px-4 py-3">Numéro</th>
+                  <th className="px-4 py-3">Chantier</th>
                   <th className="px-4 py-3">Lot</th>
                   <th className="px-4 py-3">Ouvrage</th>
                   <th className="px-4 py-3">Contrôleur</th>
@@ -154,6 +196,18 @@ export default async function FichesAutocontrolePage() {
                       >
                         {fac.numero}
                       </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      {fac.chantierId ? (
+                        <Link
+                          href={`/chantiers/${fac.chantierId}`}
+                          className="text-slate-600 hover:text-brand-blue hover:underline"
+                        >
+                          {fac.chantier?.nom ?? fac.chantierId}
+                        </Link>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-slate-600">{fac.lot ?? "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{fac.ouvrage ?? "—"}</td>

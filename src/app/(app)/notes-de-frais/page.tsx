@@ -109,11 +109,17 @@ export default async function NotesDeFraisPage() {
                   <td className="px-4 py-3 text-slate-600">
                     {categorieLabels[note.categorie] ?? note.categorie}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{note.fournisseur || "—"}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    <p>{note.fournisseur || "—"}</p>
+                    {note.description && (
+                      <p className="text-xs text-slate-400 truncate max-w-[180px]">{note.description}</p>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-slate-500 text-xs">
                     {note.chantier ? (
                       <Link href={`/chantiers/${note.chantier.id}`} className="hover:underline">
-                        {note.chantier.reference}
+                        <span className="font-medium text-slate-700">{note.chantier.nom}</span>
+                        <span className="block text-slate-400">{note.chantier.reference}</span>
                       </Link>
                     ) : (
                       "—"

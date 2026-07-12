@@ -24,7 +24,9 @@ export default async function RetenuesGarantiePage() {
   type RGItem = {
     id: string;
     numero: string;
+    sousTraitantId: string;
     sousTraitant: string;
+    chantierId: string;
     chantier: string;
     chantierRef: string;
     montantHT: number;
@@ -50,7 +52,9 @@ export default async function RetenuesGarantiePage() {
     return {
       id: c.id,
       numero: c.numero,
+      sousTraitantId: c.sousTraitantId,
       sousTraitant: c.sousTraitant.nom,
+      chantierId: c.chantierId,
       chantier: c.chantier.nom,
       chantierRef: c.chantier.reference ?? "",
       montantHT: c.montantHT ?? 0,
@@ -174,11 +178,19 @@ export default async function RetenuesGarantiePage() {
                   return (
                     <tr key={item.id} className={`hover:bg-slate-50/50 ${item.rgLiberee ? "opacity-60" : ""}`}>
                       <td className="px-5 py-3">
-                        <p className="font-medium text-brand-navy">{item.numero}</p>
-                        <p className="text-xs text-slate-400">{item.sousTraitant}</p>
+                        <Link href={`/contrats-sous-traitance/${item.id}`} className="font-medium text-brand-navy hover:text-brand-blue hover:underline">
+                          {item.numero}
+                        </Link>
+                        <p className="text-xs">
+                          <Link href={`/sous-traitants/${item.sousTraitantId}`} className="text-slate-400 hover:text-brand-blue hover:underline">
+                            {item.sousTraitant}
+                          </Link>
+                        </p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-slate-600 truncate max-w-[160px]">{item.chantier}</p>
+                        <Link href={`/chantiers/${item.chantierId}`} className="text-slate-600 truncate max-w-[160px] hover:underline block">
+                          {item.chantier}
+                        </Link>
                         <p className="text-xs text-slate-400">{item.chantierRef}</p>
                       </td>
                       <td className="px-4 py-3 text-right text-slate-600">{formatEuros(item.montantHT)}</td>

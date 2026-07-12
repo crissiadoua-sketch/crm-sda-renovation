@@ -7,8 +7,28 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { creerCoutMateriaux } from "@/lib/actions/cout-materiaux";
 import { formatDate } from "@/lib/format";
 
-export default async function CoutMateriauxPage() {
+export default async function CoutMateriauxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; chantierId?: string }>;
+}) {
+  const { q, chantierId } = await searchParams;
+
   const docs = await prisma.coutMateriauxRenduChantier.findMany({
+    where: {
+      AND: [
+        chantierId ? { chantierId } : {},
+        q
+          ? {
+              OR: [
+                { titre: { contains: q } },
+                { numero: { contains: q } },
+                { responsable: { contains: q } },
+              ],
+            }
+          : {},
+      ],
+    },
     include: {
       chantier: { select: { id: true, nom: true, reference: true } },
       devis: { select: { id: true, numero: true } },
@@ -91,6 +111,31 @@ export default async function CoutMateriauxPage() {
         </div>
       </form>
 
+      {/* Filtres */}
+      <form method="get" className="flex flex-wrap gap-3">
+        <input
+          name="q"
+          type="search"
+          defaultValue={q ?? ""}
+          placeholder="Rechercher titre, numéro, responsable…"
+          className="flex-1 min-w-48 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30"
+        />
+        <select name="chantierId" defaultValue={chantierId ?? ""} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <option value="">Tous les chantiers</option>
+          {chantiers.map((c) => (
+            <option key={c.id} value={c.id}>{c.reference} — {c.nom}</option>
+          ))}
+        </select>
+        <button type="submit" className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white">
+          Filtrer
+        </button>
+        {(q || chantierId) && (
+          <Link href="/etude-prix/cout-materiaux" className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
+            Réinitialiser
+          </Link>
+        )}
+      </form>
+
       {/* Tableau */}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="min-w-full divide-y divide-slate-100 text-sm">
@@ -120,8 +165,20 @@ export default async function CoutMateriauxPage() {
                   {d.numero}
                 </td>
                 <td className="px-4 py-3 font-medium text-slate-700">{d.titre ?? "—"}</td>
-                <td className="px-4 py-3 text-slate-600">{d.chantier?.nom ?? "—"}</td>
-                <td className="px-4 py-3 text-slate-600">{d.devis?.numero ?? "—"}</td>
+                <td className="px-4 py-3 text-xs">
+                  {d.chantier ? (
+                    <Link href={`/chantiers/${d.chantier.id}`} className="text-brand-blue hover:underline">
+                      {d.chantier.reference} — {d.chantier.nom}
+                    </Link>
+                  ) : "—"}
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  {d.devis ? (
+                    <Link href={`/devis/${d.devis.id}`} className="text-brand-blue hover:underline">
+                      {d.devis.numero}
+                    </Link>
+                  ) : "—"}
+                </td>
                 <td className="px-4 py-3 text-slate-600">{d.responsable ?? "—"}</td>
                 <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(d.date)}</td>
                 <td className="px-4 py-3 text-slate-600">{d.lignes.length}</td>

@@ -14,6 +14,7 @@ import {
   CalendarClock,
 } from "lucide-react";
 import { depensesFiltrees } from "@/lib/depenses-filtre";
+import { prisma } from "@/lib/prisma";
 import { reconduireDepense } from "@/lib/actions/depenses";
 import { formatEuros, urlFichier } from "@/lib/format";
 import { LinkButton } from "@/components/ui/button";
@@ -50,15 +51,18 @@ const CAT_COLORS: Record<string, string> = {
 export default async function DepensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ categorie?: string; mois?: string }>;
+  searchParams: Promise<{ categorie?: string; mois?: string; chantierId?: string }>;
 }) {
-  const { categorie: catFilter, mois: moisFilter } = await searchParams;
+  const { categorie: catFilter, mois: moisFilter, chantierId: chantierFilter } = await searchParams;
 
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
 
-  const depenses = await depensesFiltrees(moisFilter, catFilter);
+  const [depenses, chantiers] = await Promise.all([
+    depensesFiltrees(moisFilter, catFilter, chantierFilter),
+    prisma.chantier.findMany({ select: { id: true, nom: true, reference: true }, orderBy: { nom: "asc" } }),
+  ]);
 
   const total = depenses.reduce((s, d) => s + d.montant, 0);
 
@@ -79,7 +83,11 @@ export default async function DepensesPage({
 
   const moisActuel = moisFilter ?? moisDispo[0].value;
 
-  const exportQuery = `mois=${moisActuel}${catFilter ? `&categorie=${catFilter}` : ""}`;
+  const exportQuery = [
+    `mois=${moisActuel}`,
+    catFilter ? `categorie=${catFilter}` : "",
+    chantierFilter ? `chantierId=${chantierFilter}` : "",
+  ].filter(Boolean).join("&");
 
   return (
     <div className="flex flex-col gap-5">
@@ -122,11 +130,20 @@ export default async function DepensesPage({
           options={moisDispo}
           defaultValue={moisActuel}
           paramName="mois"
-          extraParams={catFilter ? `categorie=${catFilter}` : undefined}
+          extraParams={[catFilter ? `categorie=${catFilter}` : "", chantierFilter ? `chantierId=${chantierFilter}` : ""].filter(Boolean).join("&") || undefined}
+        />
+        <SelectRedirect
+          options={[
+            { value: "", label: "Tous les chantiers" },
+            ...chantiers.map((c) => ({ value: c.id, label: `${c.reference} — ${c.nom}` })),
+          ]}
+          defaultValue={chantierFilter ?? ""}
+          paramName="chantierId"
+          extraParams={[`mois=${moisActuel}`, catFilter ? `categorie=${catFilter}` : ""].filter(Boolean).join("&") || undefined}
         />
         <div className="flex flex-wrap gap-1.5">
           <Link
-            href={`?mois=${moisActuel}`}
+            href={`?mois=${moisActuel}${chantierFilter ? `&chantierId=${chantierFilter}` : ""}`}
             className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
               !catFilter
                 ? "border-brand-blue bg-brand-blue text-white"
@@ -138,7 +155,7 @@ export default async function DepensesPage({
           {Object.entries(CAT_LABELS).map(([value, label]) => (
             <Link
               key={value}
-              href={`?mois=${moisActuel}&categorie=${value}`}
+              href={`?mois=${moisActuel}&categorie=${value}${chantierFilter ? `&chantierId=${chantierFilter}` : ""}`}
               className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
                 catFilter === value
                   ? "border-brand-blue bg-brand-blue text-white"
@@ -242,20 +259,20 @@ export default async function DepensesPage({
                     </td>
                     <td className="px-5 py-2.5 text-slate-500">
                       {d.chantier ? (
-                        <span className="inline-flex items-center gap-1">
+                        <Link href={`/chantiers/${d.chantier.id}`} className="inline-flex items-center gap-1 hover:underline hover:text-brand-navy">
                           <Building2 className="h-3 w-3 text-slate-400" />
                           {d.chantier.nom}
-                        </span>
+                        </Link>
                       ) : (
                         <span className="text-slate-300">—</span>
                       )}
                     </td>
                     <td className="px-5 py-2.5 text-slate-500">
                       {d.fournisseur ? (
-                        <span className="inline-flex items-center gap-1">
+                        <Link href={`/fournisseurs/${d.fournisseur.id}`} className="inline-flex items-center gap-1 hover:underline hover:text-brand-navy">
                           <Truck className="h-3 w-3 text-slate-400" />
                           {d.fournisseur.nom}
-                        </span>
+                        </Link>
                       ) : (
                         <span className="text-slate-300">—</span>
                       )}

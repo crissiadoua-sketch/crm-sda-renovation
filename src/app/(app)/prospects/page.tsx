@@ -43,7 +43,7 @@ export default async function ProspectsPage({
         ],
       } : {}),
     },
-    include: { client: { select: { id: true, raisonSociale: true } } },
+    include: { client: { select: { id: true, nom: true, raisonSociale: true } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -159,7 +159,7 @@ export default async function ProspectsPage({
                     <td className="px-4 py-3">
                       {p.clientId ? (
                         <Link href={`/clients/${p.clientId}`} className="text-emerald-600 text-xs hover:underline font-medium">
-                          Voir client →
+                          {p.client?.raisonSociale ?? p.client?.nom ?? "Voir client"} →
                         </Link>
                       ) : (
                         <form action={convertirEnClient.bind(null, p.id)}>

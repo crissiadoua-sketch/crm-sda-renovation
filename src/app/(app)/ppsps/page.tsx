@@ -31,18 +31,25 @@ const statutLabels: Record<string, string> = {
 export default async function PPSPSListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; chantierId?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, chantierId } = await searchParams;
 
-  const docs = await prisma.pPSPS.findMany({
-    include: {
-      chantier: { select: { nom: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const [docs, chantiers] = await Promise.all([
+    prisma.pPSPS.findMany({
+      where: chantierId ? { chantierId } : undefined,
+      include: {
+        chantier: { select: { nom: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.chantier.findMany({
+      select: { id: true, nom: true },
+      orderBy: { nom: "asc" },
+    }),
+  ]);
 
-  // Filter client-side (titles + chantier.nom)
+  // Text filter client-side (titles + chantier.nom)
   const filtered = q
     ? docs.filter(
         (d) =>
@@ -66,10 +73,40 @@ export default async function PPSPSListPage({
             {total} document{total !== 1 ? "s" : ""}
           </p>
         </div>
-        <LinkButton href="/ppsps/nouveau">
-          <Plus className="h-4 w-4" />
-          Créer un PPSPS
-        </LinkButton>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Filtre par chantier */}
+          <form method="get" className="flex items-center gap-2">
+            <select
+              name="chantierId"
+              defaultValue={chantierId ?? ""}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30"
+            >
+              <option value="">Tous les chantiers</option>
+              {chantiers.map((c) => (
+                <option key={c.id} value={c.id}>{c.nom}</option>
+              ))}
+            </select>
+            {q && <input type="hidden" name="q" value={q} />}
+            <button
+              type="submit"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+            >
+              Filtrer
+            </button>
+            {chantierId && (
+              <Link
+                href={q ? `/ppsps?q=${encodeURIComponent(q)}` : "/ppsps"}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition"
+              >
+                ✕
+              </Link>
+            )}
+          </form>
+          <LinkButton href="/ppsps/nouveau">
+            <Plus className="h-4 w-4" />
+            Créer un PPSPS
+          </LinkButton>
+        </div>
       </div>
 
       {/* Info banner */}
@@ -102,7 +139,7 @@ export default async function PPSPSListPage({
         </div>
       </div>
 
-      {/* Search */}
+      {/* Text search */}
       <form className="flex items-center gap-2">
         <input
           type="search"
@@ -111,15 +148,18 @@ export default async function PPSPSListPage({
           placeholder="Rechercher par titre ou chantier…"
           className={`${inputClasses} max-w-xs`}
         />
+        {chantierId && <input type="hidden" name="chantierId" value={chantierId} />}
       </form>
 
       {/* Table */}
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
           <p className="text-slate-400">
-            {q ? "Aucun résultat pour cette recherche." : "Aucun PPSPS créé pour le moment."}
+            {q || chantierId
+              ? "Aucun résultat pour cette recherche."
+              : "Aucun PPSPS créé pour le moment."}
           </p>
-          {!q && (
+          {!q && !chantierId && (
             <LinkButton href="/ppsps/nouveau" className="mt-4">
               <Plus className="h-4 w-4" />
               Créer le premier PPSPS
@@ -155,7 +195,14 @@ export default async function PPSPSListPage({
                       <p className="text-xs font-mono text-slate-400">{doc.reference}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{doc.chantier.nom}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/chantiers/${doc.chantierId}`}
+                      className="text-slate-600 hover:text-brand-blue hover:underline"
+                    >
+                      {doc.chantier.nom}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">
                     <Badge tone={modeleTones[doc.modele] ?? "gray"}>
                       {modeleLabels[doc.modele] ?? doc.modele}

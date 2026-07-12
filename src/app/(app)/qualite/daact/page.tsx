@@ -20,9 +20,16 @@ const statutLabels: Record<string, string> = {
   AVEC_RESERVES: "Avec réserves",
 };
 
-export default async function DAACTPage() {
+export default async function DAACTPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ chantierId?: string }>;
+}) {
+  const { chantierId } = await searchParams;
+
   const [daacts, chantiers, clients] = await Promise.all([
     prisma.dAACT.findMany({
+      where: chantierId ? { chantierId } : undefined,
       include: {
         chantier: { select: { nom: true } },
         client: { select: { nom: true } },
@@ -48,11 +55,40 @@ export default async function DAACTPage() {
       </div>
 
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-bold text-brand-navy">DAACT</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Déclarations d&apos;Achèvement et de Conformité des Travaux.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-brand-navy">DAACT</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Déclarations d&apos;Achèvement et de Conformité des Travaux.
+          </p>
+        </div>
+        {/* Filtre par chantier */}
+        <form method="get" className="flex items-center gap-2">
+          <select
+            name="chantierId"
+            defaultValue={chantierId ?? ""}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30"
+          >
+            <option value="">Tous les chantiers</option>
+            {chantiers.map((c) => (
+              <option key={c.id} value={c.id}>{c.nom}</option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+          >
+            Filtrer
+          </button>
+          {chantierId && (
+            <Link
+              href="/qualite/daact"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition"
+            >
+              ✕
+            </Link>
+          )}
+        </form>
       </div>
 
       {/* KPIs */}
@@ -76,6 +112,7 @@ export default async function DAACTPage() {
         <form action={creerDAACT} className="flex flex-wrap gap-3">
           <select
             name="chantierId"
+            defaultValue={chantierId ?? ""}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
           >
             <option value="">— Chantier (optionnel) —</option>
@@ -117,9 +154,13 @@ export default async function DAACTPage() {
       {daacts.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center">
           <p className="text-2xl">📄</p>
-          <p className="mt-2 font-medium text-slate-600">Aucune DAACT</p>
+          <p className="mt-2 font-medium text-slate-600">
+            {chantierId ? "Aucune DAACT pour ce chantier" : "Aucune DAACT"}
+          </p>
           <p className="mt-1 text-sm text-slate-400">
-            Créez votre première DAACT via le formulaire ci-dessus.
+            {chantierId
+              ? "Créez une DAACT pour ce chantier via le formulaire ci-dessus."
+              : "Créez votre première DAACT via le formulaire ci-dessus."}
           </p>
         </div>
       ) : (
@@ -149,7 +190,18 @@ export default async function DAACTPage() {
                         {daact.numero}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{daact.chantier?.nom ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {daact.chantierId ? (
+                        <Link
+                          href={`/chantiers/${daact.chantierId}`}
+                          className="text-slate-600 hover:text-brand-blue hover:underline"
+                        >
+                          {daact.chantier?.nom ?? daact.chantierId}
+                        </Link>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-600">{daact.natureTravaux ?? "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{daact.nomDeclarant ?? "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{formatDate(daact.dateAchevement)}</td>

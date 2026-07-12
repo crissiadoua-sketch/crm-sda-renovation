@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { Plus, BookOpen, FileText, ExternalLink } from "lucide-react";
+import { Plus, BookOpen, FileText, ExternalLink, ShieldAlert } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { LinkButton } from "@/components/ui/button";
 import { seedDTU } from "@/lib/actions/dtu";
@@ -143,6 +143,14 @@ export default async function DTUPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <LinkButton href="/fiches-techniques" variant="secondary">
+            <FileText className="h-4 w-4" />
+            Fiches techniques
+          </LinkButton>
+          <LinkButton href="/ppsps" variant="secondary">
+            <ShieldAlert className="h-4 w-4" />
+            PPSPS
+          </LinkButton>
           <form action={seedDTU}>
             <SubmitButton variant="secondary" pendingLabel="Chargement…">
               <BookOpen className="h-4 w-4" />

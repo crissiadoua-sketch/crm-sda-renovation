@@ -61,6 +61,54 @@ const depenseCategorieLabels: Record<string, string> = {
   AUTRE: "Autre",
 };
 
+const tacheStatutTones: Record<string, BadgeTone> = {
+  A_FAIRE: "gray",
+  EN_COURS: "blue",
+  EN_ATTENTE: "orange",
+  TERMINEE: "green",
+  ANNULEE: "gray",
+};
+
+const tacheStatutLabels: Record<string, string> = {
+  A_FAIRE: "À faire",
+  EN_COURS: "En cours",
+  EN_ATTENTE: "En attente",
+  TERMINEE: "Terminée",
+  ANNULEE: "Annulée",
+};
+
+const tachePrioriteTones: Record<string, BadgeTone> = {
+  FAIBLE: "gray",
+  NORMALE: "blue",
+  HAUTE: "orange",
+  URGENTE: "red",
+};
+
+const tachePrioriteLabels: Record<string, string> = {
+  FAIBLE: "Faible",
+  NORMALE: "Normale",
+  HAUTE: "Haute",
+  URGENTE: "Urgente",
+};
+
+const contratDetailStatutTones: Record<string, BadgeTone> = {
+  BROUILLON: "gray",
+  ENVOYE: "blue",
+  SIGNE: "green",
+  TERMINE: "navy",
+  RESILIE: "orange",
+  ANNULE: "red",
+};
+
+const contratDetailStatutLabels: Record<string, string> = {
+  BROUILLON: "Brouillon",
+  ENVOYE: "Envoyé",
+  SIGNE: "Signé",
+  TERMINE: "Terminé",
+  RESILIE: "Résilié",
+  ANNULE: "Annulé",
+};
+
 export default async function ChantierDetailPage({
   params,
   searchParams,
@@ -71,7 +119,7 @@ export default async function ChantierDetailPage({
   const { id } = await params;
   const { erreur } = await searchParams;
 
-  const [chantier, clients] = await Promise.all([
+  const [chantier, clients, taches, contratsAvecDetails] = await Promise.all([
     prisma.chantier.findUnique({
       where: { id },
       include: {
@@ -92,6 +140,31 @@ export default async function ChantierDetailPage({
       },
     }),
     prisma.client.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.tache.findMany({
+      where: { chantierId: id, statut: { notIn: ["TERMINEE", "ANNULEE"] } },
+      select: {
+        id: true,
+        titre: true,
+        statut: true,
+        priorite: true,
+        dateEcheance: true,
+        assigneA: { select: { name: true } },
+      },
+      orderBy: { dateEcheance: "asc" },
+      take: 5,
+    }),
+    prisma.contratSousTraitance.findMany({
+      where: { chantierId: id },
+      select: {
+        id: true,
+        numero: true,
+        statut: true,
+        montantHT: true,
+        sousTraitant: { select: { id: true, nom: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
   ]);
 
   if (!chantier) notFound();
@@ -493,6 +566,110 @@ export default async function ChantierDetailPage({
                     <p className="font-medium text-slate-700">🚚 Livraison {bl.numero}</p>
                     <Badge tone="blue">{bl.statut}</Badge>
                   </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Tâches actives */}
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-brand-navy">Tâches actives</h3>
+            <LinkButton href={`/taches/nouveau?chantierId=${chantier.id}`} variant="secondary" className="px-2.5 py-1 text-xs">
+              + Nouvelle tâche
+            </LinkButton>
+          </div>
+          {taches.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <p className="text-sm text-slate-400">Aucune tâche active.</p>
+              <LinkButton href={`/taches/nouveau?chantierId=${chantier.id}`} variant="secondary" className="px-2.5 py-1 text-xs">
+                Créer une tâche
+              </LinkButton>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <tr>
+                    <th className="pb-2 pr-3">Titre</th>
+                    <th className="pb-2 pr-3">Statut</th>
+                    <th className="pb-2 pr-3">Priorité</th>
+                    <th className="pb-2 pr-3">Échéance</th>
+                    <th className="pb-2">Assigné à</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {taches.map((t) => (
+                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-2 pr-3">
+                        <Link href={`/taches/${t.id}`} className="font-medium text-brand-blue hover:underline">
+                          {t.titre}
+                        </Link>
+                      </td>
+                      <td className="py-2 pr-3">
+                        <Badge tone={tacheStatutTones[t.statut] ?? "gray"}>
+                          {tacheStatutLabels[t.statut] ?? t.statut}
+                        </Badge>
+                      </td>
+                      <td className="py-2 pr-3">
+                        <Badge tone={tachePrioriteTones[t.priorite] ?? "gray"}>
+                          {tachePrioriteLabels[t.priorite] ?? t.priorite}
+                        </Badge>
+                      </td>
+                      <td className="py-2 pr-3 text-slate-500">
+                        {t.dateEcheance ? formatDate(t.dateEcheance) : "—"}
+                      </td>
+                      <td className="py-2 text-slate-500">
+                        {t.assigneA?.name ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {/* Sous-traitance */}
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-brand-navy">Sous-traitance</h3>
+            <LinkButton href={`/contrats-sous-traitance/nouveau?chantierId=${chantier.id}`} variant="secondary" className="px-2.5 py-1 text-xs">
+              + Nouveau contrat ST
+            </LinkButton>
+          </div>
+          {contratsAvecDetails.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <p className="text-sm text-slate-400">Aucun contrat de sous-traitance.</p>
+              <LinkButton href={`/contrats-sous-traitance/nouveau?chantierId=${chantier.id}`} variant="secondary" className="px-2.5 py-1 text-xs">
+                Créer un contrat
+              </LinkButton>
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {contratsAvecDetails.map((c) => (
+                <li key={c.id}>
+                  <div className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm hover:border-brand-blue/40 hover:bg-slate-50">
+                    <div>
+                      <Link href={`/contrats-sous-traitance/${c.id}`} className="font-medium text-brand-blue hover:underline">
+                        {c.numero}
+                      </Link>
+                      <p className="text-xs text-slate-400">
+                        <Link href={`/sous-traitants/${c.sousTraitant.id}`} className="hover:underline">
+                          {c.sousTraitant.nom}
+                        </Link>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      {c.montantHT != null && (
+                        <p className="font-medium text-slate-700">{formatEuros(c.montantHT)}</p>
+                      )}
+                      <Badge tone={contratDetailStatutTones[c.statut] ?? "gray"}>
+                        {contratDetailStatutLabels[c.statut] ?? c.statut}
+                      </Badge>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>

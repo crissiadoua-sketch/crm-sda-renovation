@@ -18,7 +18,13 @@ const SERVICES = [
   { value: "TOUS", label: "Tous services" },
 ];
 
-export default async function NouvelleTachePage() {
+export default async function NouvelleTachePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ chantierId?: string }>;
+}) {
+  const { chantierId } = await searchParams;
+
   const [users, chantiers] = await Promise.all([
     prisma.user.findMany({ select: { id: true, name: true, role: true }, orderBy: { name: "asc" } }),
     prisma.chantier.findMany({
@@ -121,7 +127,7 @@ export default async function NouvelleTachePage() {
             </Field>
 
             <Field label="Chantier lié (optionnel)" htmlFor="chantierId">
-              <select id="chantierId" name="chantierId" className={inputClasses}>
+              <select id="chantierId" name="chantierId" defaultValue={chantierId ?? ""} className={inputClasses}>
                 <option value="">— Aucun chantier —</option>
                 {chantiers.map((c) => (
                   <option key={c.id} value={c.id}>

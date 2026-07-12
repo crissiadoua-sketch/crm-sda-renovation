@@ -110,7 +110,7 @@ export function parseOfxReleve(contenu: string): LigneImportee[] {
 }
 
 const DATE_TOKEN = /\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/;
-const MONTANT_TOKEN = /(-?\d{1,3}(?:[ .]\d{3})*,\d{2})\s*€?\s*$/;
+const MONTANT_TOKEN = /(-?\d{1,3}(?:[ .]\d{3})*,\d{2})\s*[\x80¨€]?\s*$/;
 
 // Unescape PDF literal string (\n \r \t \\ \( \) \ooo)
 function unescapePdf(s: string): string {
@@ -176,16 +176,185 @@ function decompressOrRaw(data: Buffer): Buffer {
   return data;
 }
 
+// ── Parser Crédit Agricole ────────────────────────────────────────────────────
+// Format spécifique : dates DD.MM (sans année), montants avec ¨ en fin de ligne
+// ou sur une ligne séparée, colonnes Débit/Crédit distinctes.
+
+function parsePdfCA(texte: string): LigneImportee[] | null {
+  if (!/Ancien solde|CREDIT AGRICOLE|Date d.arr/i.test(texte)) return null;
+
+  // Année extraite d'une date complète présente dans le document (ex. "30.04.2026")
+  const yearM = texte.match(/\b\d{2}[./]\d{2}[./](\d{4})\b/);
+  if (!yearM) return null;
+  const year = parseInt(yearM[1]);
+
+  // Lignes utiles uniquement (sans en-têtes / pieds de page CA)
+  const SKIP =
+    /^(?:Ancien solde|Nouveau solde|Total des op|Date d.arr|RELEVE|SYNTHESE|CREDIT AGRICOLE|TOULOUSE|IBAN|BIC|SDA|T[eé]l|Fax|Internet|SOS|Page |Votre |Agence|Soci[eé]t[eé]|ZI |Caisse|Co-Auteur|CR |N°\s*\d+\s*$|\d{4,}\s*$)/i;
+  const lines = texte
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !SKIP.test(l));
+
+  // ── Patterns ──
+  // Ligne qui commence par DD.MM DD.MM [texte...]
+  const RE_DATES_TEXT = /^(\d{2})\.(\d{2})\s+\d{2}\.\d{2}\s+(.+)/;
+  // Ligne DD.MM DD.MM seule
+  const RE_DATES_ONLY = /^(\d{2})\.(\d{2})\s+\d{2}\.\d{2}$/;
+  // Fragment DD.MM seul
+  const RE_SINGLE_DATE = /^(\d{2})\.(\d{2})$/;
+  // Fragment DD.MM suivi d'autre chose (date valeur + suite sur même fragment)
+  const RE_DATE_PREFIX = /^(\d{2})\.(\d{2})\s+(.*)/;
+  // Montant seul sur la ligne : "0,38 ¨" / "2 338,42" / "25,90 ¨"
+  const RE_AMOUNT = /^(\d[\d\s]*,\d{2})\s*[\x80¨€]?\s*$/;
+  // Montant en fin de ligne : "Libellé quelconque 310,00 ¨"
+  const RE_AMOUNT_TRAIL = /^(.*)\s+(\d[\d\s]*,\d{2})\s*[\x80¨€]?\s*$/;
+
+  interface Seg {
+    day: number;
+    month: number;
+    parts: string[];
+    amount: string | null;
+  }
+
+  const segs: Seg[] = [];
+  let cur: Seg | null = null;
+  let pendingDate: { day: number; month: number } | null = null;
+
+  const flush = () => {
+    if (cur) {
+      segs.push(cur);
+      cur = null;
+    }
+  };
+
+  for (const line of lines) {
+    // DD.MM DD.MM [texte...]
+    const m1 = line.match(RE_DATES_TEXT);
+    if (m1) {
+      flush();
+      pendingDate = null;
+      cur = { day: parseInt(m1[1]), month: parseInt(m1[2]), parts: [], amount: null };
+      const rest = m1[3].trim();
+      const trailM = rest.match(RE_AMOUNT_TRAIL);
+      if (trailM) {
+        if (trailM[1].trim()) cur.parts.push(trailM[1].trim());
+        cur.amount = trailM[2];
+      } else {
+        cur.parts.push(rest);
+      }
+      continue;
+    }
+
+    // DD.MM DD.MM seule
+    const m2 = line.match(RE_DATES_ONLY);
+    if (m2) {
+      flush();
+      pendingDate = null;
+      cur = { day: parseInt(m2[1]), month: parseInt(m2[2]), parts: [], amount: null };
+      continue;
+    }
+
+    // DD.MM seul — potentiel début de date opération
+    const m3 = line.match(RE_SINGLE_DATE);
+    if (m3) {
+      if (!pendingDate) {
+        flush();
+        pendingDate = { day: parseInt(m3[1]), month: parseInt(m3[2]) };
+      } else {
+        // pendingDate = date opé → ce DD.MM est la date valeur, on démarre le segment
+        cur = { day: pendingDate.day, month: pendingDate.month, parts: [], amount: null };
+        pendingDate = null;
+      }
+      continue;
+    }
+
+    // Date opé en attente + ligne "DD.MM texte..." → date valeur + début de libellé
+    if (pendingDate) {
+      const m4 = line.match(RE_DATE_PREFIX);
+      if (m4) {
+        cur = { day: pendingDate.day, month: pendingDate.month, parts: [], amount: null };
+        pendingDate = null;
+        const rest = m4[3].trim();
+        const trailM = rest.match(RE_AMOUNT_TRAIL);
+        if (trailM) {
+          if (trailM[1].trim()) cur.parts.push(trailM[1].trim());
+          cur.amount = trailM[2];
+        } else if (rest) {
+          cur.parts.push(rest);
+        }
+        continue;
+      }
+      // Pas une date → le pendingDate n'était pas une date de transaction
+      pendingDate = null;
+    }
+
+    if (!cur) continue;
+
+    // Montant sur sa propre ligne
+    const amM = line.match(RE_AMOUNT);
+    if (amM && cur.amount === null) {
+      cur.amount = amM[1];
+      continue;
+    }
+
+    // Continuation du libellé (uniquement si le montant n'est pas encore trouvé)
+    if (cur.amount === null) {
+      cur.parts.push(line);
+    }
+  }
+  flush();
+
+  if (segs.length === 0) return null;
+
+  // ── Détermination du sens débit/crédit ──
+  const DEBIT_KW =
+    /^(?:Prlv\b|Cotis\b|Commission\b|Frais\b|Lettre info\b|Virement Web\b|Virement Vir\b|Vir Inst\b)/i;
+  const CREDIT_KW =
+    /^(?:Rejet Prlv\b|Intér[eê]ts Cl\b|Avoir\b|Virement De\b|Remboursement\b)/i;
+  // "Virement M Ou Mme X" / "Virement De X" → crédit (virement entrant)
+  const VIREMENT_IN = /^Virement\s+(?:De\b|Du\b|M\b|Mme\b|Mr\b|[A-ZÉÀÈÙÂÊÎÔÛ])/;
+  // "Virement Web" / "Virement Vir Inst vers" → débit (virement sortant)
+  const VIREMENT_OUT = /^Virement\s+(?:Web\b|Vir\b|vers\b)/i;
+
+  const resultat: LigneImportee[] = [];
+  for (const s of segs) {
+    if (!s.amount) continue;
+    const montantAbs = parseMontantFr(s.amount.replace(/\s/g, ""));
+    if (!Number.isFinite(montantAbs) || montantAbs <= 0) continue;
+
+    const libelle = s.parts.join(" ").replace(/\s+/g, " ").trim();
+    if (!libelle) continue;
+
+    let isCredit = false; // par défaut : débit (sortie d'argent)
+    if (CREDIT_KW.test(libelle)) isCredit = true;
+    else if (DEBIT_KW.test(libelle)) isCredit = false;
+    else if (VIREMENT_OUT.test(libelle)) isCredit = false;
+    else if (VIREMENT_IN.test(libelle)) isCredit = true;
+
+    resultat.push({
+      date: new Date(year, s.month - 1, s.day),
+      libelle,
+      montant: isCredit ? montantAbs : -montantAbs,
+      reference: null,
+    });
+  }
+
+  return resultat.length > 0 ? resultat : null;
+}
+
+// ── Parser générique (fallback) ───────────────────────────────────────────────
+// Cherche une DATE complète (DD/MM/YYYY) + MONTANT signé sur la même ligne.
+
 /**
  * Parse un relevé bancaire PDF — extraction native Node.js (zlib + opérateurs PDF Tj/TJ).
- * Tente la décompression sur chaque stream, gère chaînes littérales ET hex.
- * Aucune dépendance externe.
+ * Supporte le format Crédit Agricole (dates DD.MM, ¨) et le format générique (DATE + MONTANT
+ * sur la même ligne). Aucune dépendance externe.
  */
 export async function parsePdfReleve(buffer: Buffer): Promise<LigneImportee[]> {
   const raw = buffer.toString("binary");
   const allText: string[] = [];
 
-  // Extraire et traiter chaque stream/endstream
   const reStream = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
   let sm;
   while ((sm = reStream.exec(raw)) !== null) {
@@ -196,30 +365,26 @@ export async function parsePdfReleve(buffer: Buffer): Promise<LigneImportee[]> {
   }
 
   const texte = allText.join("\n");
-  const resultat: LigneImportee[] = [];
 
+  // Format Crédit Agricole en priorité
+  const lignesCA = parsePdfCA(texte);
+  if (lignesCA !== null) return lignesCA;
+
+  // Fallback : parser générique (DATE + MONTANT sur la même ligne)
+  const resultat: LigneImportee[] = [];
   for (const ligneBrute of texte.split(/\r?\n/)) {
     const ligne = ligneBrute.trim();
     if (!ligne) continue;
-
     const matchMontant = ligne.match(MONTANT_TOKEN);
     if (!matchMontant) continue;
     const avantMontant = ligne.slice(0, matchMontant.index).trim();
-
     const matchDate = avantMontant.match(DATE_TOKEN);
     if (!matchDate) continue;
     const date = parseDateFr(matchDate[1]);
     if (!date) continue;
-
     const libelle = avantMontant.slice(matchDate.index! + matchDate[0].length).trim();
     if (!libelle) continue;
-
-    resultat.push({
-      date,
-      libelle,
-      montant: parseMontantFr(matchMontant[1]),
-      reference: null,
-    });
+    resultat.push({ date, libelle, montant: parseMontantFr(matchMontant[1]), reference: null });
   }
   return resultat;
 }

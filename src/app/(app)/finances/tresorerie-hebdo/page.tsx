@@ -30,22 +30,22 @@ function fmtWeek(d: Date): string {
 export default async function TresorerieHebdoPage() {
   const today = new Date();
   const lundi = startOfWeek(today);
-  const fin13 = addWeeks(lundi, 13);
+  const fin31 = new Date(lundi.getTime() + 31 * 86400000);
 
   const [factures, facturesFournisseur, salaires] = await Promise.all([
-    // Factures à encaisser dans les 13 semaines (dateEcheance dans la fenêtre)
+    // Factures à encaisser dans les 31 jours (dateEcheance dans la fenêtre)
     prisma.facture.findMany({
       where: {
-        dateEcheance: { gte: lundi, lte: fin13 },
+        dateEcheance: { gte: lundi, lte: fin31 },
         statut: { in: ["ENVOYEE", "PAYEE_PARTIELLE", "EN_RETARD"] },
       },
       select: { totalTTC: true, montantPaye: true, dateEcheance: true, numero: true, client: { select: { nom: true } } },
     }),
-    // Factures fournisseurs à régler dans les 13 semaines (vraies échéances)
+    // Factures fournisseurs à régler dans les 31 jours (vraies échéances)
     prisma.factureFournisseur.findMany({
       where: {
         statut: { in: ["A_PAYER", "PAYEE_PARTIELLE", "EN_RETARD"] },
-        dateEcheance: { lte: fin13 },
+        dateEcheance: { lte: fin31 },
       },
       select: { montantTTC: true, montantPaye: true, dateEcheance: true, numero: true, fournisseur: { select: { nom: true } } },
     }),
@@ -57,7 +57,6 @@ export default async function TresorerieHebdoPage() {
           in: [
             `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`,
             `${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, "0")}`,
-            `${today.getFullYear()}-${String(today.getMonth() + 3).padStart(2, "0")}`,
           ],
         },
       },
@@ -86,7 +85,7 @@ export default async function TresorerieHebdoPage() {
   const semaines: Semaine[] = [];
   let soldeCumul = 0;
 
-  for (let i = 0; i < 13; i++) {
+  for (let i = 0; addWeeks(lundi, i) < fin31; i++) {
     const debut = addWeeks(lundi, i);
     const finSem = addWeeks(lundi, i + 1);
 
@@ -150,6 +149,7 @@ export default async function TresorerieHebdoPage() {
   const totalEntrees13 = semaines.reduce((s, w) => s + w.totalEntrees, 0);
   const totalSorties13 = semaines.reduce((s, w) => s + w.totalSorties, 0);
   const semainesNegatives = semaines.filter((w) => w.soldeCumul < 0).length;
+  const nbSemaines = semaines.length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -158,9 +158,9 @@ export default async function TresorerieHebdoPage() {
         <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
           <Link href="/finances" className="hover:text-brand-blue">Finances</Link>
           <ChevronRight className="h-3 w-3" />
-          <span className="text-slate-600">Trésorerie 13 semaines</span>
+          <span className="text-slate-600">Trésorerie 31 jours</span>
         </nav>
-        <h2 className="text-xl font-bold text-brand-navy">Plan de trésorerie — 13 semaines glissantes</h2>
+        <h2 className="text-xl font-bold text-brand-navy">Plan de trésorerie — 31 jours glissants</h2>
         <p className="mt-1 text-sm text-slate-500">
           Encaissements prévus · Décaissements estimés · Solde prévisionnel cumulé
         </p>
@@ -179,11 +179,11 @@ export default async function TresorerieHebdoPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-          <p className="text-xs text-emerald-600">Encaissements prévus (13 sem.)</p>
+          <p className="text-xs text-emerald-600">Encaissements prévus (31 j.)</p>
           <p className="text-xl font-bold text-emerald-700 mt-1">{formatEuros(totalEntrees13)}</p>
         </div>
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 shadow-sm">
-          <p className="text-xs text-red-600">Décaissements prévus (13 sem.)</p>
+          <p className="text-xs text-red-600">Décaissements prévus (31 j.)</p>
           <p className="text-xl font-bold text-red-700 mt-1">{formatEuros(totalSorties13)}</p>
         </div>
         <div className={`rounded-xl border p-4 shadow-sm col-span-2 lg:col-span-1 ${soldeCumul >= 0 ? "border-blue-200 bg-blue-50" : "border-red-200 bg-red-50"}`}>
@@ -194,10 +194,10 @@ export default async function TresorerieHebdoPage() {
         </div>
       </div>
 
-      {/* Tableau 13 semaines */}
+      {/* Tableau 31 jours */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="bg-brand-navy px-5 py-3">
-          <h3 className="font-semibold text-white">Détail semaine par semaine</h3>
+        <div className="bg-brand-navy px-5 py-3 flex items-center justify-between">
+          <h3 className="font-semibold text-white">Détail semaine par semaine — {nbSemaines} semaines ({31} jours)</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

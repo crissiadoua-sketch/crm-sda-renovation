@@ -123,7 +123,7 @@ function unescapePdf(s: string): string {
   });
 }
 
-// Decode hex string <4865...> → text
+// Decode hex string <4865...> → binary string
 function hexToStr(hex: string): string {
   const h = hex.replace(/\s/g, "");
   let r = "";
@@ -132,35 +132,60 @@ function hexToStr(hex: string): string {
   return r;
 }
 
-// Extract text from ONE decompressed content stream using PDF text operators
+// Detect and decode UTF-16 BE strings (CIDFont / Type 0 fonts).
+// Returns the decoded string if the heuristic fires, otherwise the original.
+function tryUtf16(s: string): string {
+  if (s.length < 4) return s;
+  // BOM \xFE\xFF
+  if (s.charCodeAt(0) === 0xfe && s.charCodeAt(1) === 0xff) {
+    let r = "";
+    for (let i = 2; i + 1 < s.length; i += 2)
+      r += String.fromCharCode((s.charCodeAt(i) << 8) | s.charCodeAt(i + 1));
+    return r || s;
+  }
+  // Heuristic: ≥60% of even-position bytes are 0x00 AND ≥60% of odd-position bytes are printable
+  const n = Math.min(s.length & ~1, 16); // even, up to 16
+  let evNull = 0, odPrint = 0;
+  for (let i = 0; i + 1 < n; i += 2) {
+    if (s.charCodeAt(i) === 0) evNull++;
+    const c = s.charCodeAt(i + 1);
+    if ((c >= 0x20 && c <= 0x7e) || (c >= 0xa0 && c <= 0xff)) odPrint++;
+  }
+  const pairs = n >> 1;
+  if (pairs > 0 && evNull >= Math.ceil(pairs * 0.6) && odPrint >= Math.ceil(pairs * 0.6)) {
+    let r = "";
+    for (let i = 0; i + 1 < s.length; i += 2)
+      r += String.fromCharCode((s.charCodeAt(i) << 8) | s.charCodeAt(i + 1));
+    return r;
+  }
+  return s;
+}
+
+// Extract text from ONE decompressed content stream using PDF text operators.
+// Handles Tj, TJ, and ' operators; also decodes UTF-16 BE (CIDFont).
 function extractFromStream(s: string): string {
   const parts: string[] = [];
 
-  // Work on the whole stream (not just BT/ET — some PDFs omit them)
-  const target = s.includes("BT") ? s : s;
-
-  // Match any text-showing operator: literal or hex, single or array
-  // (string) Tj / TJ  |  <hex> Tj / TJ  |  [(str/-kern/...)] TJ
-  const re = /(?:\(([^)\\]*(?:\\.[^)\\]*)*)\)|<([0-9a-fA-F\s]+)>|\[([^\]]*)\])\s*T[jJ]/g;
+  // Match text-showing operators: (literal) Tj/TJ/'  |  <hex> Tj/TJ/'  |  [array] TJ
+  const re =
+    /(?:\(([^)\\]*(?:\\.[^)\\]*)*)\)|<([0-9a-fA-F\s]+)>|\[([^\]]*)\])\s*(?:T[jJ]|')/g;
   let m;
-  while ((m = re.exec(target)) !== null) {
+  while ((m = re.exec(s)) !== null) {
     if (m[1] !== undefined) {
-      // Literal string
-      const t = unescapePdf(m[1]);
+      const t = tryUtf16(unescapePdf(m[1]));
       if (t.trim()) parts.push(t);
     } else if (m[2] !== undefined) {
-      // Hex string
-      const t = hexToStr(m[2]);
+      const t = tryUtf16(hexToStr(m[2]));
       if (t.trim()) parts.push(t);
     } else if (m[3] !== undefined) {
-      // Array: mix of literals, hex, and kern numbers
       const inner = m[3];
       const chunk: string[] = [];
       const reEl = /\(([^)\\]*(?:\\.[^)\\]*)*)\)|<([0-9a-fA-F\s]+)>/g;
       let me;
       while ((me = reEl.exec(inner)) !== null) {
-        const t = me[1] !== undefined ? unescapePdf(me[1]) : hexToStr(me[2]);
-        chunk.push(t);
+        chunk.push(
+          me[1] !== undefined ? tryUtf16(unescapePdf(me[1])) : tryUtf16(hexToStr(me[2])),
+        );
       }
       const joined = chunk.join("");
       if (joined.trim()) parts.push(joined);
@@ -350,15 +375,41 @@ function parsePdfCA(texte: string): LigneImportee[] | null {
  * Parse un relevé bancaire PDF — extraction native Node.js (zlib + opérateurs PDF Tj/TJ).
  * Supporte le format Crédit Agricole (dates DD.MM, ¨) et le format générique (DATE + MONTANT
  * sur la même ligne). Aucune dépendance externe.
+ *
+ * Stratégie d'extraction :
+ * 1. Utilise /Length du dictionnaire stream pour lire les données binaires exactes
+ *    (évite d'être trompé par "\nendstream" dans les données compressées).
+ * 2. Fallback regex si /Length est absent.
+ * 3. Décompresse chaque stream (FlateDecode / FlateDecode raw).
+ * 4. Extrait le texte via les opérateurs Tj / TJ / ' (littéral, hex, tableau).
+ * 5. Applique un décodage UTF-16 BE si le texte semble encodé en 2 octets (CIDFont).
  */
 export async function parsePdfReleve(buffer: Buffer): Promise<LigneImportee[]> {
   const raw = buffer.toString("binary");
   const allText: string[] = [];
 
-  const reStream = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  // Parcours de chaque marqueur "stream\n" dans le PDF
+  const streamRe = /stream[ \t]*(\r?\n)/g;
   let sm;
-  while ((sm = reStream.exec(raw)) !== null) {
-    const data = Buffer.from(sm[1], "binary");
+  while ((sm = streamRe.exec(raw)) !== null) {
+    const streamStart = sm.index + sm[0].length;
+
+    // Cherche /Length N dans les 800 octets précédant "stream" (direct integer only)
+    const lookback = raw.slice(Math.max(0, sm.index - 800), sm.index);
+    const lenM = lookback.match(/\/Length\s+(\d+)/);
+
+    let data: Buffer;
+    if (lenM) {
+      const len = parseInt(lenM[1]);
+      if (len <= 0 || streamStart + len > raw.length) continue;
+      data = Buffer.from(raw.slice(streamStart, streamStart + len), "binary");
+    } else {
+      // Fallback : recherche de "\nendstream" (moins fiable sur contenu binaire)
+      const endIdx = raw.indexOf("\nendstream", streamStart);
+      if (endIdx === -1) continue;
+      data = Buffer.from(raw.slice(streamStart, endIdx), "binary");
+    }
+
     const content = decompressOrRaw(data);
     const text = extractFromStream(content.toString("binary"));
     if (text.trim()) allText.push(text);

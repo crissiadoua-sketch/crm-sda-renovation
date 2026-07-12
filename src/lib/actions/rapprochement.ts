@@ -41,7 +41,10 @@ export async function importReleve(
   if (lignes.length === 0) {
     return {
       error: estPdf
-        ? "Aucune ligne de transaction détectée dans ce PDF — c'est peut-être un scan/image (texte non sélectionnable), ou la mise en page de votre banque n'est pas reconnue. Essayez l'export CSV ou OFX depuis votre espace bancaire en ligne."
+        ? "Aucune ligne de transaction détectée dans ce PDF.\n\n" +
+          "• Crédit Agricole : connectez-vous à votre espace CA en ligne → Mes comptes → icône « Télécharger » à côté du relevé → choisir CSV ou OFX.\n" +
+          "• Si le PDF est un scan (image non sélectionnable), le texte n'est pas lisible.\n" +
+          "• Format PDF non encore pris en charge pour cette banque."
         : "Aucune ligne de transaction détectée dans ce fichier.",
     };
   }

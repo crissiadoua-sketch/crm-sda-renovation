@@ -26,9 +26,16 @@ const MODELE_COLORS: Record<string, string> = {
   CLIENT_SDA:  "bg-emerald-100 text-emerald-700",
 };
 
-export default async function MemoiresTechniquesPage() {
+export default async function MemoiresTechniquesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ chantierId?: string }>;
+}) {
+  const { chantierId } = await searchParams;
+
   const [memoires, chantiers, devisListe] = await Promise.all([
     prisma.memoireTechnique.findMany({
+      where: chantierId ? { chantierId } : undefined,
       include: {
         chantier: { select: { nom: true } },
         devis:    { select: { numero: true } },
@@ -57,7 +64,7 @@ export default async function MemoiresTechniquesPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* En-tête */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <BookMarked className="h-6 w-6 text-brand-navy" />
@@ -67,6 +74,26 @@ export default async function MemoiresTechniquesPage() {
             Documents professionnels pour appels d&apos;offres publics/privés et clients SDA
           </p>
         </div>
+        <form method="get" className="flex items-center gap-2 shrink-0">
+          <select
+            name="chantierId"
+            defaultValue={chantierId ?? ""}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30"
+          >
+            <option value="">Tous les chantiers</option>
+            {chantiers.map((c) => (
+              <option key={c.id} value={c.id}>{c.nom}</option>
+            ))}
+          </select>
+          <button type="submit" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+            Filtrer
+          </button>
+          {chantierId && (
+            <Link href="/memoires-techniques" className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition">
+              ✕
+            </Link>
+          )}
+        </form>
       </div>
 
       {/* Stats */}

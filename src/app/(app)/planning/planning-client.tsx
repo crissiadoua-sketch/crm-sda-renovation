@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus, X, MapPin, Building2 } from "lucide-react";
 import { creerEvenement, modifierEvenement, supprimerEvenement } from "@/lib/actions/planning";
 
@@ -347,10 +348,13 @@ export function PlanningClient({
                 const cfg = TYPE_CONFIG[ev.type] ?? TYPE_CONFIG.AUTRE;
                 const date = new Date(ev.dateDebut);
                 return (
-                  <button
+                  <div
                     key={ev.id}
                     onClick={() => setModalEv(ev)}
-                    className="w-full flex items-start gap-4 px-4 py-3 hover:bg-slate-50 transition text-left"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setModalEv(ev); }}
+                    className="w-full flex items-start gap-4 px-4 py-3 hover:bg-slate-50 transition text-left cursor-pointer"
                   >
                     <div className="text-center min-w-[40px]">
                       <p className="text-lg font-bold text-brand-navy leading-none">{date.getDate()}</p>
@@ -364,10 +368,18 @@ export function PlanningClient({
                       <div className="mt-0.5 flex flex-wrap gap-3 text-xs text-slate-400">
                         <span>{date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
                         {ev.lieu && <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3" />{ev.lieu}</span>}
-                        {ev.chantierNom && <span className="flex items-center gap-0.5"><Building2 className="h-3 w-3" />{ev.chantierNom}</span>}
+                        {ev.chantierNom && ev.chantierId && (
+                          <Link
+                            href={`/chantiers/${ev.chantierId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-0.5 hover:text-brand-blue hover:underline"
+                          >
+                            <Building2 className="h-3 w-3" />{ev.chantierNom}
+                          </Link>
+                        )}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

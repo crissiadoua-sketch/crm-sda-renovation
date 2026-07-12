@@ -29,14 +29,27 @@ const statutLabels: Record<string, string> = {
   TRANSMIS: "Transmis",
 };
 
-export default async function DOEListPage() {
-  const docs = await prisma.dOE.findMany({
-    include: {
-      chantier: { select: { nom: true } },
-      devis: { select: { numero: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+export default async function DOEListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ chantierId?: string }>;
+}) {
+  const { chantierId } = await searchParams;
+
+  const [docs, chantiers] = await Promise.all([
+    prisma.dOE.findMany({
+      where: chantierId ? { chantierId } : undefined,
+      include: {
+        chantier: { select: { nom: true } },
+        devis: { select: { numero: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.chantier.findMany({
+      select: { id: true, nom: true },
+      orderBy: { nom: "asc" },
+    }),
+  ]);
 
   const total = docs.length;
   const brouillons = docs.filter((d) => d.statut === "BROUILLON").length;
@@ -55,10 +68,32 @@ export default async function DOEListPage() {
             {total} dossier{total !== 1 ? "s" : ""}
           </p>
         </div>
-        <LinkButton href="/doe/nouveau">
-          <Plus className="h-4 w-4" />
-          Créer un DOE
-        </LinkButton>
+        <div className="flex flex-wrap items-center gap-2">
+          <form method="get" className="flex gap-2">
+            <select
+              name="chantierId"
+              defaultValue={chantierId ?? ""}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30"
+            >
+              <option value="">Tous les chantiers</option>
+              {chantiers.map((c) => (
+                <option key={c.id} value={c.id}>{c.nom}</option>
+              ))}
+            </select>
+            <button type="submit" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+              Filtrer
+            </button>
+            {chantierId && (
+              <Link href="/doe" className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition">
+                ✕
+              </Link>
+            )}
+          </form>
+          <LinkButton href="/doe/nouveau">
+            <Plus className="h-4 w-4" />
+            Créer un DOE
+          </LinkButton>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -117,7 +152,14 @@ export default async function DOEListPage() {
                       <p className="text-xs text-slate-400 font-mono">{doc.reference}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{doc.chantier.nom}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/chantiers/${doc.chantierId}`}
+                      className="text-slate-600 hover:text-brand-blue hover:underline"
+                    >
+                      {doc.chantier.nom}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">
                     <Badge tone={modeleTones[doc.modele] ?? "gray"}>
                       {modeleLabels[doc.modele] ?? doc.modele}

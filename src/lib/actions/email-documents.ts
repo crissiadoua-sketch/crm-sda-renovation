@@ -97,13 +97,16 @@ function signatureHtml(s: Signataire): string {
 </table>`;
 }
 
+// FROM toujours contact@sda-renovation.com (adresse de confiance vérifiée Resend).
+// L'email du collaborateur va en Reply-To pour que les réponses lui reviennent.
 function fromAddress(signataire: Signataire | undefined): string {
-  const defaut = "SDA Rénovation <contact@sda-renovation.com>";
-  if (!signataire || signataire.externe) return defaut;
-  if (signataire.email.endsWith("@sda-renovation.com")) {
-    return `${signataire.name} <${signataire.email}>`;
-  }
-  return defaut;
+  if (!signataire || signataire.externe) return "SDA Rénovation <contact@sda-renovation.com>";
+  return `${signataire.name} <contact@sda-renovation.com>`;
+}
+
+function replyToAddress(signataire: Signataire | undefined): string | undefined {
+  if (!signataire || signataire.externe) return undefined;
+  return signataire.email !== "contact@sda-renovation.com" ? signataire.email : undefined;
 }
 
 async function getSignataire(): Promise<Signataire | undefined> {

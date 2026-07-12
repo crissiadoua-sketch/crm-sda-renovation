@@ -17,9 +17,9 @@ const STATUT_CONFIG: Record<string, { label: string; tone: "green" | "blue" | "o
 export default async function BonsCommandeBetonPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; chantierId?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; chantierId?: string; fournisseurId?: string }>;
 }) {
-  const { q, statut, chantierId } = await searchParams;
+  const { q, statut, chantierId, fournisseurId } = await searchParams;
 
   const [bcbs, fournisseurs, chantiers] = await Promise.all([
     prisma.bonCommandeBeton.findMany({
@@ -66,7 +66,7 @@ export default async function BonsCommandeBetonPage({
         </div>
 
         <form action={creerBonCommandeBeton} className="flex flex-wrap items-end gap-2">
-          <select name="fournisseurId" required className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <select name="fournisseurId" required defaultValue={fournisseurId ?? ""} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
             <option value="">— Centrale à béton —</option>
             {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
           </select>

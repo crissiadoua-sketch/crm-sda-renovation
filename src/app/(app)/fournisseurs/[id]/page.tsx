@@ -39,7 +39,11 @@ export default async function FournisseurDetailPage({
     where: { id },
     include: {
       bonsCommande: { orderBy: { dateCreation: "desc" } },
-      bonsLivraison: { orderBy: { dateLivraison: "desc" } },
+      bonsLivraison: {
+        orderBy: { dateLivraison: "desc" },
+        take: 10,
+        include: { bonCommande: { select: { numero: true } } },
+      },
       facturesFournisseur: {
         orderBy: { dateReception: "desc" },
         take: 20,
@@ -77,12 +81,24 @@ export default async function FournisseurDetailPage({
           </Link>
           <h2 className="mt-1 text-xl font-bold text-brand-navy">{fournisseur.nom}</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             href={`/bons-commande?fournisseurId=${fournisseur.id}`}
             className="flex items-center gap-1.5 rounded-lg border border-brand-blue px-3 py-2 text-xs font-semibold text-brand-blue hover:bg-brand-blue/5 transition"
           >
             + Nouveau BC
+          </Link>
+          <Link
+            href={`/bons-commande/beton?fournisseurId=${fournisseur.id}`}
+            className="flex items-center gap-1.5 rounded-lg border border-brand-navy px-3 py-2 text-xs font-semibold text-brand-navy hover:bg-brand-navy/5 transition"
+          >
+            + Nouveau BC Béton
+          </Link>
+          <Link
+            href={`/bons-commande/fournitures?fournisseurId=${fournisseur.id}`}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-400 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+          >
+            + Nouveau BC Fournitures
           </Link>
           <DeleteButton
             action={deleteFournisseur.bind(null, fournisseur.id)}
@@ -163,7 +179,10 @@ export default async function FournisseurDetailPage({
                   >
                     <div>
                       <p className="font-medium text-slate-700">{bl.numero}</p>
-                      <p className="text-xs text-slate-400">{formatDate(bl.dateLivraison)}</p>
+                      <p className="text-xs text-slate-400">
+                        {bl.dateLivraison ? formatDate(bl.dateLivraison) : "—"}
+                        {bl.bonCommande ? ` · BC ${bl.bonCommande.numero}` : ""}
+                      </p>
                     </div>
                     <Badge tone="blue">{bl.statut}</Badge>
                   </Link>

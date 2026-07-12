@@ -51,6 +51,7 @@ export default async function ClientDetailPage({
       chantiers: { orderBy: { createdAt: "desc" } },
       devis: { orderBy: { dateCreation: "desc" } },
       factures: { orderBy: { dateEmission: "desc" } },
+      documents: { orderBy: { createdAt: "desc" }, take: 10 },
     },
   });
 
@@ -137,6 +138,60 @@ export default async function ClientDetailPage({
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <ClientForm client={client} action={updateClient.bind(null, client.id)} />
+      </div>
+
+      {/* ── Accès rapide Interventions ── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-brand-navy">Contacts / Interventions</h3>
+            <Link
+              href={`/exploitation/fiches-intervention?clientId=${client.id}`}
+              className="text-xs text-brand-blue hover:underline"
+            >
+              Voir tout →
+            </Link>
+          </div>
+          <p className="text-sm text-slate-500">
+            Retrouvez toutes les fiches d'intervention liées à ce client.
+          </p>
+          <Link
+            href={`/exploitation/fiches-intervention?clientId=${client.id}`}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-2 text-xs font-medium text-brand-blue hover:bg-brand-blue/10 transition"
+          >
+            Accéder aux fiches d'intervention →
+          </Link>
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-brand-navy">Documents</h3>
+          </div>
+          {client.documents.length === 0 ? (
+            <p className="text-sm text-slate-400">Aucun document lié à ce client.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {client.documents.map((doc) => (
+                <li key={doc.id} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-700">{doc.nom}</p>
+                    {doc.type && <p className="text-xs text-slate-400">{doc.type}</p>}
+                  </div>
+                  {doc.chemin && (
+                    <a
+                      href={doc.chemin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-3 shrink-0 text-xs text-brand-blue hover:underline"
+                    >
+                      Ouvrir
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

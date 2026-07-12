@@ -32,9 +32,9 @@ const SERVICE_LABELS: Record<string, string> = {
 export default async function BonsCommandeFournituresPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; type?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; type?: string; fournisseurId?: string }>;
 }) {
-  const { q, statut, type } = await searchParams;
+  const { q, statut, type, fournisseurId } = await searchParams;
 
   const [bcfs, fournisseurs] = await Promise.all([
     prisma.bonCommandeFournitures.findMany({
@@ -93,7 +93,7 @@ export default async function BonsCommandeFournituresPage({
           <select name="service" className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
             {Object.entries(SERVICE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <select name="fournisseurId" required className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <select name="fournisseurId" required defaultValue={fournisseurId ?? ""} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
             <option value="">— Fournisseur —</option>
             {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
           </select>

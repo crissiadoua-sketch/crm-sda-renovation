@@ -156,7 +156,12 @@ export function BonCommandeDetail({
             <Badge tone={STATUT_TONES[bc.statut] ?? "gray"}>{STATUT_LABELS[bc.statut]}</Badge>
           </div>
           <p className="mt-1 text-sm text-slate-500">
-            {bc.fournisseur.nom} · {bc.chantier?.nom ?? "Sans chantier"} · {formatDate(bc.createdAt)}
+            <Link href={`/fournisseurs/${bc.fournisseur.id}`} className="text-brand-blue hover:underline">{bc.fournisseur.nom}</Link>
+            {" · "}
+            {bc.chantier
+              ? <Link href={`/chantiers/${bc.chantier.id}`} className="text-brand-blue hover:underline">{bc.chantier.nom}</Link>
+              : "Sans chantier"}
+            {" · "}{formatDate(bc.createdAt)}
           </p>
         </div>
         <div className="flex gap-2">

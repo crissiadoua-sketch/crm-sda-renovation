@@ -95,7 +95,7 @@ export default async function BonsCommandePage({
             <option value="">— Fournisseur —</option>
             {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
           </select>
-          <select name="chantierId" className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <select name="chantierId" defaultValue={chantierId ?? ""} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
             <option value="">Chantier (optionnel)</option>
             {chantiers.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>

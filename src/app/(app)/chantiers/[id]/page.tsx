@@ -283,7 +283,12 @@ export default async function ChantierDetailPage({
 
         {/* Factures */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-3 font-semibold text-brand-navy">Factures</h3>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-brand-navy">Factures</h3>
+            <LinkButton href={`/factures/nouveau?chantierId=${chantier.id}`} variant="secondary" className="px-2.5 py-1 text-xs">
+              + Nouvelle facture
+            </LinkButton>
+          </div>
           {chantier.factures.length === 0 ? (
             <p className="text-sm text-slate-400">Aucune facture.</p>
           ) : (
@@ -438,8 +443,8 @@ export default async function ChantierDetailPage({
             <h3 className="font-semibold text-brand-navy">Approvisionnements &amp; livraisons</h3>
             <div className="flex gap-2">
               <Link href={`/previsionnel?chantierId=${chantier.id}`} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-brand-blue hover:bg-blue-50">Prévisionnel →</Link>
-              <Link href={`/bons-commande/beton/nouveau?chantierId=${chantier.id}`} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">+ BC Béton</Link>
-              <Link href={`/bons-commande/nouveau?chantierId=${chantier.id}`} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">+ BC</Link>
+              <Link href={`/bons-commande/beton?chantierId=${chantier.id}&creer=1`} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">+ BC Béton</Link>
+              <Link href={`/bons-commande?chantierId=${chantier.id}&creer=1`} className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">+ BC</Link>
             </div>
           </div>
           {chantier.bonsCommande.length === 0 && chantier.bonsLivraison.length === 0 && chantier.bonsCommandeBeton.length === 0 ? (

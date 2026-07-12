@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { toDateInputValue, clientDisplayName } from "@/lib/format";
@@ -8,6 +8,14 @@ import type { ChantierState } from "@/lib/actions/chantiers";
 import type { Chantier, Client } from "@/generated/prisma/client";
 
 type Action = (prevState: ChantierState, formData: FormData) => Promise<ChantierState>;
+
+// Subset passed for address auto-fill
+type ClientAdresse = {
+  id: string;
+  adresse: string | null;
+  codePostal: string | null;
+  ville: string | null;
+};
 
 const statutLabels: Record<string, string> = {
   PROSPECT: "Prospect",
@@ -20,16 +28,34 @@ const statutLabels: Record<string, string> = {
 export function ChantierForm({
   chantier,
   clients,
+  clientsAdresses,
   defaultReference,
+  defaultClientId,
   action,
 }: {
   chantier?: Chantier;
   clients: Client[];
+  clientsAdresses?: ClientAdresse[];
   defaultReference?: string;
+  defaultClientId?: string;
   action: Action;
 }) {
   const [state, formAction] = useActionState(action, undefined);
   const errors = state?.errors ?? {};
+
+  const adresseRef = useRef<HTMLInputElement>(null);
+  const cpRef = useRef<HTMLInputElement>(null);
+  const villeRef = useRef<HTMLInputElement>(null);
+
+  function handleClientChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    if (chantier) return; // Only auto-fill on creation, not edit
+    const clientId = e.target.value;
+    const data = clientsAdresses?.find((c) => c.id === clientId);
+    if (!data) return;
+    if (adresseRef.current && data.adresse) adresseRef.current.value = data.adresse;
+    if (cpRef.current && data.codePostal) cpRef.current.value = data.codePostal;
+    if (villeRef.current && data.ville) villeRef.current.value = data.ville;
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -53,8 +79,9 @@ export function ChantierForm({
           <select
             id="clientId"
             name="clientId"
-            defaultValue={chantier?.clientId ?? ""}
+            defaultValue={chantier?.clientId ?? defaultClientId ?? ""}
             required
+            onChange={handleClientChange}
             className={inputClasses}
           >
             <option value="" disabled>
@@ -80,13 +107,31 @@ export function ChantierForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field label="Adresse du chantier" htmlFor="adresse" error={errors.adresse}>
-          <input id="adresse" name="adresse" defaultValue={chantier?.adresse ?? ""} className={inputClasses} />
+          <input
+            id="adresse"
+            name="adresse"
+            ref={adresseRef}
+            defaultValue={chantier?.adresse ?? ""}
+            className={inputClasses}
+          />
         </Field>
         <Field label="Code postal" htmlFor="codePostal" error={errors.codePostal}>
-          <input id="codePostal" name="codePostal" defaultValue={chantier?.codePostal ?? ""} className={inputClasses} />
+          <input
+            id="codePostal"
+            name="codePostal"
+            ref={cpRef}
+            defaultValue={chantier?.codePostal ?? ""}
+            className={inputClasses}
+          />
         </Field>
         <Field label="Ville" htmlFor="ville" error={errors.ville}>
-          <input id="ville" name="ville" defaultValue={chantier?.ville ?? ""} className={inputClasses} />
+          <input
+            id="ville"
+            name="ville"
+            ref={villeRef}
+            defaultValue={chantier?.ville ?? ""}
+            className={inputClasses}
+          />
         </Field>
       </div>
 

@@ -6,16 +6,9 @@ import { ClientForm } from "@/components/clients/client-form";
 import { updateClient, deleteClient } from "@/lib/actions/clients";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { LinkButton } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
-
-function formatEuros(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value);
-}
-
-function formatDate(date: Date | null) {
-  if (!date) return "—";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(date);
-}
+import { formatEuros, formatDate } from "@/lib/format";
 
 const devisStatutTones: Record<string, BadgeTone> = {
   BROUILLON: "gray",
@@ -68,6 +61,19 @@ export default async function ClientDetailPage({
       ? `${client.civilite ? client.civilite + " " : ""}${client.prenom ? client.prenom + " " : ""}${client.nom}`
       : client.raisonSociale || client.nom;
 
+  // ── Synthèse financière client ─────────────────────────────────────────
+  const totalDevisTTC = client.devis
+    .filter((d) => d.statut !== "REFUSE" && d.statut !== "EXPIRE")
+    .reduce((s, d) => s + d.totalTTC, 0);
+  const totalFactureTTC = client.factures
+    .filter((f) => f.statut !== "ANNULEE")
+    .reduce((s, f) => s + f.totalTTC, 0);
+  const totalEncaisse = client.factures
+    .filter((f) => f.statut !== "ANNULEE")
+    .reduce((s, f) => s + f.montantPaye, 0);
+  const resteAEncaisser = totalFactureTTC - totalEncaisse;
+  const chantiersEnCours = client.chantiers.filter((c) => c.statut === "EN_COURS").length;
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -76,11 +82,24 @@ export default async function ClientDetailPage({
             ← Retour aux clients
           </Link>
           <h2 className="mt-1 text-xl font-bold text-brand-navy">{displayName}</h2>
+          {client.email && (
+            <a href={`mailto:${client.email}`} className="text-sm text-brand-blue hover:underline">
+              {client.email}
+            </a>
+          )}
         </div>
-        <DeleteButton
-          action={deleteClient.bind(null, client.id)}
-          confirmMessage={`Supprimer le client « ${displayName} » ? Cette action est irréversible.`}
-        />
+        <div className="flex flex-wrap gap-2">
+          <LinkButton href={`/chantiers/nouveau?clientId=${client.id}`} variant="secondary">
+            + Nouveau chantier
+          </LinkButton>
+          <LinkButton href={`/devis/nouveau?clientId=${client.id}`} variant="secondary">
+            + Nouveau devis
+          </LinkButton>
+          <DeleteButton
+            action={deleteClient.bind(null, client.id)}
+            confirmMessage={`Supprimer le client « ${displayName} » ? Cette action est irréversible.`}
+          />
+        </div>
       </div>
 
       {erreur === "suppression" && (
@@ -89,13 +108,45 @@ export default async function ClientDetailPage({
         </div>
       )}
 
+      {/* ── Synthèse financière ── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Devis actifs TTC</p>
+          <p className="mt-1 text-lg font-bold text-brand-navy">{formatEuros(totalDevisTTC)}</p>
+          <p className="text-[10px] text-slate-400">{client.devis.length} devis total</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Facturé TTC</p>
+          <p className="mt-1 text-lg font-bold text-brand-navy">{formatEuros(totalFactureTTC)}</p>
+          <p className="text-[10px] text-slate-400">{client.factures.length} facture{client.factures.length > 1 ? "s" : ""}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Encaissé</p>
+          <p className="mt-1 text-lg font-bold text-green-600">{formatEuros(totalEncaisse)}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Reste à encaisser</p>
+          <p className={`mt-1 text-lg font-bold ${resteAEncaisser > 0 ? "text-brand-orange-dark" : "text-brand-navy"}`}>
+            {formatEuros(resteAEncaisser)}
+          </p>
+          {chantiersEnCours > 0 && (
+            <p className="text-[10px] text-slate-400">{chantiersEnCours} chantier{chantiersEnCours > 1 ? "s" : ""} en cours</p>
+          )}
+        </div>
+      </div>
+
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <ClientForm client={client} action={updateClient.bind(null, client.id)} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-3 font-semibold text-brand-navy">Chantiers</h3>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-brand-navy">Chantiers</h3>
+            <LinkButton href={`/chantiers/nouveau?clientId=${client.id}`} variant="secondary" className="px-2.5 py-1 text-xs">
+              + Nouveau
+            </LinkButton>
+          </div>
           {client.chantiers.length === 0 ? (
             <p className="text-sm text-slate-400">Aucun chantier.</p>
           ) : (
@@ -121,7 +172,12 @@ export default async function ClientDetailPage({
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-3 font-semibold text-brand-navy">Devis</h3>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-brand-navy">Devis</h3>
+            <LinkButton href={`/devis/nouveau?clientId=${client.id}`} variant="secondary" className="px-2.5 py-1 text-xs">
+              + Nouveau
+            </LinkButton>
+          </div>
           {client.devis.length === 0 ? (
             <p className="text-sm text-slate-400">Aucun devis.</p>
           ) : (
@@ -148,7 +204,12 @@ export default async function ClientDetailPage({
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-3 font-semibold text-brand-navy">Factures</h3>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-brand-navy">Factures</h3>
+            <Link href={`/factures?clientId=${client.id}`} className="text-xs text-brand-blue hover:underline">
+              Voir tout →
+            </Link>
+          </div>
           {client.factures.length === 0 ? (
             <p className="text-sm text-slate-400">Aucune facture.</p>
           ) : (

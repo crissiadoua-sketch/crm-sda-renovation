@@ -225,7 +225,7 @@ export default async function DevisDetailPage({
         )}
         {devis.statut === "ACCEPTE" && (
           <Link
-            href={`/bons-commande/nouveau?chantierId=${devis.chantierId}`}
+            href={`/bons-commande?chantierId=${devis.chantierId}&creer=1`}
             className={buttonClasses("secondary")}
           >
             <ShoppingCart className="h-4 w-4" />
@@ -234,7 +234,7 @@ export default async function DevisDetailPage({
         )}
         {devis.statut === "ACCEPTE" && (
           <Link
-            href={`/bons-commande/beton/nouveau?chantierId=${devis.chantierId}`}
+            href={`/bons-commande/beton?chantierId=${devis.chantierId}&creer=1`}
             className={buttonClasses("secondary")}
           >
             <ShoppingCart className="h-4 w-4" />

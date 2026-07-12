@@ -1,4 +1,5 @@
 import { differenceInCalendarDays } from "date-fns";
+import { inflateSync, inflateRawSync } from "zlib";
 
 export type LigneImportee = {
   date: Date;
@@ -111,61 +112,93 @@ export function parseOfxReleve(contenu: string): LigneImportee[] {
 const DATE_TOKEN = /\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/;
 const MONTANT_TOKEN = /(-?\d{1,3}(?:[ .]\d{3})*,\d{2})\s*€?\s*$/;
 
+// Unescape PDF string literals (\n \r \t \\ \( \) \ooo)
+function unescapePdfString(s: string): string {
+  return s.replace(/\\([nrt\\()0-7]{1,3})/g, (_, c) => {
+    if (c === "n") return "\n";
+    if (c === "r") return "\r";
+    if (c === "t") return "\t";
+    if (c === "\\" || c === "(" || c === ")") return c;
+    return String.fromCharCode(parseInt(c, 8));
+  });
+}
+
+// Extract visible text from a decompressed PDF content stream
+function textFromContentStream(stream: string): string {
+  const parts: string[] = [];
+  const btEt = /BT([\s\S]*?)ET/g;
+  let m1;
+  while ((m1 = btEt.exec(stream)) !== null) {
+    const block = m1[1];
+    // (string) Tj  or  (string) TJ
+    const reTj = /\(([^)\\]*(?:\\.[^)\\]*)*)\)\s*T[jJ]/g;
+    let m2;
+    while ((m2 = reTj.exec(block)) !== null) {
+      const t = unescapePdfString(m2[1]);
+      if (t.trim()) parts.push(t);
+    }
+    // [(str1) kern (str2)] TJ
+    const reTJArr = /\[([^\]]*)\]\s*TJ/g;
+    let m3;
+    while ((m3 = reTJArr.exec(block)) !== null) {
+      const inner = m3[1];
+      const reStr = /\(([^)\\]*(?:\\.[^)\\]*)*)\)/g;
+      let m4;
+      const chunk: string[] = [];
+      while ((m4 = reStr.exec(inner)) !== null) chunk.push(unescapePdfString(m4[1]));
+      const joined = chunk.join("");
+      if (joined.trim()) parts.push(joined);
+    }
+  }
+  return parts.join("\n");
+}
+
+// Decompress a FlateDecode stream; returns null on failure
+function tryInflate(data: Buffer): Buffer | null {
+  try { return inflateSync(data); } catch { /* */ }
+  try { return inflateRawSync(data); } catch { /* */ }
+  return null;
+}
+
 /**
- * Parse un relevé bancaire au format PDF — "best effort" : un PDF est une mise en page visuelle,
- * pas un format de données structuré, donc fiable uniquement si le texte est sélectionnable
- * (export direct depuis l'espace bancaire en ligne, pas un scan/photo). Chaque ligne de texte est
- * retenue comme transaction si elle contient à la fois une date et un montant en fin de ligne ;
- * le libellé est ce qu'il reste après avoir retiré ces deux jetons. Les lignes ne correspondant pas
- * à ce schéma (en-têtes, totaux, solde…) sont ignorées silencieusement.
+ * Parse un relevé bancaire au format PDF — extraction de texte native (zlib + opérateurs PDF),
+ * sans dépendance externe. Fonctionne uniquement sur les PDFs texte (pas les scans/images).
  */
 export async function parsePdfReleve(buffer: Buffer): Promise<LigneImportee[]> {
-  // DOMMatrix est une API navigateur absente de Node.js — pdfjs-dist en a besoin même
-  // pour l'extraction de texte (transformations matricielles internes).
-  if (typeof globalThis.DOMMatrix === "undefined") {
-    (globalThis as Record<string, unknown>).DOMMatrix = class DOMMatrixPolyfill {
-      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-      m11=1; m12=0; m13=0; m14=0; m21=0; m22=1; m23=0; m24=0;
-      m31=0; m32=0; m33=1; m34=0; m41=0; m42=0; m43=0; m44=1;
-      is2D = true; isIdentity = true;
-      constructor(init?: number[] | string) {
-        if (Array.isArray(init) && init.length >= 6) {
-          [this.a, this.b, this.c, this.d, this.e, this.f] = init as number[];
-          this.m11 = this.a; this.m12 = this.b; this.m21 = this.c;
-          this.m22 = this.d; this.m41 = this.e; this.m42 = this.f;
-        }
-      }
-      multiply() { return this; }
-      premultiply() { return this; }
-      inverse() { return this; }
-      translate() { return this; }
-      scale() { return this; }
-      scale3d() { return this; }
-      rotate() { return this; }
-      rotateAxisAngle() { return this; }
-      rotateFromVector() { return this; }
-      skewX() { return this; }
-      skewY() { return this; }
-      flipX() { return this; }
-      flipY() { return this; }
-      transformPoint(p?: { x?: number; y?: number }) { return { x: p?.x ?? 0, y: p?.y ?? 0, z: 0, w: 1 }; }
-      toFloat32Array() { return new Float32Array([this.a, this.b, this.c, this.d, this.e, this.f]); }
-      toFloat64Array() { return new Float64Array([this.a, this.b, this.c, this.d, this.e, this.f]); }
-      toString() { return `matrix(${this.a},${this.b},${this.c},${this.d},${this.e},${this.f})`; }
-    };
+  // Parcourir les content streams du PDF
+  const raw = buffer.toString("binary");
+  const allText: string[] = [];
+
+  const reStream = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  let sm;
+  while ((sm = reStream.exec(raw)) !== null) {
+    // Chercher le dictionnaire juste avant ce stream pour connaître le filtre
+    const before = raw.slice(Math.max(0, sm.index - 800), sm.index);
+    const lastDict = before.lastIndexOf("<<");
+    const dictSnip = lastDict >= 0 ? before.slice(lastDict) : "";
+
+    const isFlate =
+      /\/Filter\s*\/FlateDecode\b/.test(dictSnip) ||
+      /\/Filter\s*\[\s*\/FlateDecode/.test(dictSnip);
+    const hasNoFilter = !/\/Filter\b/.test(dictSnip);
+
+    const data = Buffer.from(sm[1], "binary");
+    let content: Buffer | null = null;
+
+    if (isFlate) {
+      content = tryInflate(data);
+    } else if (hasNoFilter) {
+      content = data;
+    }
+
+    if (!content) continue;
+    const text = textFromContentStream(content.toString("binary"));
+    if (text.trim()) allText.push(text);
   }
 
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: buffer });
-  let texte: string;
-  try {
-    const result = await parser.getText();
-    texte = result.text;
-  } finally {
-    await parser.destroy();
-  }
-
+  const texte = allText.join("\n");
   const resultat: LigneImportee[] = [];
+
   for (const ligneBrute of texte.split(/\r?\n/)) {
     const ligne = ligneBrute.trim();
     if (!ligne) continue;
@@ -180,7 +213,6 @@ export async function parsePdfReleve(buffer: Buffer): Promise<LigneImportee[]> {
     if (!date) continue;
 
     const libelle = avantMontant.slice(matchDate.index! + matchDate[0].length).trim();
-    // Sans libellé, c'est presque toujours une ligne de solde/total plutôt qu'une vraie transaction.
     if (!libelle) continue;
 
     resultat.push({

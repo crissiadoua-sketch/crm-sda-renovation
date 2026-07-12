@@ -491,12 +491,19 @@ export default async function ApercuDevisPage({
         @media print {
           @page {
             size: A4;
-            margin: 4mm 0 10mm 0;
+            margin: 0 0 8mm 0;
             @bottom-center {
               content: "Page " counter(page) " / " counter(pages);
-              font-size: 9px;
+              font-size: 8px;
               color: #94a3b8;
+              margin-bottom: 2mm;
             }
+          }
+          /* Page de garde : hauteur = A4 - marge basse = 297mm - 8mm */
+          .page-break-after-always {
+            min-height: 289mm !important;
+            break-after: page;
+            page-break-after: always;
           }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           table { border-collapse: collapse; }

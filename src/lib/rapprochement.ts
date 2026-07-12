@@ -120,6 +120,41 @@ const MONTANT_TOKEN = /(-?\d{1,3}(?:[ .]\d{3})*,\d{2})\s*€?\s*$/;
  * à ce schéma (en-têtes, totaux, solde…) sont ignorées silencieusement.
  */
 export async function parsePdfReleve(buffer: Buffer): Promise<LigneImportee[]> {
+  // DOMMatrix est une API navigateur absente de Node.js — pdfjs-dist en a besoin même
+  // pour l'extraction de texte (transformations matricielles internes).
+  if (typeof globalThis.DOMMatrix === "undefined") {
+    (globalThis as Record<string, unknown>).DOMMatrix = class DOMMatrixPolyfill {
+      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+      m11=1; m12=0; m13=0; m14=0; m21=0; m22=1; m23=0; m24=0;
+      m31=0; m32=0; m33=1; m34=0; m41=0; m42=0; m43=0; m44=1;
+      is2D = true; isIdentity = true;
+      constructor(init?: number[] | string) {
+        if (Array.isArray(init) && init.length >= 6) {
+          [this.a, this.b, this.c, this.d, this.e, this.f] = init as number[];
+          this.m11 = this.a; this.m12 = this.b; this.m21 = this.c;
+          this.m22 = this.d; this.m41 = this.e; this.m42 = this.f;
+        }
+      }
+      multiply() { return this; }
+      premultiply() { return this; }
+      inverse() { return this; }
+      translate() { return this; }
+      scale() { return this; }
+      scale3d() { return this; }
+      rotate() { return this; }
+      rotateAxisAngle() { return this; }
+      rotateFromVector() { return this; }
+      skewX() { return this; }
+      skewY() { return this; }
+      flipX() { return this; }
+      flipY() { return this; }
+      transformPoint(p?: { x?: number; y?: number }) { return { x: p?.x ?? 0, y: p?.y ?? 0, z: 0, w: 1 }; }
+      toFloat32Array() { return new Float32Array([this.a, this.b, this.c, this.d, this.e, this.f]); }
+      toFloat64Array() { return new Float64Array([this.a, this.b, this.c, this.d, this.e, this.f]); }
+      toString() { return `matrix(${this.a},${this.b},${this.c},${this.d},${this.e},${this.f})`; }
+    };
+  }
+
   const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: buffer });
   let texte: string;

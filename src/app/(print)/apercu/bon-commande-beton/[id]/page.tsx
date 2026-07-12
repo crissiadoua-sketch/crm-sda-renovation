@@ -1,4 +1,4 @@
-﻿import { notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
@@ -41,7 +41,7 @@ export default async function ApercuBonCommandeBetonPage({
       <PrintToolbar label={`BC Béton ${bcb.numero} — Aperçu PDF`} />
 
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">
-        <div className="px-10 py-8 print:px-9 print:py-7">
+        <div className="px-10 py-8 print:px-8 print:py-3">
 
           {/* ── En-tête société ──────────────────────────────────────────────── */}
           <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-5">

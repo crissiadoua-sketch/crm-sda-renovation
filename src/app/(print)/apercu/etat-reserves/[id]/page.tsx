@@ -38,7 +38,7 @@ export default async function ApercuEtatReservesPage({
       <PrintToolbar label={`État des réserves — ${etat.numero}`} />
 
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">
-        <div className="px-10 py-8 print:px-8 print:py-6 text-sm">
+        <div className="px-10 py-8 print:px-8 print:py-3 text-sm">
 
           {/* En-tête */}
           <div className="flex items-start justify-between border-b-[3px] border-[#F7941E] pb-5 mb-6">

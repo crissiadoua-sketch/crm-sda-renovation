@@ -1,4 +1,4 @@
-﻿import { notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
 import { EmailsDocument } from "@/components/ui/emails-document";
@@ -39,7 +39,7 @@ export default async function ApercuFacturePage({
       <PrintToolbar label={`Aperçu PDF — ${facture.numero}`} />
 
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">
-        <div className="px-12 py-10 print:px-10 print:py-8">
+        <div className="px-12 py-10 print:px-8 print:py-3">
 
           {/* En-tête */}
           <div className="flex items-start justify-between border-b-2 border-[#F7941E] pb-6 mb-6">
@@ -191,7 +191,7 @@ export default async function ApercuFacturePage({
       {/* Annexe — Conditions de règlement */}
       {parametres?.conditionsFacture && (
         <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none print:break-before-page">
-          <div className="px-12 py-10 print:px-10 print:py-8">
+          <div className="px-12 py-10 print:px-8 print:py-3">
             <p className="mb-4 text-lg font-black text-[#1E2F6E]">ANNEXE — CONDITIONS DE RÈGLEMENT</p>
             <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-slate-700">
               {parametres.conditionsFacture}

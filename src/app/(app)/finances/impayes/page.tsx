@@ -16,8 +16,8 @@ export default async function ImpayesPage() {
       dateEcheance: { lt: today },
     },
     include: {
-      client: { select: { nom: true, telephone: true, email: true } },
-      chantier: { select: { nom: true, reference: true } },
+      client: { select: { id: true, nom: true, telephone: true, email: true } },
+      chantier: { select: { id: true, nom: true, reference: true } },
       relances: { orderBy: { date: "desc" } },
     },
     orderBy: { dateEcheance: "asc" },
@@ -137,8 +137,11 @@ export default async function ImpayesPage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-slate-600 mt-0.5">{f.client.nom}</p>
-                            <p className="text-xs text-slate-400">{f.chantier.nom} · Échéance : {f.dateEcheance ? formatDate(new Date(f.dateEcheance)) : "—"}</p>
+                            <Link href={`/clients/${f.client.id}`} className="text-sm text-slate-600 mt-0.5 hover:text-brand-blue hover:underline">{f.client.nom}</Link>
+                            <p className="text-xs text-slate-400">
+                              <Link href={`/chantiers/${f.chantier.id}`} className="hover:text-brand-blue hover:underline">{f.chantier.nom}</Link>
+                              {" · Échéance : "}{f.dateEcheance ? formatDate(new Date(f.dateEcheance)) : "—"}
+                            </p>
                             {derniereRelance && (
                               <p className="text-xs text-slate-400 mt-0.5">
                                 Dernière relance : {typeLabels[derniereRelance.type]?.label ?? derniereRelance.type} — {formatDate(new Date(derniereRelance.date))}

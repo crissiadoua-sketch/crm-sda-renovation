@@ -204,7 +204,11 @@ export function BonCommandeBetonEditor({
         <div>
           <h2 className="text-2xl font-bold text-brand-navy">{bcb.numero}</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            Bon de commande Béton — {bcb.fournisseur.nom}
+            Bon de commande Béton —{" "}
+            <Link href={`/fournisseurs/${bcb.fournisseur.id}`} className="text-brand-blue hover:underline">{bcb.fournisseur.nom}</Link>
+            {bcb.chantier && (
+              <> · <Link href={`/chantiers/${bcb.chantier.id}`} className="text-brand-blue hover:underline">{bcb.chantier.nom}</Link></>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

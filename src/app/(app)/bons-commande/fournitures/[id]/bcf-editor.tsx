@@ -172,7 +172,8 @@ export function BcFournituresEditor({
         <div>
           <h2 className="text-2xl font-bold text-brand-navy">{bcf.numero}</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            BC Fournitures {form.type === "BUREAU" ? "Bureau" : form.type === "ENTREPOT" ? "Entrepôt" : "Mixte"} — {bcf.fournisseur.nom}
+            BC Fournitures {form.type === "BUREAU" ? "Bureau" : form.type === "ENTREPOT" ? "Entrepôt" : "Mixte"} —{" "}
+            <Link href={`/fournisseurs/${bcf.fournisseur.id}`} className="text-brand-blue hover:underline">{bcf.fournisseur.nom}</Link>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

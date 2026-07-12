@@ -135,7 +135,7 @@ export default async function TachesPage({
     include: {
       assigneA: { select: { name: true, email: true, role: true } },
       creePar: { select: { name: true } },
-      chantier: { select: { nom: true, reference: true } },
+      chantier: { select: { id: true, nom: true, reference: true } },
     },
     orderBy: [
       { priorite: "desc" },
@@ -304,9 +304,9 @@ export default async function TachesPage({
                       {tache.titre}
                     </Link>
                     {tache.chantier && (
-                      <p className="text-xs text-slate-400">
+                      <Link href={`/chantiers/${tache.chantier.id}`} className="text-xs text-slate-400 hover:text-brand-blue hover:underline">
                         {tache.chantier.reference} — {tache.chantier.nom}
-                      </p>
+                      </Link>
                     )}
                     {tache.description && (
                       <p className="mt-0.5 text-xs text-slate-500 line-clamp-1">{tache.description}</p>

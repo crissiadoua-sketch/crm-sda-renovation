@@ -13,6 +13,7 @@ import {
   supprimerReleve,
   rapprochementerFacture,
 } from "@/lib/actions/rapprochement";
+import { rapprochementerFactureFournisseur } from "@/lib/actions/factures-fournisseur";
 import { LigneActions } from "./ligne-actions";
 
 export default async function RapprochementDetailPage({
@@ -34,6 +35,7 @@ export default async function RapprochementDetailPage({
         include: {
           paiement: { include: { facture: { include: { client: true } } } },
           depense: { include: { fournisseur: true } },
+          factureFournisseur: { include: { fournisseur: { select: { nom: true } } } },
         },
       },
     },
@@ -45,7 +47,7 @@ export default async function RapprochementDetailPage({
   const debut = dates.length > 0 ? new Date(Math.min(...dates) - 30 * 86400000) : new Date(0);
   const fin = dates.length > 0 ? new Date(Math.max(...dates) + 30 * 86400000) : new Date();
 
-  const [paiementsDisponibles, depensesDisponibles, facturesDisponibles] = await Promise.all([
+  const [paiementsDisponibles, depensesDisponibles, facturesDisponibles, facturesFournisseurDisponibles] = await Promise.all([
     prisma.paiement.findMany({
       where: { date: { gte: debut, lte: fin }, ligneReleve: null },
       include: { facture: { include: { client: true } } },
@@ -62,6 +64,11 @@ export default async function RapprochementDetailPage({
       },
       include: { client: true },
       orderBy: { dateEmission: "desc" },
+    }),
+    prisma.factureFournisseur.findMany({
+      where: { statut: { in: ["A_PAYER", "PAYEE_PARTIELLE", "EN_RETARD"] }, ligneReleve: null },
+      include: { fournisseur: { select: { nom: true } } },
+      orderBy: { dateEcheance: "asc" },
     }),
   ]);
 
@@ -82,6 +89,12 @@ export default async function RapprochementDetailPage({
   const facturesCandidats = facturesDisponibles.map((f) => ({
     id: f.id,
     label: `${f.numero} — ${clientDisplayName(f.client)} — ${formatEuros(f.totalTTC - f.montantPaye)} restant`,
+  }));
+
+  // Factures fournisseurs à régler
+  const facturesFournisseurCandidats = facturesFournisseurDisponibles.map((f) => ({
+    id: f.id,
+    label: `${f.numero} — ${f.fournisseur.nom} — ${formatEuros(f.montantTTC - f.montantPaye)} restant`,
   }));
 
   const nbRapprochees = releve.lignes.filter((l) => l.statut === "RAPPROCHE").length;
@@ -167,7 +180,9 @@ export default async function RapprochementDetailPage({
                           ? `Facture ${ligne.paiement.facture.numero} (${clientDisplayName(ligne.paiement.facture.client)})`
                           : ligne.depense
                             ? ligne.depense.libelle
-                            : "Rapprochée"}
+                            : ligne.factureFournisseur
+                              ? `Fact. fourn. ${ligne.factureFournisseur.numero} — ${ligne.factureFournisseur.fournisseur.nom}`
+                              : "Rapprochée"}
                       </span>
                     ) : ligne.statut === "IGNORE" ? (
                       <span className="text-xs text-slate-400">Ignorée</span>
@@ -181,6 +196,8 @@ export default async function RapprochementDetailPage({
                         validerAction={validerCorrespondance.bind(null, ligne.id, type)}
                         factures={estCredit ? facturesCandidats : undefined}
                         rapprochementerFactureAction={estCredit ? rapprochementerFacture.bind(null, ligne.id) : undefined}
+                        facturesFournisseur={!estCredit ? facturesFournisseurCandidats : undefined}
+                        rapprochementerFactureFournisseurAction={!estCredit ? rapprochementerFactureFournisseur.bind(null, ligne.id) : undefined}
                       />
                     )}
                   </td>

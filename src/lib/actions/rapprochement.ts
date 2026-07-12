@@ -233,7 +233,7 @@ export async function rapprochementerFacture(ligneId: string, formData: FormData
 export async function annulerCorrespondance(ligneId: string) {
   await prisma.ligneReleveBancaire.update({
     where: { id: ligneId },
-    data: { statut: "NON_RAPPROCHE", paiementId: null, depenseId: null },
+    data: { statut: "NON_RAPPROCHE", paiementId: null, depenseId: null, factureFournisseurId: null },
   });
   revalidatePath("/comptabilite/rapprochement");
 }

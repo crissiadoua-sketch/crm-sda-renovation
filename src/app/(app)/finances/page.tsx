@@ -20,6 +20,7 @@ import {
   Scale,
   BarChart3,
   Settings2,
+  Clock,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatEuros, formatDate } from "@/lib/format";
@@ -325,7 +326,7 @@ export default async function FinancesPage({
       </div>
 
       {/* Liens modules rentabilité */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href={`/finances/rentabilite?annee=${now.getFullYear()}`}
           className="flex items-center gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-700 hover:bg-violet-100 transition"
@@ -345,6 +346,28 @@ export default async function FinancesPage({
           <div>
             <p className="font-semibold">Budget des charges</p>
             <p className="text-xs text-brand-blue/70">Charges fixes et variables {now.getFullYear()}</p>
+          </div>
+          <ChevronRight className="ml-auto h-4 w-4" />
+        </Link>
+        <Link
+          href="/finances/fournisseurs-echeancier"
+          className="flex items-center gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700 hover:bg-orange-100 transition"
+        >
+          <Truck className="h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-semibold">Échéancier fournisseurs</p>
+            <p className="text-xs text-orange-500">Factures à payer, impayés, délais</p>
+          </div>
+          <ChevronRight className="ml-auto h-4 w-4" />
+        </Link>
+        <Link
+          href="/finances/tresorerie-hebdo"
+          className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 hover:bg-emerald-100 transition"
+        >
+          <Clock className="h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-semibold">Trésorerie 13 semaines</p>
+            <p className="text-xs text-emerald-500">Flux glissants avec échéances réelles</p>
           </div>
           <ChevronRight className="ml-auto h-4 w-4" />
         </Link>

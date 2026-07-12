@@ -9,6 +9,8 @@ export function LigneActions({
   validerAction,
   factures,
   rapprochementerFactureAction,
+  facturesFournisseur,
+  rapprochementerFactureFournisseurAction,
 }: {
   ligneId: string;
   type: "PAIEMENT" | "DEPENSE";
@@ -18,12 +20,15 @@ export function LigneActions({
   validerAction: (formData: FormData) => void | Promise<void>;
   factures?: { id: string; label: string }[];
   rapprochementerFactureAction?: (formData: FormData) => void | Promise<void>;
+  facturesFournisseur?: { id: string; label: string }[];
+  rapprochementerFactureFournisseurAction?: (formData: FormData) => void | Promise<void>;
 }) {
   const hasCandidats = candidats.length > 0;
   const hasFactures = type === "PAIEMENT" && factures && factures.length > 0;
+  const hasFacturesFournisseur = type === "DEPENSE" && facturesFournisseur && facturesFournisseur.length > 0;
 
-  if (!hasCandidats && !hasFactures) {
-    return <span className="text-xs text-slate-400">Aucun {type === "PAIEMENT" ? "paiement" : "dépense"} ni facture disponible</span>;
+  if (!hasCandidats && !hasFactures && !hasFacturesFournisseur) {
+    return <span className="text-xs text-slate-400">Aucun {type === "PAIEMENT" ? "paiement" : "dépense"} disponible</span>;
   }
 
   return (
@@ -63,7 +68,7 @@ export function LigneActions({
       {hasFactures && rapprochementerFactureAction && (
         <form action={rapprochementerFactureAction} className="flex items-center gap-2">
           <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-            Facture
+            Facture client
           </span>
           <select
             name="factureId"
@@ -79,6 +84,29 @@ export function LigneActions({
             className="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700"
           >
             Créer paiement
+          </button>
+        </form>
+      )}
+
+      {hasFacturesFournisseur && rapprochementerFactureFournisseurAction && (
+        <form action={rapprochementerFactureFournisseurAction} className="flex items-center gap-2">
+          <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700">
+            Fact. fournisseur
+          </span>
+          <select
+            name="factureId"
+            className="max-w-xs rounded-md border border-orange-200 px-2 py-1 text-xs"
+          >
+            <option value="">— Lier à une facture fournisseur —</option>
+            {facturesFournisseur!.map((f) => (
+              <option key={f.id} value={f.id}>{f.label}</option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="rounded-md bg-brand-orange px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-orange-dark"
+          >
+            Régler facture
           </button>
         </form>
       )}

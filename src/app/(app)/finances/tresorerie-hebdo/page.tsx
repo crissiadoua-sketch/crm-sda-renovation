@@ -32,7 +32,7 @@ export default async function TresorerieHebdoPage() {
   const lundi = startOfWeek(today);
   const fin13 = addWeeks(lundi, 13);
 
-  const [factures, bonsCommande, salaires] = await Promise.all([
+  const [factures, facturesFournisseur, salaires] = await Promise.all([
     // Factures à encaisser dans les 13 semaines (dateEcheance dans la fenêtre)
     prisma.facture.findMany({
       where: {
@@ -41,13 +41,13 @@ export default async function TresorerieHebdoPage() {
       },
       select: { totalTTC: true, montantPaye: true, dateEcheance: true, numero: true, client: { select: { nom: true } } },
     }),
-    // Bons de commande à payer (CONFIRME, RECU dans la fenêtre)
-    prisma.bonCommande.findMany({
+    // Factures fournisseurs à régler dans les 13 semaines (vraies échéances)
+    prisma.factureFournisseur.findMany({
       where: {
-        dateCreation: { gte: addWeeks(lundi, -4), lte: fin13 },
-        statut: { in: ["CONFIRME", "RECU_PARTIEL", "RECU"] },
+        statut: { in: ["A_PAYER", "PAYEE_PARTIELLE", "EN_RETARD"] },
+        dateEcheance: { lte: fin13 },
       },
-      select: { totalTTC: true, dateCreation: true, numero: true, fournisseur: { select: { nom: true } } },
+      select: { montantTTC: true, montantPaye: true, dateEcheance: true, numero: true, fournisseur: { select: { nom: true } } },
     }),
     // Bulletins de paie du mois en cours et suivant
     prisma.bulletinDePaie.findMany({
@@ -102,14 +102,21 @@ export default async function TresorerieHebdoPage() {
       }
     });
 
-    // BCs à régler cette semaine (approximation : 30j après commande)
-    bonsCommande.forEach((bc) => {
-      const datePaiement = new Date(bc.dateCreation);
-      datePaiement.setDate(datePaiement.getDate() + 30);
-      if (datePaiement >= debut && datePaiement < finSem) {
-        sorties.push({ libelle: `BC ${bc.numero} – ${bc.fournisseur?.nom ?? ""}`, montant: bc.totalTTC });
+    // Factures fournisseurs à régler cette semaine (vraies dates d'échéance)
+    facturesFournisseur.forEach((ff) => {
+      if (!ff.dateEcheance) return;
+      const ech = new Date(ff.dateEcheance);
+      if (ech >= debut && ech < finSem) {
+        sorties.push({ libelle: `Fourn. ${ff.numero} – ${ff.fournisseur?.nom ?? ""}`, montant: ff.montantTTC - ff.montantPaye });
       }
     });
+    // Factures fournisseurs en retard (dateEcheance < aujourd'hui) → regroupées dans la semaine courante
+    if (i === 0) {
+      facturesFournisseur.forEach((ff) => {
+        if (!ff.dateEcheance || new Date(ff.dateEcheance) >= debut) return;
+        sorties.push({ libelle: `Retard: ${ff.numero} – ${ff.fournisseur?.nom ?? ""}`, montant: ff.montantTTC - ff.montantPaye });
+      });
+    }
 
     // Salaires : semaine contenant le 25 du mois
     const yr = debut.getFullYear();
@@ -249,8 +256,13 @@ export default async function TresorerieHebdoPage() {
       </div>
 
       <p className="text-xs text-slate-400 text-center">
-        Les décaissements BC sont estimés à J+30 · Les salaires sont positionnés au 25 du mois ·
-        Ce plan est indicatif et ne tient pas compte du solde bancaire actuel.
+        Les décaissements fournisseurs sont positionnés sur leurs dates d&apos;échéance réelles ·
+        Les salaires sont positionnés au 25 du mois · Ce plan est indicatif et ne tient pas compte du solde bancaire actuel.
+      </p>
+      <p className="text-xs text-center text-slate-400">
+        <a href="/finances/fournisseurs-echeancier" className="text-brand-blue hover:underline">
+          → Saisir des factures fournisseurs avec échéances
+        </a>
       </p>
     </div>
   );

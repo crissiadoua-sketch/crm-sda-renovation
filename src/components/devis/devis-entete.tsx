@@ -27,8 +27,9 @@ export function DevisEntete({
           {parametres?.adresse && <p className="text-sm text-slate-600">{parametres.adresse}</p>}
           {villeSociete && <p className="text-sm text-slate-600">{villeSociete}</p>}
           {parametres?.telephone && <p className="text-sm text-slate-600">Tél : {parametres.telephone}</p>}
-          {(parametres?.emailPersonnalise || parametres?.email) && (
-            <p className="text-sm text-slate-600">Email : {parametres?.emailPersonnalise || parametres?.email}</p>
+          {parametres?.email && <p className="text-sm text-slate-600">Email : {parametres.email}</p>}
+          {parametres?.emailPersonnalise && (
+            <p className="text-sm text-slate-600">{parametres.emailPersonnalise}</p>
           )}
           {parametres?.siret && (
             <p className="mt-2 text-xs text-slate-400">SIRET/SIREN : {parametres.siret}</p>

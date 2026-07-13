@@ -73,7 +73,8 @@ export async function GET(
   const adresse = parametres?.adresse ?? COMPANY.adresse;
   const ville = [parametres?.codePostal, parametres?.ville].filter(Boolean).join(" ") || `${COMPANY.codePostal} ${COMPANY.ville}`;
   const telephone = parametres?.telephone ?? COMPANY.telephone;
-  const email = parametres?.emailPersonnalise || parametres?.email || COMPANY.email;
+  const emailBase = parametres?.email ?? COMPANY.email;
+  const email = parametres?.emailPersonnalise ? `${emailBase} · ${parametres.emailPersonnalise}` : emailBase;
   const siren = parametres?.siret ?? COMPANY.siren;
   const tva = parametres?.tvaIntracom ?? COMPANY.tvaIntracommunautaire;
 

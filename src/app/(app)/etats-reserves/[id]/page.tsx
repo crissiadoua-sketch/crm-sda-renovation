@@ -110,7 +110,7 @@ export default async function EtatReservesDetailPage({
             <p>{parametres?.adresse || "23 bis rue Aristide Berges"}</p>
             <p>{villeSociete || "31270 Cugnaux"}</p>
             <p>{parametres?.telephone || "06.25.43.64.54"}</p>
-            <p>{parametres?.emailPersonnalise || parametres?.email || "contact@sda-renovation.com"}</p>
+            <p>{parametres?.email || "contact@sda-renovation.com"}{parametres?.emailPersonnalise ? <><br />{parametres.emailPersonnalise}</> : ""}</p>
             {parametres?.siret && <p>Siren : {parametres.siret}</p>}
             {parametres?.tvaIntracom && <p>TVA : {parametres.tvaIntracom}</p>}
           </div>
@@ -193,7 +193,7 @@ export default async function EtatReservesDetailPage({
         <div className="mt-8 border-t border-slate-100 pt-4 text-center text-xs text-slate-400">
           <p>
             {parametres?.adresse || "23 bis rue Aristide Berges"} · {villeSociete || "31270 Cugnaux"} ·{" "}
-            {parametres?.telephone || "06.25.43.64.54"} · {parametres?.emailPersonnalise || parametres?.email || "contact@sda-renovation.com"}
+            {parametres?.telephone || "06.25.43.64.54"} · {parametres?.email || "contact@sda-renovation.com"}{parametres?.emailPersonnalise ? ` · ${parametres.emailPersonnalise}` : ""}
           </p>
           {parametres?.siret && <p>Siren : {parametres.siret} · TVA : {parametres?.tvaIntracom}</p>}
         </div>

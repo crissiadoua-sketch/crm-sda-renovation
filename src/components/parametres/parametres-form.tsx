@@ -336,9 +336,8 @@ export function ParametresForm({ parametres, action }: { parametres: Parametres;
               {adresse && <p className="text-sm text-slate-600">{adresse}</p>}
               {villePreview && <p className="text-sm text-slate-600">{villePreview}</p>}
               {telephone && <p className="text-sm text-slate-600">Tél : {telephone}</p>}
-              {(emailPersonnalise || email) && (
-                <p className="text-sm text-slate-600">Email : {emailPersonnalise || email}</p>
-              )}
+              {email && <p className="text-sm text-slate-600">Email : {email}</p>}
+              {emailPersonnalise && <p className="text-sm text-slate-600">{emailPersonnalise}</p>}
               {siret && <p className="mt-2 text-xs text-slate-400">SIRET/SIREN : {siret}</p>}
               {tvaIntracom && <p className="text-xs text-slate-400">N° TVA intracommunautaire : {tvaIntracom}</p>}
             </div>

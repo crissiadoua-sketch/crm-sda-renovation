@@ -12,6 +12,8 @@ export default async function LoginPage() {
     redirect("/");
   }
 
+  const savedEmail = cookieStore.get("sda_remember_email")?.value ?? "";
+
   return (
     <div className="flex min-h-screen flex-1 items-center justify-center bg-gradient-to-br from-brand-blue via-brand-blue-dark to-brand-navy px-4 py-12">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
@@ -22,7 +24,7 @@ export default async function LoginPage() {
           </p>
         </div>
 
-        <LoginForm />
+        <LoginForm defaultEmail={savedEmail} />
       </div>
     </div>
   );

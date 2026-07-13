@@ -1,40 +1,11 @@
 "use client";
 
-import { useActionState, useState, useEffect } from "react";
+import { useActionState, useState } from "react";
 import { login } from "@/lib/actions/auth";
 
-export function LoginForm() {
+export function LoginForm({ defaultEmail = "" }: { defaultEmail?: string }) {
   const [state, formAction, pending] = useActionState(login, undefined);
   const [loginMode, setLoginMode] = useState<"email" | "name">("email");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [emailValue, setEmailValue] = useState("");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem("sda_crm_email");
-    if (saved) {
-      setEmailValue(saved);
-      setRememberMe(true);
-    } else {
-      setEmailValue("");
-    }
-  }, []);
-
-  function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value;
-    setEmailValue(val);
-    if (rememberMe) localStorage.setItem("sda_crm_email", val);
-  }
-
-  function handleRememberChange(checked: boolean) {
-    setRememberMe(checked);
-    if (checked && emailValue) {
-      localStorage.setItem("sda_crm_email", emailValue);
-    } else {
-      localStorage.removeItem("sda_crm_email");
-    }
-  }
 
   const inputCls =
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30";
@@ -69,24 +40,36 @@ export function LoginForm() {
 
       {/* Email mode */}
       {loginMode === "email" && (
-        <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-brand-navy">
-            Adresse e-mail
+        <>
+          <div>
+            <label htmlFor="email" className="mb-1 block text-sm font-medium text-brand-navy">
+              Adresse e-mail
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              defaultValue={defaultEmail}
+              className={inputCls}
+            />
+            {state?.errors?.email && (
+              <p className="mt-1 text-sm text-brand-orange-dark">{state.errors.email[0]}</p>
+            )}
+          </div>
+
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 -mt-1">
+            <input
+              type="checkbox"
+              name="remember_me"
+              value="1"
+              defaultChecked={!!defaultEmail}
+              className="rounded border-slate-300 accent-brand-blue"
+            />
+            Se souvenir de cette adresse
           </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={emailValue}
-            onChange={handleEmailChange}
-            className={inputCls}
-          />
-          {state?.errors?.email && (
-            <p className="mt-1 text-sm text-brand-orange-dark">{state.errors.email[0]}</p>
-          )}
-        </div>
+        </>
       )}
 
       {/* Name mode */}
@@ -140,19 +123,6 @@ export function LoginForm() {
           <p className="mt-1 text-sm text-brand-orange-dark">{state.errors.password[0]}</p>
         )}
       </div>
-
-      {/* Se souvenir — uniquement mode email, après hydratation */}
-      {loginMode === "email" && mounted && (
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 -mt-1">
-          <input
-            type="checkbox"
-            checked={rememberMe}
-            onChange={(e) => handleRememberChange(e.target.checked)}
-            className="rounded border-slate-300 accent-brand-blue"
-          />
-          Se souvenir de cette adresse
-        </label>
-      )}
 
       {state?.errors?.global && (
         <p className="rounded-lg bg-brand-orange-dark/10 px-3 py-2 text-sm text-brand-orange-dark">

@@ -3,6 +3,7 @@
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createSession, deleteSession } from "@/lib/session";
 import { getDefaultPermissions, isFullAccessRole } from "@/lib/permissions";
@@ -133,6 +134,21 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     role: user.role,
     permissions,
   });
+
+  // Se souvenir de l'adresse email (cookie 1 an, lu côté serveur au prochain visit)
+  const rememberMe = formData.get("remember_me") === "1";
+  const cookieStore = await cookies();
+  if (rememberMe && !usingNameLogin) {
+    const emailToSave = (formData.get("email") as string ?? "").trim();
+    cookieStore.set("sda_remember_email", emailToSave, {
+      expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  } else {
+    cookieStore.delete("sda_remember_email");
+  }
 
   // Pour l'expert-comptable : renouvellement obligatoire tous les 90 jours
   if (user.role === "EXPERT_COMPTABLE") {

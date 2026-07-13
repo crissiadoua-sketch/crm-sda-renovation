@@ -258,8 +258,8 @@ export function EnvoyerEmailModal({
                 {/* Footer fixe — toujours visible */}
                 <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 shrink-0">
                   <p className="text-xs text-slate-400">
-                    Envoyé depuis{" "}
-                    <span className="font-medium">contact@sda-renovation.com</span>
+                    Envoyé depuis votre adresse{" "}
+                    <span className="font-medium">@sda-renovation.com</span>
                   </p>
                   <div className="flex gap-2">
                     <button

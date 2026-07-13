@@ -101,11 +101,17 @@ function signatureHtml(s: Signataire): string {
 // L'email du collaborateur va en Reply-To pour que les réponses lui reviennent.
 function fromAddress(signataire: Signataire | undefined): string {
   if (!signataire || signataire.externe) return "SDA Rénovation <contact@sda-renovation.com>";
+  // Si l'email du profil est sur le domaine vérifié, l'utiliser comme adresse expéditeur
+  if (signataire.email?.endsWith("@sda-renovation.com")) {
+    return `${signataire.name} <${signataire.email}>`;
+  }
   return `${signataire.name} <contact@sda-renovation.com>`;
 }
 
 function replyToAddress(signataire: Signataire | undefined): string | undefined {
   if (!signataire || signataire.externe) return undefined;
+  // Si le FROM est déjà leur email perso (@sda-renovation.com), pas besoin de Reply-To
+  if (signataire.email?.endsWith("@sda-renovation.com")) return undefined;
   return signataire.email !== "contact@sda-renovation.com" ? signataire.email : undefined;
 }
 

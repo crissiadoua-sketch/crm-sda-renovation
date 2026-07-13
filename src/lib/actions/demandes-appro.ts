@@ -102,3 +102,19 @@ export async function supprimerDemandeAppro(id: string) {
   revalidatePath("/exploitation/demandes-appro");
   redirect("/exploitation/demandes-appro");
 }
+
+export async function validerDemandeApproAction(id: string) {
+  await prisma.demandeApprovisionnement.update({
+    where: { id },
+    data: { statut: "APPROUVEE" },
+  });
+  revalidatePath("/exploitation/demandes-appro");
+}
+
+export async function refuserDemandeApproAction(id: string) {
+  await prisma.demandeApprovisionnement.update({
+    where: { id },
+    data: { statut: "REFUSEE" },
+  });
+  revalidatePath("/exploitation/demandes-appro");
+}

@@ -191,6 +191,7 @@ export default async function AgrementProduitsPage({
               <th className="px-4 py-3">Numéro</th>
               <th className="px-4 py-3">Modèle</th>
               <th className="px-4 py-3">Opération / Chantier</th>
+              <th className="px-4 py-3">Devis</th>
               <th className="px-4 py-3">Lot</th>
               <th className="px-4 py-3">Zone</th>
               <th className="px-4 py-3">Niveau</th>
@@ -205,7 +206,7 @@ export default async function AgrementProduitsPage({
           <tbody className="divide-y divide-slate-100">
             {fiches.length === 0 && (
               <tr>
-                <td colSpan={12} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={13} className="px-4 py-8 text-center text-slate-400">
                   Aucune fiche d'agrément
                 </td>
               </tr>
@@ -224,6 +225,15 @@ export default async function AgrementProduitsPage({
                     <Link href={`/chantiers/${f.chantier.id}`} className="text-xs text-brand-blue hover:underline">
                       {f.chantier.nom}
                     </Link>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  {f.devis ? (
+                    <Link href={`/devis/${f.devis.id}`} className="text-brand-blue hover:underline">
+                      {f.devis.numero}
+                    </Link>
+                  ) : (
+                    <span className="text-slate-300">—</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-slate-600">{f.lot ?? "—"}</td>

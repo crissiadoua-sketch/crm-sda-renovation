@@ -252,7 +252,13 @@ export default async function FichesTechniquesPage({
                   <Badge tone={categorieTones[cat_] ?? "gray"}>
                     {categorieLabels[cat_] ?? fiche.categorie}
                   </Badge>
-                  <Badge tone="gray">{fiche.corpsEtat}</Badge>
+                  <Link
+                    href={`/fiches-techniques?corps=${encodeURIComponent(fiche.corpsEtat)}`}
+                    className="inline-flex"
+                    title={`Filtrer par corps d'état : ${CORPS_ETAT_LABELS[fiche.corpsEtat as CorpsEtatCode] ?? fiche.corpsEtat}`}
+                  >
+                    <Badge tone="gray">{fiche.corpsEtat}</Badge>
+                  </Link>
                 </div>
 
                 {/* Title */}

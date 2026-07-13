@@ -21,13 +21,16 @@ const statutLabels: Record<string, string> = {
 export default async function PAQPage({
   searchParams,
 }: {
-  searchParams: Promise<{ chantierId?: string }>;
+  searchParams: Promise<{ chantierId?: string; statut?: string }>;
 }) {
-  const { chantierId } = await searchParams;
+  const { chantierId, statut } = await searchParams;
 
   const [paqs, chantiers, clients] = await Promise.all([
     prisma.planAssuranceQualite.findMany({
-      where: chantierId ? { chantierId } : undefined,
+      where: {
+        ...(chantierId ? { chantierId } : {}),
+        ...(statut ? { statut } : {}),
+      },
       include: {
         chantier: { select: { nom: true } },
         client: { select: { nom: true } },
@@ -60,8 +63,8 @@ export default async function PAQPage({
             Gestion des PAQ — procédures qualité, plan de contrôle et enregistrements.
           </p>
         </div>
-        {/* Filtre par chantier */}
-        <form method="get" className="flex items-center gap-2">
+        {/* Filtres par chantier et statut */}
+        <form method="get" className="flex flex-wrap items-center gap-2">
           <select
             name="chantierId"
             defaultValue={chantierId ?? ""}
@@ -72,13 +75,23 @@ export default async function PAQPage({
               <option key={c.id} value={c.id}>{c.nom}</option>
             ))}
           </select>
+          <select
+            name="statut"
+            defaultValue={statut ?? ""}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30"
+          >
+            <option value="">Tous les statuts</option>
+            <option value="BROUILLON">Brouillon</option>
+            <option value="EN_VIGUEUR">En vigueur</option>
+            <option value="ARCHIVE">Archivé</option>
+          </select>
           <button
             type="submit"
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
           >
             Filtrer
           </button>
-          {chantierId && (
+          {(chantierId || statut) && (
             <Link
               href="/qualite/paq"
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition"
@@ -153,11 +166,11 @@ export default async function PAQPage({
         <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center">
           <p className="text-2xl">📋</p>
           <p className="mt-2 font-medium text-slate-600">
-            {chantierId ? "Aucun PAQ pour ce chantier" : "Aucun Plan d’Assurance Qualité"}
+            {chantierId || statut ? "Aucun PAQ pour ces critères" : "Aucun Plan d’Assurance Qualité"}
           </p>
           <p className="mt-1 text-sm text-slate-400">
-            {chantierId
-              ? "Créez un PAQ pour ce chantier via le formulaire ci-dessus."
+            {chantierId || statut
+              ? "Modifiez les filtres ci-dessus ou créez un nouveau PAQ."
               : "Créez votre premier PAQ via le formulaire ci-dessus."}
           </p>
         </div>

@@ -97,8 +97,8 @@ export default async function LivretAccueilPage({
   const adresseSDA   = parametres?.adresse ?? COMPANY.adresse;
   const villeSDA     = [parametres?.codePostal, parametres?.ville].filter(Boolean).join(" ") || `${COMPANY.codePostal} ${COMPANY.ville}`;
   const telSDA       = parametres?.telephone ?? COMPANY.telephone;
-  const emailBase    = parametres?.email ?? COMPANY.email;
-  const emailSDA     = parametres?.emailPersonnalise ? `${emailBase} · ${parametres.emailPersonnalise}` : emailBase;
+  const emailSDA           = parametres?.email ?? COMPANY.email;
+  const emailPersonnaliseSDA = parametres?.emailPersonnalise ?? null;
   const siretSDA     = parametres?.siret ?? COMPANY.siren;
   const tvaSDA       = parametres?.tvaIntracom ?? COMPANY.tvaIntracommunautaire;
 
@@ -192,6 +192,7 @@ export default async function LivretAccueilPage({
             <p className="text-sm font-bold text-[#1E2F6E]">{nomEntreprise}</p>
             <p className="text-xs text-slate-500">{adresseSDA} — {villeSDA}</p>
             <p className="text-xs text-slate-500">{telSDA} · {emailSDA} · sda-renovation.com</p>
+            {emailPersonnaliseSDA && <p className="text-xs text-slate-500">{emailPersonnaliseSDA}</p>}
           </div>
         </div>
 
@@ -214,7 +215,7 @@ export default async function LivretAccueilPage({
               { label: "Entreprise",              value: nomEntreprise },
               { label: "Adresse",                 value: `${adresseSDA} — ${villeSDA}` },
               { label: "Téléphone",               value: telSDA },
-              { label: "Courriel",                value: emailSDA },
+              { label: "Courriel",                value: emailPersonnaliseSDA ? `${emailSDA} · ${emailPersonnaliseSDA}` : emailSDA },
               { label: "SIRET / Identifiant",     value: siretSDA },
               { label: "TVA intracommunautaire",  value: tvaSDA },
             ]} />

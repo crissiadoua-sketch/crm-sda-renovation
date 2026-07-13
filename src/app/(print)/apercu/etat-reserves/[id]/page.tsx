@@ -46,7 +46,8 @@ export default async function ApercuEtatReservesPage({
               <img src="/logo.png" alt="SDA Rénovation" className="h-12 w-auto object-contain mb-2" />
               <div className="text-xs text-slate-500 space-y-0.5">
                 <p>{parametres?.adresse ?? COMPANY.adresse} — {villeSociete || `${COMPANY.codePostal} ${COMPANY.ville}`}</p>
-                <p>{parametres?.telephone ?? COMPANY.telephone} · {parametres?.email ?? COMPANY.email}{parametres?.emailPersonnalise ? ` · ${parametres.emailPersonnalise}` : ""}</p>
+                <p>{parametres?.telephone ?? COMPANY.telephone} · {parametres?.email ?? COMPANY.email}</p>
+                {parametres?.emailPersonnalise && <p>{parametres.emailPersonnalise}</p>}
                 {parametres?.siret && <p>Siren : {parametres.siret} · TVA : {parametres.tvaIntracom}</p>}
               </div>
             </div>

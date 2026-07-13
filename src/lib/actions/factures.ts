@@ -5,6 +5,51 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { prochainNumeroDocument } from "@/lib/codification";
 
+export async function creerFactureTotaleDepuisDevis(devisId: string): Promise<void> {
+  const devis = await prisma.devis.findUnique({
+    where: { id: devisId },
+    include: { lignes: { orderBy: { ordre: "asc" } } },
+  });
+  if (!devis) redirect("/factures");
+
+  const factures = await prisma.facture.findMany({ select: { numero: true } });
+  const numero = await prochainNumeroDocument("FAC", factures.map((f) => f.numero));
+
+  const totalHT  = devis.lignes.reduce((s, l) => s + (l.totalHT ?? 0), 0);
+  const totalTVA = devis.lignes.reduce((s, l) => s + (l.totalHT ?? 0) * ((l.tauxTVA ?? 0) / 100), 0);
+
+  const facture = await prisma.facture.create({
+    data: {
+      numero,
+      devisId,
+      chantierId: devis.chantierId,
+      clientId:   devis.clientId,
+      statut: "BROUILLON",
+      type:   "STANDARD",
+      totalHT,
+      totalTVA,
+      totalTTC: totalHT + totalTVA,
+      lignes: {
+        create: devis.lignes.map((l) => ({
+          ordre:          l.ordre,
+          type:           l.type,
+          codeArticle:    l.codeArticle,
+          designation:    l.designation,
+          unite:          l.unite,
+          quantite:       l.quantite,
+          prixUnitaireHT: l.prixUnitaireHT,
+          remise:         l.remise,
+          tauxTVA:        l.tauxTVA,
+          totalHT:        l.totalHT,
+        })),
+      },
+    },
+  });
+
+  revalidatePath("/factures");
+  redirect(`/factures/${facture.id}`);
+}
+
 export async function creerFactureLibre(formData: FormData): Promise<void> {
   const chantierId = formData.get("chantierId") as string;
   const type = (formData.get("type") as string) || "STANDARD";

@@ -14,6 +14,7 @@ import {
   updateMentionsDevis,
   genererLienSignature,
 } from "@/lib/actions/devis";
+import { creerFactureTotaleDepuisDevis } from "@/lib/actions/factures";
 import { PlanificationFacturationModal } from "@/components/devis/planification-facturation-modal";
 import { SignatureSection } from "@/components/devis/signature-section";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -241,6 +242,16 @@ export default async function DevisDetailPage({
             Créer BC Béton
           </Link>
         )}
+        <form action={creerFactureTotaleDepuisDevis.bind(null, devis.id)}>
+          <button
+            type="submit"
+            className={buttonClasses("secondary")}
+            title="Crée une facture brouillon avec toutes les lignes de ce devis"
+          >
+            <Receipt className="h-4 w-4" />
+            Facturer ce devis
+          </button>
+        </form>
       </div>
 
       {devis.avenants.length > 0 && (

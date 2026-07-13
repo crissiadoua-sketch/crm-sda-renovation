@@ -21,7 +21,7 @@ export default async function BcFournituresDetailPage({
         lignes:      { orderBy: { ordre: "asc" } },
       },
     }),
-    prisma.fournisseur.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+    prisma.fournisseur.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, email: true, telephone: true } }),
   ]);
 
   if (!bcf) notFound();

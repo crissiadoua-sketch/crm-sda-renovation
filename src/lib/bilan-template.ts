@@ -22,27 +22,42 @@ export async function calculerBilan(annee: number) {
   ]);
 
   // Solde de clôture du relevé bancaire le plus récent de l'exercice → Disponibilités auto
-  const releveAvecSolde = await prisma.releveBancaire.findFirst({
-    where: {
-      soldeFin: { not: null },
-      dateImport: { gte: new Date(annee, 0, 1), lte: new Date(annee, 11, 31, 23, 59, 59) },
-    },
-    orderBy: { dateImport: "desc" },
-    select: { soldeFin: true, dateImport: true, nom: true, banque: true },
-  });
+  const [releveAvecSolde, creancesAgg, encaissementsAgg, dettesFournAgg] = await Promise.all([
+    prisma.releveBancaire.findFirst({
+      where: {
+        soldeFin: { not: null },
+        dateImport: { gte: new Date(annee, 0, 1), lte: new Date(annee, 11, 31, 23, 59, 59) },
+      },
+      orderBy: { dateImport: "desc" },
+      select: { soldeFin: true, dateImport: true, nom: true, banque: true },
+    }),
+    // Créances clients = toutes factures en attente de paiement (par statut, pas par date)
+    prisma.facture.aggregate({
+      _sum: { totalTTC: true, montantPaye: true },
+      where: { statut: { in: ["ENVOYEE", "PAYEE_PARTIELLE", "EN_RETARD"] } },
+    }),
+    // Encaissements sur l'exercice
+    prisma.paiement.aggregate({
+      _sum: { montant: true },
+      where: { date: { gte: debut, lte: fin } },
+    }),
+    // Dettes fournisseurs = BCs confirmés/envoyés non encore réglés
+    prisma.bonCommande.aggregate({
+      _sum: { totalTTC: true },
+      where: { statut: { in: ["CONFIRME", "ENVOYE"] } },
+    }),
+  ]);
 
   const b = bilan ?? ({} as Partial<NonNullable<typeof bilan>>);
   const n = (v: number | null | undefined) => v ?? 0;
 
-  // Créances clients = factures non annulées émises sur l'exercice, restant dues (TTC - payé).
-  const facturesPeriode = await prisma.facture.findMany({
-    where: { dateEmission: { gte: debut, lte: fin }, statut: { not: "ANNULEE" } },
-    select: { totalTTC: true, montantPaye: true },
-  });
-  const creancesClientsAuto = facturesPeriode.reduce(
-    (s, f) => s + Math.max(0, f.totalTTC - f.montantPaye),
+  // Créances clients = somme(totalTTC - montantPaye) sur toutes les factures en attente
+  const creancesClientsAuto = Math.max(
     0,
+    (creancesAgg._sum.totalTTC ?? 0) - (creancesAgg._sum.montantPaye ?? 0),
   );
+  const encaissementsAuto = encaissementsAgg._sum.montant ?? 0;
+  const dettesFournisseursAuto = dettesFournAgg._sum.totalTTC ?? 0;
 
   const caHT = donnees.caHT;
   const achatsHT = donnees.totalAchHT;
@@ -156,6 +171,8 @@ export async function calculerBilan(annee: number) {
     achatsHT,
     chargesHT,
     creancesClientsAuto,
+    encaissementsAuto,
+    dettesFournisseursAuto,
 
     actif: {
       capitalSouscritNonAppele,

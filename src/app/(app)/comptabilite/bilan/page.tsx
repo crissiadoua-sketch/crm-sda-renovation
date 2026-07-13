@@ -75,8 +75,8 @@ export default async function BilanPage({
         </button>
       </form>
 
-      {/* Synthèse */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* Synthèse — KPIs calculés automatiquement depuis Prisma */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-xs text-slate-400 mb-1">Total Actif</p>
           <p className="text-xl font-bold text-brand-navy">{formatEuros(data.actif.totalActif)}</p>
@@ -92,15 +92,28 @@ export default async function BilanPage({
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-slate-400 mb-1">Écart Actif − Passif</p>
-          <p className={`text-xl font-bold ${Math.abs(data.equilibre) < 0.01 ? "text-emerald-700" : "text-amber-600"}`}>
-            {formatEuros(data.equilibre)}
-          </p>
-          {Math.abs(data.equilibre) >= 0.01 && (
-            <p className="text-xs text-amber-600 mt-0.5">Complétez les lignes manquantes pour équilibrer.</p>
-          )}
+          <p className="text-xs text-slate-400 mb-1">Créances clients</p>
+          <p className="text-xl font-bold text-amber-600">{formatEuros(data.creancesClientsAuto)}</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Factures envoyées / en retard</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-slate-400 mb-1">Encaissements {annee}</p>
+          <p className="text-xl font-bold text-emerald-600">{formatEuros(data.encaissementsAuto)}</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Paiements clients reçus</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-slate-400 mb-1">Dettes fournisseurs</p>
+          <p className="text-xl font-bold text-red-600">{formatEuros(data.dettesFournisseursAuto)}</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">BC confirmés / envoyés</p>
         </div>
       </div>
+
+      {/* Écart Actif/Passif */}
+      {Math.abs(data.equilibre) >= 0.01 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Écart Actif − Passif : <strong>{formatEuros(data.equilibre)}</strong> — complétez les lignes manuelles (immobilisations, capitaux propres, emprunts) pour équilibrer le bilan.
+        </div>
+      )}
 
       {/* Bilan Actif / Passif */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

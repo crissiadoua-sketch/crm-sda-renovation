@@ -20,7 +20,7 @@ export default async function TVAPage({
   const debut = new Date(annee, 0, 1);
   const fin = new Date(annee, 11, 31, 23, 59, 59);
 
-  const [facturesData, paiementsData, bonsCommande, contratsAL] = await Promise.all([
+  const [facturesData, paiementsData, bonsCommande, contratsAL, facturesFourn] = await Promise.all([
     regime === "debit"
       ? prisma.facture.findMany({
           where: { dateEmission: { gte: debut, lte: fin }, statut: { notIn: ["BROUILLON", "ANNULEE"] } },
@@ -37,6 +37,7 @@ export default async function TVAPage({
           },
         })
       : Promise.resolve([] as { montant: number; date: Date; facture: { totalHT: number; totalTVA: number; totalTTC: number } }[]),
+    // Bons de commande (achats HT uniquement — TVA déductible vient des factures fournisseurs)
     prisma.bonCommande.findMany({
       where: { dateCreation: { gte: debut, lte: fin }, statut: { in: ["CONFIRME", "RECU_PARTIEL", "RECU"] } },
       select: { totalHT: true, totalTVA: true, dateCreation: true },
@@ -50,23 +51,32 @@ export default async function TVAPage({
       },
       select: { montantHT: true, tauxTVA: true, createdAt: true, numero: true },
     }),
+    // Factures fournisseurs = source officielle TVA déductible (montantTVA sur facture reçue)
+    prisma.factureFournisseur.findMany({
+      where: { dateReception: { gte: debut, lte: fin } },
+      select: { montantTVA: true, montantHT: true, dateReception: true },
+    }),
   ]);
 
   // ── PAR MOIS ─────────────────────────────────────────────────────────
   type MoisData = {
     tvaCollectee: number;
-    tvaDeductibleBC: number;
+    tvaDeductibleBC: number;  // estimation BC (référence)
+    tvaDeductibleFF: number;  // TVA déductible officielle — source : Factures Fournisseurs
     tvaAutoLiq: number; // TVA auto-liquidation (collectée ET déductible = neutre mais à déclarer)
     caHT: number;
-    achatsHT: number;
+    achatsHT: number;  // montant HT achats (BC)
+    achatsFFHT: number; // montant HT factures fournisseurs
   };
 
   const parMois: MoisData[] = Array.from({ length: 12 }, () => ({
     tvaCollectee: 0,
     tvaDeductibleBC: 0,
+    tvaDeductibleFF: 0,
     tvaAutoLiq: 0,
     caHT: 0,
     achatsHT: 0,
+    achatsFFHT: 0,
   }));
 
   if (regime === "debit") {
@@ -85,10 +95,18 @@ export default async function TVAPage({
     });
   }
 
+  // Bons de commande : achats HT de référence + TVA déductible estimée
   bonsCommande.forEach((bc) => {
     const m = new Date(bc.dateCreation).getMonth();
     parMois[m].tvaDeductibleBC += bc.totalTVA;
     parMois[m].achatsHT += bc.totalHT;
+  });
+
+  // Factures fournisseurs : TVA déductible officielle
+  facturesFourn.forEach((ff) => {
+    const m = new Date(ff.dateReception).getMonth();
+    parMois[m].tvaDeductibleFF += ff.montantTVA;
+    parMois[m].achatsFFHT += ff.montantHT;
   });
 
   contratsAL.forEach((c) => {
@@ -99,11 +117,17 @@ export default async function TVAPage({
 
   // ── TOTAUX ANNUELS ────────────────────────────────────────────────────
   const totalTVACollectee = parMois.reduce((s, m) => s + m.tvaCollectee, 0);
-  const totalTVADeductible = parMois.reduce((s, m) => s + m.tvaDeductibleBC, 0);
+  // TVA déductible = FF en priorité (source officielle), sinon estimation BC si pas de FF
+  const totalTVADeductibleFF = parMois.reduce((s, m) => s + m.tvaDeductibleFF, 0);
+  const totalTVADeductibleBC = parMois.reduce((s, m) => s + m.tvaDeductibleBC, 0);
+  // On utilise FF si des factures fournisseurs ont été saisies, sinon BC
+  const totalTVADeductible = totalTVADeductibleFF > 0 ? totalTVADeductibleFF : totalTVADeductibleBC;
   const totalTVAAutoLiq = parMois.reduce((s, m) => s + m.tvaAutoLiq, 0);
   const totalTVANette = totalTVACollectee - totalTVADeductible;
   const totalCAHT = parMois.reduce((s, m) => s + m.caHT, 0);
   const totalAchatsHT = parMois.reduce((s, m) => s + m.achatsHT, 0);
+  const totalAchatsFFHT = parMois.reduce((s, m) => s + m.achatsFFHT, 0);
+  const hasFfData = totalTVADeductibleFF > 0;
 
   // ── TRIMESTRES ────────────────────────────────────────────────────────
   const trimestres = [
@@ -113,9 +137,14 @@ export default async function TVAPage({
     { label: "T4 (Oct–Déc)", mois: [9, 10, 11] },
   ].map(({ label, mois }) => {
     const collectee = mois.reduce((s, i) => s + parMois[i].tvaCollectee, 0);
-    const deductible = mois.reduce((s, i) => s + parMois[i].tvaDeductibleBC, 0);
+    const deductibleFF = mois.reduce((s, i) => s + parMois[i].tvaDeductibleFF, 0);
+    const deductibleBC = mois.reduce((s, i) => s + parMois[i].tvaDeductibleBC, 0);
+    const deductible = deductibleFF > 0 ? deductibleFF : deductibleBC;
     const autoLiq = mois.reduce((s, i) => s + parMois[i].tvaAutoLiq, 0);
-    return { label, collectee, deductible, autoLiq, nette: collectee - deductible };
+    const finT = new Date(annee, mois[mois.length - 1] + 1, 0);
+    const debutStr = `${annee}-${String(mois[0] + 1).padStart(2, "0")}-01`;
+    const finStr = `${annee}-${String(mois[mois.length - 1] + 1).padStart(2, "0")}-${finT.getDate().toString().padStart(2, "0")}`;
+    return { label, collectee, deductible, autoLiq, nette: collectee - deductible, debutStr, finStr };
   });
 
   return (
@@ -191,8 +220,13 @@ export default async function TVAPage({
           value={totalTVACollectee} color="emerald"
           sub={regime === "encaissements" ? `Encaissé HT : ${formatEuros(totalCAHT)}` : `CA HT : ${formatEuros(totalCAHT)}`}
         />
-        <TvaKpi label="TVA déductible (Achats)" value={totalTVADeductible} color="blue"
-          sub={`Achats HT : ${formatEuros(totalAchatsHT)}`} />
+        <TvaKpi
+          label={hasFfData ? "TVA déductible (Factures Fourn.)" : "TVA déductible (BC estimation)"}
+          value={totalTVADeductible} color="blue"
+          sub={hasFfData
+            ? `Achats HT factures : ${formatEuros(totalAchatsFFHT)}`
+            : `Achats HT BC : ${formatEuros(totalAchatsHT)} — saisissez des factures fournisseurs pour la valeur exacte`}
+        />
         <TvaKpi label="TVA auto-liquidation" value={totalTVAAutoLiq} color="violet"
           sub={`${contratsAL.length} contrat${contratsAL.length > 1 ? "s" : ""} ST`} />
         <TvaKpi
@@ -219,25 +253,41 @@ export default async function TVAPage({
                 <th className="px-4 py-2.5 text-right">CA HT</th>
                 <th className="px-4 py-2.5 text-right">TVA collectée</th>
                 <th className="px-4 py-2.5 text-right">Achats HT</th>
-                <th className="px-4 py-2.5 text-right">TVA déductible</th>
+                <th className="px-4 py-2.5 text-right">{hasFfData ? "TVA déd. (Fact. F.)" : "TVA déd. (BC)"}</th>
                 <th className="px-4 py-2.5 text-right">Auto-liq ST</th>
                 <th className="px-4 py-2.5 text-right font-bold">Solde TVA</th>
+                <th className="px-4 py-2.5 text-center">Factures</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {parMois.map((m, i) => {
-                const nette = m.tvaCollectee - m.tvaDeductibleBC;
-                const hasData = m.caHT > 0 || m.achatsHT > 0 || m.tvaAutoLiq > 0;
+                const tvaDeduct = m.tvaDeductibleFF > 0 ? m.tvaDeductibleFF : m.tvaDeductibleBC;
+                const nette = m.tvaCollectee - tvaDeduct;
+                const hasData = m.caHT > 0 || m.achatsHT > 0 || m.achatsFFHT > 0 || m.tvaAutoLiq > 0;
+                const moisNum = String(i + 1).padStart(2, "0");
                 return (
                   <tr key={i} className={`${hasData ? "hover:bg-slate-50/50" : "opacity-40"}`}>
                     <td className="px-5 py-2 font-medium text-slate-700">{MOIS[i]}</td>
                     <td className="px-4 py-2 text-right text-slate-600 text-xs">{m.caHT > 0 ? formatEuros(m.caHT) : "—"}</td>
                     <td className="px-4 py-2 text-right text-emerald-700 font-medium">{m.tvaCollectee > 0 ? formatEuros(m.tvaCollectee) : "—"}</td>
-                    <td className="px-4 py-2 text-right text-slate-600 text-xs">{m.achatsHT > 0 ? formatEuros(m.achatsHT) : "—"}</td>
-                    <td className="px-4 py-2 text-right text-blue-600 font-medium">{m.tvaDeductibleBC > 0 ? formatEuros(m.tvaDeductibleBC) : "—"}</td>
+                    <td className="px-4 py-2 text-right text-slate-600 text-xs">
+                      {(m.achatsHT > 0 || m.achatsFFHT > 0) ? formatEuros(m.achatsFFHT > 0 ? m.achatsFFHT : m.achatsHT) : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right text-blue-600 font-medium">{tvaDeduct > 0 ? formatEuros(tvaDeduct) : "—"}</td>
                     <td className="px-4 py-2 text-right text-violet-600 text-xs">{m.tvaAutoLiq > 0 ? formatEuros(m.tvaAutoLiq) : "—"}</td>
                     <td className={`px-4 py-2 text-right font-bold ${nette > 0 ? "text-brand-orange-dark" : nette < 0 ? "text-emerald-700" : "text-slate-400"}`}>
                       {hasData ? formatEuros(nette) : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      {hasData && (
+                        <a
+                          href={`/factures?annee=${annee}&mois=${moisNum}`}
+                          className="text-xs text-brand-blue hover:underline"
+                          title={`Factures de ${MOIS[i]} ${annee}`}
+                        >
+                          voir
+                        </a>
+                      )}
                     </td>
                   </tr>
                 );
@@ -248,12 +298,13 @@ export default async function TVAPage({
                 <td className="px-5 py-3 text-brand-navy">TOTAL {annee}</td>
                 <td className="px-4 py-3 text-right text-slate-600">{formatEuros(totalCAHT)}</td>
                 <td className="px-4 py-3 text-right text-emerald-700">{formatEuros(totalTVACollectee)}</td>
-                <td className="px-4 py-3 text-right text-slate-600">{formatEuros(totalAchatsHT)}</td>
+                <td className="px-4 py-3 text-right text-slate-600">{formatEuros(hasFfData ? totalAchatsFFHT : totalAchatsHT)}</td>
                 <td className="px-4 py-3 text-right text-blue-600">{formatEuros(totalTVADeductible)}</td>
                 <td className="px-4 py-3 text-right text-violet-600">{formatEuros(totalTVAAutoLiq)}</td>
                 <td className={`px-4 py-3 text-right font-bold text-lg ${totalTVANette > 0 ? "text-brand-orange-dark" : "text-emerald-700"}`}>
                   {formatEuros(totalTVANette)}
                 </td>
+                <td />
               </tr>
             </tfoot>
           </table>
@@ -288,16 +339,47 @@ export default async function TVAPage({
                   <span>{t.nette > 0 ? "À payer" : "Crédit"}</span>
                   <span>{formatEuros(Math.abs(t.nette))}</span>
                 </div>
+                <div className="flex gap-2 pt-1">
+                  <a
+                    href={`/factures?dateDebut=${t.debutStr}&dateFin=${t.finStr}`}
+                    className="text-xs text-brand-blue hover:underline"
+                  >
+                    Factures clients →
+                  </a>
+                  <a
+                    href={`/finances/fournisseurs-echeancier?dateDebut=${t.debutStr}&dateFin=${t.finStr}`}
+                    className="text-xs text-slate-500 hover:underline"
+                  >
+                    Factures fourn. →
+                  </a>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Lien vers factures et CST */}
+      {/* Note TVA déductible source */}
+      {!hasFfData && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">TVA déductible estimée depuis les bons de commande</p>
+            <p className="text-xs mt-0.5 text-amber-700">
+              Aucune facture fournisseur saisie pour {annee}. La TVA déductible est estimée d&apos;après les bons de commande confirmés.
+              Pour une CA3 précise, saisissez vos factures fournisseurs dans l&apos;échéancier fournisseurs — la TVA sera calculée sur le montant exact des factures reçues.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Liens vers les listes */}
       <div className="flex flex-wrap gap-3">
-        <Link href="/factures" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm hover:text-brand-blue hover:border-brand-blue/30 transition">
-          <Receipt className="h-4 w-4" /> Voir les factures <ArrowRight className="h-3 w-3" />
+        <Link href={`/factures?annee=${annee}`} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm hover:text-brand-blue hover:border-brand-blue/30 transition">
+          <Receipt className="h-4 w-4" /> Factures clients {annee} <ArrowRight className="h-3 w-3" />
+        </Link>
+        <Link href="/finances/fournisseurs-echeancier" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm hover:text-brand-blue hover:border-brand-blue/30 transition">
+          <ShoppingCart className="h-4 w-4" /> Factures fournisseurs <ArrowRight className="h-3 w-3" />
         </Link>
         <Link href="/contrats-sous-traitance" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm hover:text-brand-blue hover:border-brand-blue/30 transition">
           <ShoppingCart className="h-4 w-4" /> Contrats sous-traitance <ArrowRight className="h-3 w-3" />

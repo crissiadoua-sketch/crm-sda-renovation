@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useCallback } from "react";
 import Link from "next/link";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { sauvegarderBcf, supprimerBcf } from "@/lib/actions/bons-commande-fournitures";

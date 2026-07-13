@@ -142,6 +142,7 @@ export default async function TresoreiriePage({
     paiementsAnnee,
     depensesAnnee,
     bulletinsAnnee,
+    paiementsFournisseurs,
   ] = await Promise.all([
     prisma.paiement.findMany({
       where: { date: { gte: debut, lte: fin } },
@@ -233,13 +234,25 @@ export default async function TresoreiriePage({
       where: { statut: { in: ["VALIDE", "PAYE"] } },
       select: { periode: true, totalBrut: true, cotisationsPatronales: true },
     }),
+    // Paiements versés aux fournisseurs sur la période (sorties de trésorerie réelles)
+    prisma.paiementFournisseur.findMany({
+      where: { date: { gte: debut, lte: fin } },
+      include: {
+        facture: {
+          include: { fournisseur: { select: { nom: true } } },
+        },
+      },
+      orderBy: { date: "desc" },
+    }),
   ]);
 
   // ────────────────────────────────────────────────────────────────
   // TRÉSORERIE (flux de trésorerie réels)
   // ────────────────────────────────────────────────────────────────
   const caEncaisse = paiements.reduce((s, p) => s + p.montant, 0);
-  const totalDecaissements = depenses.reduce((s, d) => s + d.montant, 0);
+  const totalDepensesReelles = depenses.reduce((s, d) => s + d.montant, 0);
+  const totalPaiementsFournisseurs = paiementsFournisseurs.reduce((s, p) => s + p.montant, 0);
+  const totalDecaissements = totalDepensesReelles + totalPaiementsFournisseurs;
   const soldeTresorerie = caEncaisse - totalDecaissements;
   const totalCreances = facturesEnAttente.reduce(
     (s, f) => s + Math.max(0, f.totalTTC - f.montantPaye),
@@ -335,6 +348,9 @@ export default async function TresoreiriePage({
     .filter((b) => ["ENVOYE", "CONFIRME"].includes(b.statut))
     .reduce((s, b) => s + b.totalTTC, 0);
 
+  // Solde prévisionnel = trésorerie réelle + créances à encaisser - dettes fournisseurs engagées
+  const soldeProvisionnel = soldeTresorerie + totalCreances - dettesFournisseurs;
+
   // Graphique annuel
   const moisData = Array.from({ length: 12 }, (_, i) => ({
     mois: i,
@@ -415,7 +431,7 @@ export default async function TresoreiriePage({
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
           Flux de trésorerie — {periodeLabel}
         </h2>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Encaissé</span>
@@ -437,7 +453,14 @@ export default async function TresoreiriePage({
               </span>
             </div>
             <p className="mt-2 text-2xl font-bold text-red-600">{formatEuros(totalDecaissements)}</p>
-            <p className="text-xs text-slate-400">{depenses.length} dépense{depenses.length > 1 ? "s" : ""}</p>
+            <div className="text-xs text-slate-400 mt-0.5 space-y-0.5">
+              {totalDepensesReelles > 0 && (
+                <p>Dépenses : {formatEuros(totalDepensesReelles)}</p>
+              )}
+              {totalPaiementsFournisseurs > 0 && (
+                <p>Paiements fourn. : {formatEuros(totalPaiementsFournisseurs)}</p>
+              )}
+            </div>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -450,7 +473,7 @@ export default async function TresoreiriePage({
             <p className={`mt-2 text-2xl font-bold ${soldeTresorerie >= 0 ? "text-emerald-600" : "text-red-600"}`}>
               {formatEuros(soldeTresorerie)}
             </p>
-            <p className="text-xs text-slate-400">Encaissé − dépenses réelles</p>
+            <p className="text-xs text-slate-400">Encaissé − tous décaissements</p>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -463,6 +486,23 @@ export default async function TresoreiriePage({
             <p className="mt-2 text-2xl font-bold text-brand-orange-dark">{formatEuros(totalCreances)}</p>
             <p className="text-xs text-slate-400">
               {facturesEnAttente.length} facture{facturesEnAttente.length > 1 ? "s" : ""} en attente
+            </p>
+          </div>
+
+          <div className={`rounded-xl border p-4 shadow-sm ${soldeProvisionnel >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
+            <div className="flex items-center justify-between">
+              <span className={`text-xs font-semibold uppercase tracking-wider ${soldeProvisionnel >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+                Solde prévisionnel
+              </span>
+              <span className={`rounded-full p-1.5 ${soldeProvisionnel >= 0 ? "bg-emerald-100" : "bg-red-100"}`}>
+                <Scale className={`h-4 w-4 ${soldeProvisionnel >= 0 ? "text-emerald-700" : "text-red-700"}`} />
+              </span>
+            </div>
+            <p className={`mt-2 text-2xl font-bold ${soldeProvisionnel >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+              {formatEuros(soldeProvisionnel)}
+            </p>
+            <p className={`text-xs mt-0.5 ${soldeProvisionnel >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              Réel + créances − dettes fourn.
             </p>
           </div>
         </div>
@@ -978,6 +1018,61 @@ export default async function TresoreiriePage({
         </div>
       </div>
 
+      {/* ─── PAIEMENTS FOURNISSEURS ─── */}
+      {paiementsFournisseurs.length > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <div className="flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-red-500" />
+              <h3 className="font-semibold text-brand-navy">
+                Paiements fournisseurs — {periodeLabel}
+              </h3>
+            </div>
+            <Link href="/finances/fournisseurs-echeancier" className="text-xs font-medium text-brand-blue hover:underline">
+              Échéancier fournisseurs
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="px-5 py-3">Fournisseur</th>
+                  <th className="px-5 py-3">N° Facture</th>
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-5 py-3">Méthode</th>
+                  <th className="px-5 py-3 text-right">Montant</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paiementsFournisseurs.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50">
+                    <td className="px-5 py-2.5 font-medium text-slate-700">
+                      {p.facture.fournisseur.nom}
+                    </td>
+                    <td className="px-5 py-2.5 text-slate-500 font-mono text-xs">{p.facture.numero}</td>
+                    <td className="px-5 py-2.5 text-slate-500">{new Date(p.date).toLocaleDateString("fr-FR")}</td>
+                    <td className="px-5 py-2.5 text-slate-500">{p.methode}</td>
+                    <td className="px-5 py-2.5 text-right font-semibold text-red-600">
+                      −{formatEuros(p.montant)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t-2 border-slate-200 bg-slate-50">
+                <tr>
+                  <td colSpan={4} className="px-5 py-2.5 text-sm font-semibold text-slate-700">
+                    Total paiements fournisseurs
+                  </td>
+                  <td className="px-5 py-2.5 text-right text-sm font-bold text-red-700">
+                    −{formatEuros(totalPaiementsFournisseurs)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ─── MASSE SALARIALE ─── */}
       {bulletins.length > 0 && (
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -1240,7 +1335,8 @@ export default async function TresoreiriePage({
       <div className="flex items-start gap-2 text-xs text-slate-400">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <p>
-          Trésorerie : encaissements = paiements clients enregistrés ; décaissements = dépenses saisies dans le CRM.
+          Trésorerie : encaissements = paiements clients enregistrés ; décaissements = dépenses saisies + paiements fournisseurs enregistrés.
+          Solde prévisionnel = solde réel + créances à encaisser − dettes fournisseurs engagées (BCs confirmés/envoyés).
           Compte de résultat : base engagement — factures émises + bons de commande + bulletins de paie + notes de frais.
           IS estimé selon barème PME 2025 (15 % ≤ 42 500 € / 25 % au-delà) — calcul définitif établi par votre expert-comptable.
           Saisir amortissements, loyer, assurances et investissements via le module Dépenses (catégories dédiées).

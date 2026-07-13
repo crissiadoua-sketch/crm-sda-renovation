@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { formatEuros, formatDate } from "@/lib/format";
 import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
@@ -23,12 +23,12 @@ type EmailAction = (prev: unknown, formData: FormData) => Promise<{ ok: boolean;
 type Props = {
   variantes: Variante[];
   chantierId: string;
-  tokenExistant?: string | null;
+  chantierNom: string;
   clientEmail: string;
   retenirAction: (id: string, chantierId: string) => Promise<void>;
   supprimerAction: (id: string, chantierId: string) => Promise<void>;
   envoyerAction: (chantierId: string, ids: string[]) => Promise<void>;
-  genererLienAction: (chantierId: string) => Promise<string>;
+  envoyerVariantesAction: EmailAction;
   genererSyntheseAction: (chantierId: string) => Promise<{ synthese: string } | { error: string }>;
   emailDevisActions: Record<string, EmailAction>;
 };
@@ -36,27 +36,23 @@ type Props = {
 export function ComparaisonActions({
   variantes,
   chantierId,
-  tokenExistant,
+  chantierNom,
   clientEmail,
   retenirAction,
   supprimerAction,
   envoyerAction,
-  genererLienAction,
+  envoyerVariantesAction,
   genererSyntheseAction,
   emailDevisActions,
 }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set(variantes.map((v) => v.id)));
   const [sending, setSending] = useState(false);
-  const [lienToken, setLienToken] = useState<string | null>(tokenExistant ?? null);
-  const [copiedLien, setCopiedLien] = useState(false);
 
   // Synthèse IA
   const [syntheseIA, setSyntheseIA] = useState<string | null>(null);
   const [syntheseError, setSyntheseError] = useState<string | null>(null);
   const [generatingIA, setGeneratingIA] = useState(false);
   const [copiedSynthese, setCopiedSynthese] = useState(false);
-
-  const [, startTransition] = useTransition();
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -71,13 +67,6 @@ export function ComparaisonActions({
     setSending(true);
     await envoyerAction(chantierId, [...selected]);
     setSending(false);
-  }
-
-  function handleGenererLien() {
-    startTransition(async () => {
-      const token = await genererLienAction(chantierId);
-      setLienToken(token);
-    });
   }
 
   async function handleGenererSynthese() {
@@ -97,18 +86,6 @@ export function ComparaisonActions({
     navigator.clipboard.writeText(syntheseIA).then(() => {
       setCopiedSynthese(true);
       setTimeout(() => setCopiedSynthese(false), 2500);
-    });
-  }
-
-  const lienClient = lienToken
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/selection-variante/${lienToken}`
-    : null;
-
-  function copierLien() {
-    if (!lienClient) return;
-    navigator.clipboard.writeText(lienClient).then(() => {
-      setCopiedLien(true);
-      setTimeout(() => setCopiedLien(false), 2000);
     });
   }
 
@@ -217,44 +194,18 @@ export function ComparaisonActions({
         )}
       </div>
 
-      {/* ── Lien de sélection client ───────────────────────────────────────── */}
+      {/* ── Envoyer les variantes au client ───────────────────────────────── */}
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
-        <p className="text-sm font-semibold text-emerald-800 mb-1">🔗 Lien de sélection client</p>
+        <p className="text-sm font-semibold text-emerald-800 mb-1">✉ Envoyer les variantes au client</p>
         <p className="text-xs text-slate-500 mb-3">
-          Envoyez ce lien à votre client. Il pourra comparer les variantes et valider celle qui lui convient — la variante retenue passe automatiquement en statut Accepté.
+          Le client reçoit un email avec toutes les offres. Il clique sur celle qui lui convient, la consulte et la signe électroniquement — elle passe automatiquement en statut Accepté.
         </p>
-        {lienClient ? (
-          <div className="flex flex-wrap gap-2 items-center">
-            <input
-              type="text"
-              readOnly
-              value={lienClient}
-              className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-mono text-slate-600 focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={copierLien}
-              className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition whitespace-nowrap"
-            >
-              {copiedLien ? "✓ Copié !" : "Copier le lien"}
-            </button>
-            <button
-              type="button"
-              onClick={handleGenererLien}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 hover:bg-slate-50 transition whitespace-nowrap"
-            >
-              Regénérer
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={handleGenererLien}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition"
-          >
-            Générer le lien client
-          </button>
-        )}
+        <EnvoyerEmailModal
+          action={envoyerVariantesAction}
+          defaultTo={clientEmail}
+          documentLabel={`les ${variantes.length} offre${variantes.length > 1 ? "s" : ""}`}
+          defaultSubject={`Vos offres — ${chantierNom} — SDA Rénovation`}
+        />
       </div>
 
       {/* ── Envoyer groupé ────────────────────────────────────────────────── */}

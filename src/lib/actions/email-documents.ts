@@ -322,6 +322,117 @@ export async function envoyerDevisParEmail(
 }
 
 // ---------------------------------------------------------------------------
+// Variantes de devis — envoi groupé client (toutes les offres en un email)
+// ---------------------------------------------------------------------------
+export async function envoyerVariantesGroupeesParEmail(
+  chantierId: string,
+  _prev: unknown,
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  const to = (formData.get("to") as string)?.trim();
+  const message = (formData.get("message") as string) ?? "";
+  const customSubject = (formData.get("subject") as string)?.trim() || undefined;
+  const cc = (formData.get("cc") as string)?.trim() || undefined;
+  const bcc = (formData.get("bcc") as string)?.trim() || undefined;
+
+  if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
+
+  const [signataire, chantier] = await Promise.all([
+    getSignataire(),
+    prisma.chantier.findUnique({
+      where: { id: chantierId },
+      include: { client: { select: { prenom: true, nom: true, raisonSociale: true } } },
+    }),
+  ]);
+
+  if (!chantier) return { ok: false, error: "Chantier introuvable." };
+
+  const variantes = await prisma.devis.findMany({
+    where: { chantierId, statut: { in: ["BROUILLON", "ENVOYE"] }, type: "INITIAL" },
+    orderBy: { totalTTC: "asc" },
+  });
+
+  if (variantes.length === 0) return { ok: false, error: "Aucune variante disponible à envoyer." };
+
+  // Génère un token de signature pour chaque variante si absent + passe en ENVOYE
+  const variantesAvecToken = await Promise.all(
+    variantes.map(async (v) => {
+      let token = v.signatureToken;
+      if (!token) {
+        token = randomBytes(32).toString("hex");
+        await prisma.devis.update({ where: { id: v.id }, data: { signatureToken: token, statut: "ENVOYE" } });
+      } else if (v.statut === "BROUILLON") {
+        await prisma.devis.update({ where: { id: v.id }, data: { statut: "ENVOYE" } });
+      }
+      return { ...v, signatureToken: token };
+    }),
+  );
+
+  function badgeStyle(objet: string | null): { label: string; bg: string; color: string } {
+    const o = (objet ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+    if (o.includes("ECONOMIQUE")) return { label: "Économique", bg: "#dcfce7", color: "#166534" };
+    if (o.includes("OPTIMISEE") || o.includes("OPTIMISE")) return { label: "Optimisée", bg: "#dbeafe", color: "#1e40af" };
+    if (o.includes("COMPLETE")) return { label: "Complète", bg: "#ede9fe", color: "#5b21b6" };
+    if (o.includes("PREMIUM")) return { label: "Premium ✦", bg: "#fef3c7", color: "#92400e" };
+    return { label: "Offre", bg: "#f1f5f9", color: "#475569" };
+  }
+
+  const cardsHtml = variantesAvecToken.map((v) => {
+    const badge = badgeStyle(v.objet);
+    const lien = `${APP_URL}/devis/consulter/${v.signatureToken}`;
+    return `
+<div style="border:1px solid #e2e8f0;border-radius:10px;padding:20px 24px;margin-bottom:14px">
+  <div style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-size:12px;color:#64748b;font-family:monospace;font-weight:600">${v.numero}</span>
+      <span style="padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:700;background:${badge.bg};color:${badge.color}">${badge.label}</span>
+    </div>
+    <p style="margin:0;font-size:26px;font-weight:700;color:#1E2F6E;letter-spacing:-0.5px">${formatEuros(v.totalTTC ?? 0)} <span style="font-size:13px;font-weight:400;color:#64748b">TTC</span></p>
+    <p style="margin:3px 0 0;font-size:12px;color:#94a3b8">${formatEuros(v.totalHT ?? 0)} HT · ${formatEuros(v.totalTVA ?? 0)} TVA</p>
+    ${v.objet ? `<p style="margin:6px 0 0;font-size:13px;color:#334155;font-style:italic">${v.objet}</p>` : ""}
+  </div>
+  <a href="${lien}" style="display:inline-block;background:#1E2F6E;color:#ffffff;text-decoration:none;padding:10px 24px;border-radius:7px;font-size:14px;font-weight:600;letter-spacing:0.1px">Voir et signer ce devis →</a>
+</div>`;
+  }).join("");
+
+  const nb = variantesAvecToken.length;
+  const clientPrenom = chantier.client?.prenom ?? null;
+
+  const corps = salutation(clientPrenom, message)
+    + `<p style="margin:0 0 20px;font-size:14px;color:#334155;line-height:1.6">
+      Nous avons préparé <strong>${nb} offre${nb > 1 ? "s" : ""}</strong> pour votre projet <strong>${chantier.nom}</strong>.
+      Comparez-les ci-dessous et cliquez sur le bouton de l'offre qui vous convient pour la consulter et la signer électroniquement.
+    </p>`
+    + cardsHtml
+    + `<p style="margin:16px 0 0;font-size:12px;color:#94a3b8;line-height:1.6">
+      Votre signature électronique sera demandée lors de la consultation. Une fois signé, votre choix est définitivement enregistré et nous en serons notifiés immédiatement.
+    </p>`
+    + signature();
+
+  const subject = customSubject ?? `Vos offres — ${chantier.nom} — SDA Rénovation`;
+
+  const result = await sendAndLog(
+    {
+      from: fromAddress(signataire),
+      replyTo: replyToAddress(signataire),
+      to,
+      subject,
+      html: emailLayout(`Vos offres — ${chantier.nom}`, corps, signataire),
+      text: `Bonjour,\n\n${message ? message + "\n\n" : ""}${nb} offre${nb > 1 ? "s" : ""} pour votre projet ${chantier.nom} :\n\n`
+        + variantesAvecToken.map((v) => `• ${v.numero} — ${formatEuros(v.totalTTC ?? 0)} TTC${v.objet ? ` (${v.objet})` : ""}\n  ${APP_URL}/devis/consulter/${v.signatureToken}`).join("\n\n")
+        + `\n\nCordialement,\nSDA Rénovation`,
+      cc,
+      bcc,
+    },
+    { type: "variantes", documentId: chantierId, documentRef: chantier.nom, sentBy: signataire?.name ?? "CRM" },
+  );
+
+  revalidatePath(`/devis/comparer/${chantierId}`);
+  revalidatePath("/devis");
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Facture
 // ---------------------------------------------------------------------------
 export async function envoyerFactureParEmail(

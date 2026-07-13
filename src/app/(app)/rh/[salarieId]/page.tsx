@@ -86,9 +86,18 @@ export default async function SalarieDetailPage({
         </div>
       </div>
 
-      {salarie.bulletins.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-3 font-semibold text-brand-navy">Bulletins de paie</h3>
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 className="mb-3 font-semibold text-brand-navy">
+          Bulletins de paie{salarie.bulletins.length > 0 && <span className="ml-2 text-sm font-normal text-slate-400">({salarie.bulletins.length})</span>}
+        </h3>
+        {salarie.bulletins.length === 0 ? (
+          <p className="py-6 text-center text-sm text-slate-400">
+            Aucun bulletin enregistré pour ce salarié.{" "}
+            <Link href={`/rh/${salarieId}/bulletins/nouveau`} className="text-brand-blue hover:underline">
+              Créer le premier bulletin →
+            </Link>
+          </p>
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -130,8 +139,8 @@ export default async function SalarieDetailPage({
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h3 className="mb-4 font-semibold text-brand-navy">Modifier la fiche salarié</h3>

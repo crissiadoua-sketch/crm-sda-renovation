@@ -28,14 +28,22 @@ const statutLabels: Record<string, string> = {
   REMBOURSEE: "Remboursée",
 };
 
-export default async function NotesDeFraisPage() {
-  const notes = await prisma.noteDeFrais.findMany({
+export default async function NotesDeFraisPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ statut?: string }>;
+}) {
+  const { statut } = await searchParams;
+
+  const toutesNotes = await prisma.noteDeFrais.findMany({
     orderBy: { date: "desc" },
     include: { chantier: true },
   });
 
-  const total = notes.reduce((sum, n) => sum + n.montant, 0);
-  const enAttente = notes.filter((n) => n.statut === "EN_ATTENTE");
+  const notes = statut ? toutesNotes.filter((n) => n.statut === statut) : toutesNotes;
+
+  const total = toutesNotes.reduce((sum, n) => sum + n.montant, 0);
+  const enAttente = toutesNotes.filter((n) => n.statut === "EN_ATTENTE");
   const totalEnAttente = enAttente.reduce((sum, n) => sum + n.montant, 0);
 
   return (
@@ -54,7 +62,7 @@ export default async function NotesDeFraisPage() {
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-slate-500">Total des dépenses</p>
           <p className="mt-1 text-2xl font-bold text-brand-navy">{formatEuros(total)}</p>
-          <p className="mt-1 text-xs text-slate-400">{notes.length} note{notes.length > 1 ? "s" : ""}</p>
+          <p className="mt-1 text-xs text-slate-400">{toutesNotes.length} note{toutesNotes.length > 1 ? "s" : ""}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-slate-500">En attente de validation</p>
@@ -64,13 +72,40 @@ export default async function NotesDeFraisPage() {
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-slate-500">Remboursées</p>
           <p className="mt-1 text-2xl font-bold text-green-600">
-            {formatEuros(notes.filter((n) => n.statut === "REMBOURSEE").reduce((s, n) => s + n.montant, 0))}
+            {formatEuros(toutesNotes.filter((n) => n.statut === "REMBOURSEE").reduce((s, n) => s + n.montant, 0))}
           </p>
           <p className="mt-1 text-xs text-slate-400">
-            {notes.filter((n) => n.statut === "REMBOURSEE").length} note
-            {notes.filter((n) => n.statut === "REMBOURSEE").length > 1 ? "s" : ""}
+            {toutesNotes.filter((n) => n.statut === "REMBOURSEE").length} note
+            {toutesNotes.filter((n) => n.statut === "REMBOURSEE").length > 1 ? "s" : ""}
           </p>
         </div>
+      </div>
+
+      {/* Filtres statut */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          { key: "", label: "Toutes" },
+          { key: "EN_ATTENTE", label: "En attente" },
+          { key: "VALIDEE", label: "Validées" },
+          { key: "REMBOURSEE", label: "Remboursées" },
+        ].map(({ key, label }) => (
+          <Link
+            key={key}
+            href={key ? `/notes-de-frais?statut=${key}` : "/notes-de-frais"}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+              (statut ?? "") === key
+                ? "border-brand-navy bg-brand-navy text-white"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+            }`}
+          >
+            {label}
+          </Link>
+        ))}
+        {statut && (
+          <span className="ml-2 text-xs text-slate-400 self-center">
+            {notes.length} résultat{notes.length > 1 ? "s" : ""}
+          </span>
+        )}
       </div>
 
       {notes.length === 0 ? (

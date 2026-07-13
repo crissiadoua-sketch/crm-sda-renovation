@@ -33,20 +33,26 @@ const statutFiltreLabels: { key: string; label: string }[] = [
 export default async function RHPage({
   searchParams,
 }: {
-  searchParams: Promise<{ statut?: string }>;
+  searchParams: Promise<{ statut?: string; typeContrat?: string }>;
 }) {
-  const { statut } = await searchParams;
+  const { statut, typeContrat } = await searchParams;
 
   const tousSalaries = await prisma.salarie.findMany({
     orderBy: { nom: "asc" },
     include: { _count: { select: { bulletins: true } } },
   });
 
-  const salaries = statut ? tousSalaries.filter((s) => s.statutRH === statut) : tousSalaries;
+  const salaries = tousSalaries.filter((s) => {
+    if (statut && s.statutRH !== statut) return false;
+    if (typeContrat && s.typeContrat !== typeContrat) return false;
+    return true;
+  });
 
   const actifs = tousSalaries.filter((s) => s.statutRH === "ACTIF");
   const enConge = tousSalaries.filter((s) => s.statutRH === "CONGE").length;
   const masseSalariale = actifs.reduce((s, e) => s + e.salaireBase, 0);
+  const cdiCount = tousSalaries.filter((s) => s.typeContrat === "CDI").length;
+  const cddCount = tousSalaries.filter((s) => s.typeContrat === "CDD").length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,7 +66,7 @@ export default async function RHPage({
         <LinkButton href="/rh/nouveau">+ Nouveau salarié</LinkButton>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-slate-500">Salariés actifs</p>
           <p className="mt-1 text-2xl font-bold text-brand-navy">{actifs.length}</p>
@@ -78,23 +84,59 @@ export default async function RHPage({
           <p className="mt-1 text-2xl font-bold text-brand-navy">{tousSalaries.length}</p>
           <p className="text-xs text-slate-400">{tousSalaries.length - actifs.length} inactif(s)</p>
         </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-slate-500">CDI</p>
+          <p className="mt-1 text-2xl font-bold text-brand-navy">{cdiCount}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-slate-500">CDD</p>
+          <p className="mt-1 text-2xl font-bold text-brand-navy">{cddCount}</p>
+        </div>
       </div>
 
       {/* Filtres statut */}
       <div className="flex flex-wrap gap-2">
-        {statutFiltreLabels.map(({ key, label }) => (
-          <Link
-            key={key}
-            href={key ? `/rh?statut=${key}` : "/rh"}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-              (statut ?? "") === key
-                ? "border-brand-navy bg-brand-navy text-white"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-            }`}
-          >
-            {label}
-          </Link>
-        ))}
+        {statutFiltreLabels.map(({ key, label }) => {
+          const qs = [key && `statut=${key}`, typeContrat && `typeContrat=${typeContrat}`].filter(Boolean).join("&");
+          return (
+            <Link
+              key={key}
+              href={`/rh${qs ? "?" + qs : ""}`}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                (statut ?? "") === key
+                  ? "border-brand-navy bg-brand-navy text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              }`}
+            >
+              {label}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Filtre type de contrat */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          { key: "", label: "Tous types" },
+          { key: "CDI", label: "CDI" },
+          { key: "CDD", label: "CDD" },
+          { key: "APPRENTISSAGE", label: "Apprentissage" },
+        ].map(({ key, label }) => {
+          const qs = [statut && `statut=${statut}`, key && `typeContrat=${key}`].filter(Boolean).join("&");
+          return (
+            <Link
+              key={key}
+              href={`/rh${qs ? "?" + qs : ""}`}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                (typeContrat ?? "") === key
+                  ? "border-brand-blue bg-brand-blue text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              }`}
+            >
+              {label}
+            </Link>
+          );
+        })}
       </div>
 
       {salaries.length === 0 ? (
@@ -117,6 +159,7 @@ export default async function RHPage({
                 <th className="px-4 py-3">Qualification</th>
                 <th className="px-4 py-3 text-right">Salaire de base</th>
                 <th className="px-4 py-3">Embauche</th>
+                <th className="px-4 py-3">Contrat</th>
                 <th className="px-4 py-3">Statut</th>
                 <th className="px-4 py-3">Bulletins</th>
               </tr>
@@ -144,6 +187,11 @@ export default async function RHPage({
                     {formatEuros(s.salaireBase)}
                   </td>
                   <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(s.dateEmbauche)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${s.typeContrat === "CDI" ? "bg-green-100 text-green-700" : s.typeContrat === "CDD" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"}`}>
+                      {s.typeContrat}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <Badge tone={statutTones[s.statutRH] ?? "gray"}>
                       {statutLabels[s.statutRH] ?? s.statutRH}

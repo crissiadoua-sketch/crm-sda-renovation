@@ -17,14 +17,15 @@ const STATUT_CONFIG: Record<string, { label: string; tone: "green" | "blue" | "o
 export default async function OrdresMissionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; chantierId?: string }>;
 }) {
-  const { q, statut } = await searchParams;
+  const { q, statut, chantierId } = await searchParams;
 
   const [oms, interimaires] = await Promise.all([
     prisma.ordreMission.findMany({
       where: {
         ...(statut ? { statut } : {}),
+        ...(chantierId ? { chantierId } : {}),
         ...(q ? {
           OR: [
             { numero: { contains: q } },

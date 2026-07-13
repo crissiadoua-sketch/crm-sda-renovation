@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { ChantierForm } from "@/components/chantiers/chantier-form";
 import { ChecklistDocuments } from "@/components/chantiers/checklist-documents";
 import { updateChantier, deleteChantier } from "@/lib/actions/chantiers";
@@ -674,6 +675,34 @@ export default async function ChantierDetailPage({
               ))}
             </ul>
           )}
+        </section>
+
+        {/* Exploitation & suivi terrain */}
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="mb-3 font-semibold text-brand-navy">Exploitation &amp; suivi terrain</h3>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {[
+              { label: "Fiches intervention",  href: `/exploitation/fiches-intervention?chantierId=${chantier.id}` },
+              { label: "Rapports hebdo",        href: `/exploitation/rapports-hebdo?chantierId=${chantier.id}` },
+              { label: "Non-conformités",       href: `/exploitation/non-conformites?chantierId=${chantier.id}` },
+              { label: "Bons de travaux",       href: `/exploitation/bons-travaux?chantierId=${chantier.id}` },
+              { label: "États des réserves",    href: `/etats-reserves?chantierId=${chantier.id}` },
+              { label: "Ordres de mission",     href: `/ordres-mission?chantierId=${chantier.id}` },
+              { label: "Mémoire technique",     href: `/memoires-techniques?chantierId=${chantier.id}` },
+              { label: "PAQ",                   href: `/qualite/paq?chantierId=${chantier.id}` },
+              { label: "PPSPS",                 href: `/ppsps?chantierId=${chantier.id}` },
+              { label: "DOE",                   href: `/doe?chantierId=${chantier.id}` },
+            ].map(({ label, href }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:border-brand-blue/40 hover:bg-blue-50 hover:text-brand-navy transition"
+              >
+                {label}
+                <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+              </Link>
+            ))}
+          </div>
         </section>
 
         {/* Documents */}

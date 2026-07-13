@@ -18,8 +18,14 @@ const statutLabels: Record<string, string> = {
   LEVE: "Réserves levées",
 };
 
-export default async function EtatsReservesPage() {
+export default async function EtatsReservesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ chantierId?: string }>;
+}) {
+  const { chantierId } = await searchParams;
   const etats = await prisma.etatReserves.findMany({
+    where: chantierId ? { chantierId } : undefined,
     orderBy: { dateDocument: "desc" },
     include: { chantier: true, client: true },
   });

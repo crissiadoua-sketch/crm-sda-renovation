@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   const debut = new Date(annee, 0, 1);
   const fin = new Date(annee, 11, 31, 23, 59, 59);
 
-  const [factures, depenses, bonsCommande, bulletins, lignesBancaires] = await Promise.all([
+  const [factures, depenses, bonsCommande, bulletins, lignesBancaires, facturesFournisseur] = await Promise.all([
     prisma.facture.findMany({
       where: { dateEmission: { gte: debut, lte: fin }, statut: { notIn: ["BROUILLON", "ANNULEE"] } },
       include: { client: { select: { nom: true, reference: true } } },
@@ -60,6 +60,12 @@ export async function GET(req: NextRequest) {
         depense: { include: { fournisseur: { select: { nom: true, reference: true } } } },
       },
       orderBy: { date: "asc" },
+    }),
+    // Factures fournisseurs reçues sur l'exercice (privilégiées aux BC dans le journal AC)
+    prisma.factureFournisseur.findMany({
+      where: { dateReception: { gte: debut, lte: fin } },
+      include: { fournisseur: { select: { nom: true, reference: true } } },
+      orderBy: { dateReception: "asc" },
     }),
   ]);
 
@@ -107,12 +113,52 @@ export async function GET(req: NextRequest) {
   });
 
   // ── JOURNAL ACHATS (AC) ──────────────────────────────────────────────
-  bonsCommande.forEach((bc, idx) => {
-    const num = `AC${String(idx + 1).padStart(4, "0")}`;
+  // Stratégie : les factures fournisseurs (FF) sont la pièce comptable réelle.
+  // Quand une FF existe pour un BC, on utilise la FF (date de réception, montants facturés).
+  // Les BCs sans FF sont conservés comme écriture provisoire de commande.
+  const bcIdsAvecFf = new Set(
+    facturesFournisseur.map((ff) => ff.bonCommandeId).filter(Boolean) as string[]
+  );
+  const bcSansFf = bonsCommande.filter((bc) => !bcIdsAvecFf.has(bc.id));
+
+  let acIdx = 0;
+
+  // 1. Factures fournisseurs (pièce comptable prioritaire)
+  facturesFournisseur.forEach((ff) => {
+    acIdx++;
+    const num = `AC${String(acIdx).padStart(4, "0")}`;
+    const date = fmtDate(new Date(ff.dateReception));
+    const fournCode = ff.fournisseur.reference ?? `F${ff.fournisseurId.slice(0, 6)}`;
+
+    lines.push(row(
+      "AC", "Achats", num, date,
+      "601000", "Achats matières et fournitures", "", "",
+      ff.numero, date, `FF ${ff.numero}`,
+      fmtAmt(ff.montantHT), "0,00", "", "", date, "", ""
+    ));
+    if (ff.montantTVA > 0) {
+      lines.push(row(
+        "AC", "Achats", num, date,
+        "445660", "TVA déductible sur ABS", "", "",
+        ff.numero, date, `TVA FF ${ff.numero}`,
+        fmtAmt(ff.montantTVA), "0,00", "", "", date, "", ""
+      ));
+    }
+    lines.push(row(
+      "AC", "Achats", num, date,
+      "401000", "Fournisseurs", fournCode, ff.fournisseur.nom,
+      ff.numero, date, `FF ${ff.numero}`,
+      "0,00", fmtAmt(ff.montantTTC), "", "", date, "", ""
+    ));
+  });
+
+  // 2. Bons de commande sans facture fournisseur associée (écriture provisoire)
+  bcSansFf.forEach((bc) => {
+    acIdx++;
+    const num = `AC${String(acIdx).padStart(4, "0")}`;
     const date = fmtDate(new Date(bc.dateCreation));
     const fournCode = bc.fournisseur.reference ?? `F${bc.fournisseurId.slice(0, 6)}`;
 
-    // Débit : compte achats matériaux 601
     lines.push(row(
       "AC", "Achats", num, date,
       "601000", "Achats matières et fournitures", "", "",

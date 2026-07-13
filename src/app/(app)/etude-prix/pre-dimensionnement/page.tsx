@@ -8,7 +8,7 @@ import { TYPE_ELEMENT_LABELS, MATERIAU_LABELS } from "@/lib/calcul-structurel/pr
 
 export default async function PreDimensionnementListePage() {
   const pdims = await prisma.preDimensionnement.findMany({
-    include: { chantier: { select: { reference: true, nom: true } } },
+    include: { chantier: { select: { id: true, reference: true, nom: true } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -55,7 +55,13 @@ export default async function PreDimensionnementListePage() {
                 <td className="px-4 py-3 text-slate-600">{TYPE_ELEMENT_LABELS[p.typeElement as keyof typeof TYPE_ELEMENT_LABELS] ?? p.typeElement}</td>
                 <td className="px-4 py-3 text-slate-600">{MATERIAU_LABELS[p.materiau as keyof typeof MATERIAU_LABELS] ?? p.materiau}</td>
                 <td className="px-4 py-3 font-medium text-brand-navy">{p.resultatLabel}</td>
-                <td className="px-4 py-3 text-slate-500">{p.chantier ? `${p.chantier.reference} — ${p.chantier.nom}` : "—"}</td>
+                <td className="px-4 py-3 text-slate-500">
+                  {p.chantier ? (
+                    <Link href={`/chantiers/${p.chantier.id}`} className="text-brand-blue hover:underline">
+                      {p.chantier.reference} — {p.chantier.nom}
+                    </Link>
+                  ) : "—"}
+                </td>
                 <td className="px-4 py-3 text-slate-400">{formatDate(p.createdAt)}</td>
               </tr>
             ))}

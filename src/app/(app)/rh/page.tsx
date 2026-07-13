@@ -22,13 +22,30 @@ const statutLabels: Record<string, string> = {
   INACTIF: "Inactif",
 };
 
-export default async function RHPage() {
-  const salaries = await prisma.salarie.findMany({
+const statutFiltreLabels: { key: string; label: string }[] = [
+  { key: "", label: "Tous" },
+  { key: "ACTIF", label: "Actifs" },
+  { key: "CONGE", label: "En congé / arrêt" },
+  { key: "RUPTURE", label: "Rupture" },
+  { key: "INACTIF", label: "Inactifs" },
+];
+
+export default async function RHPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ statut?: string }>;
+}) {
+  const { statut } = await searchParams;
+
+  const tousSalaries = await prisma.salarie.findMany({
     orderBy: { nom: "asc" },
     include: { _count: { select: { bulletins: true } } },
   });
 
-  const actifs = salaries.filter((s) => s.statutRH === "ACTIF");
+  const salaries = statut ? tousSalaries.filter((s) => s.statutRH === statut) : tousSalaries;
+
+  const actifs = tousSalaries.filter((s) => s.statutRH === "ACTIF");
+  const enConge = tousSalaries.filter((s) => s.statutRH === "CONGE").length;
   const masseSalariale = actifs.reduce((s, e) => s + e.salaireBase, 0);
 
   return (
@@ -43,7 +60,7 @@ export default async function RHPage() {
         <LinkButton href="/rh/nouveau">+ Nouveau salarié</LinkButton>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-slate-500">Salariés actifs</p>
           <p className="mt-1 text-2xl font-bold text-brand-navy">{actifs.length}</p>
@@ -53,10 +70,31 @@ export default async function RHPage() {
           <p className="mt-1 text-2xl font-bold text-brand-navy">{formatEuros(masseSalariale)}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Total effectif</p>
-          <p className="mt-1 text-2xl font-bold text-brand-navy">{salaries.length}</p>
-          <p className="text-xs text-slate-400">{salaries.length - actifs.length} inactif(s)</p>
+          <p className="text-sm text-slate-500">En congé / arrêt</p>
+          <p className={`mt-1 text-2xl font-bold ${enConge > 0 ? "text-brand-orange" : "text-brand-navy"}`}>{enConge}</p>
         </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-slate-500">Total effectif</p>
+          <p className="mt-1 text-2xl font-bold text-brand-navy">{tousSalaries.length}</p>
+          <p className="text-xs text-slate-400">{tousSalaries.length - actifs.length} inactif(s)</p>
+        </div>
+      </div>
+
+      {/* Filtres statut */}
+      <div className="flex flex-wrap gap-2">
+        {statutFiltreLabels.map(({ key, label }) => (
+          <Link
+            key={key}
+            href={key ? `/rh?statut=${key}` : "/rh"}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+              (statut ?? "") === key
+                ? "border-brand-navy bg-brand-navy text-white"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+            }`}
+          >
+            {label}
+          </Link>
+        ))}
       </div>
 
       {salaries.length === 0 ? (

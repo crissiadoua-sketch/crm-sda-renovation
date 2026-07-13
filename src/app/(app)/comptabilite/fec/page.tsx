@@ -49,7 +49,7 @@ export default async function FecPage({
         <ul className="flex flex-col gap-2">
           {[
             { label: "Journal Ventes (VE)", desc: "Toutes les factures émises — 411 / 706 / TVA 44571" },
-            { label: "Journal Achats (AC)", desc: "Bons de commande confirmés — 601 / TVA 44566 / 401" },
+            { label: "Journal Achats (AC)", desc: "Factures fournisseurs (prioritaires) + BCs sans facture — 601 / TVA 44566 / 401" },
             { label: "Opérations Diverses (OD)", desc: "Dépenses réelles — 606 / 401" },
             { label: "Journal Salaires (SA)", desc: "Bulletins de paie validés — 641 / 645 / 421 / 431" },
             { label: "Journal Banque (BQ)", desc: "Lignes de relevé rapprochées — 512 / 411 / 401" },

@@ -187,7 +187,7 @@ export default async function MutuellePage() {
                     <tr key={s.id} className="hover:bg-slate-50">
                       <td className="py-2 pr-4">
                         <Link
-                          href={`/rh/${s.id}/mutuelle`}
+                          href={`/rh/${s.id}`}
                           className="font-medium text-brand-blue hover:underline"
                         >
                           {s.prenom} {s.nom}
@@ -210,18 +210,19 @@ export default async function MutuellePage() {
                         {adh ? formatDate(adh.dateAdhesion) : <span className="text-slate-300">—</span>}
                       </td>
                       <td className="py-2">
-                        {adh ? (
-                          <Badge tone={adh.actif ? "green" : "gray"}>
-                            {adh.actif ? "Actif" : "Résilié"}
-                          </Badge>
-                        ) : (
+                        <div className="flex items-center gap-2">
+                          {adh ? (
+                            <Badge tone={adh.actif ? "green" : "gray"}>
+                              {adh.actif ? "Actif" : "Résilié"}
+                            </Badge>
+                          ) : null}
                           <Link
                             href={`/rh/${s.id}/mutuelle`}
-                            className="text-xs text-brand-orange hover:underline"
+                            className="text-xs text-brand-blue hover:underline"
                           >
-                            + Affilier
+                            {adh ? "Gérer" : "+ Affilier"}
                           </Link>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   );

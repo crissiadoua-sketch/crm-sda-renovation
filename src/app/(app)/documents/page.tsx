@@ -33,6 +33,10 @@ export default async function DocumentsPage({
       select: {
         id: true, nom: true, type: true, chemin: true, taille: true,
         description: true, dossierId: true, createdAt: true,
+        chantier: { select: { id: true, nom: true, reference: true } },
+        client: { select: { id: true, nom: true } },
+        devis: { select: { id: true, numero: true } },
+        facture: { select: { id: true, numero: true } },
       },
     }),
   ]);

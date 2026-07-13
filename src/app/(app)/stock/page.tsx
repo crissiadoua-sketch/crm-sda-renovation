@@ -112,7 +112,7 @@ export default async function StockPage({
         : {}),
     },
     include: {
-      fournisseur: { select: { nom: true } },
+      fournisseur: { select: { id: true, nom: true } },
       _count: { select: { mouvements: true } },
       stocksParEmplacement: {
         include: { chantier: { select: { id: true, nom: true, reference: true } } },
@@ -380,11 +380,22 @@ export default async function StockPage({
                                     a.stocksParEmplacement.map((s) => {
                                       const bg = s.emplacement === "DEPOT" ? "bg-brand-navy/10 text-brand-navy" : s.emplacement === "BUREAU" ? "bg-purple-100 text-purple-700" : "bg-emerald-100 text-emerald-700";
                                       const shortEmp = s.emplacement === "DEPOT" ? "D" : s.emplacement === "BUREAU" ? "B" : "C";
-                                      return (
-                                        <span key={s.id} title={`${s.emplacement}${s.chantier ? " — " + s.chantier.nom : ""}`}
-                                          className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${bg}`}>
+                                      const label = (
+                                        <>
                                           {shortEmp}{s.chantier ? ` ${s.chantier.reference}` : ""}
                                           <span className="ml-0.5 font-normal">{s.quantite} {a.unite}</span>
+                                        </>
+                                      );
+                                      return s.chantier ? (
+                                        <Link key={s.id} href={`/chantiers/${s.chantier.id}`}
+                                          title={`${s.emplacement} — ${s.chantier.nom}`}
+                                          className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold hover:opacity-80 ${bg}`}>
+                                          {label}
+                                        </Link>
+                                      ) : (
+                                        <span key={s.id} title={s.emplacement}
+                                          className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${bg}`}>
+                                          {label}
                                         </span>
                                       );
                                     })
@@ -397,7 +408,13 @@ export default async function StockPage({
                                 {enRupture && <span className="ml-1 text-[10px]">⚠ RUPTURE</span>}
                                 {!enRupture && enAlerte && <span className="ml-1 text-[10px]">⚠</span>}
                               </td>
-                              <td className="px-4 py-2.5 text-xs text-slate-500">{a.fournisseur?.nom ?? "—"}</td>
+                              <td className="px-4 py-2.5 text-xs">
+                                {a.fournisseur ? (
+                                  <Link href={`/fournisseurs/${a.fournisseur.id}`} className="text-brand-blue hover:underline">
+                                    {a.fournisseur.nom}
+                                  </Link>
+                                ) : <span className="text-slate-400">—</span>}
+                              </td>
                             </tr>
                           );
                         })}

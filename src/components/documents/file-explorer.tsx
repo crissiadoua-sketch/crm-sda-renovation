@@ -51,6 +51,11 @@ export type DocumentRow = {
   description: string | null;
   dossierId: string | null;
   createdAt: Date;
+  // Liens contextuels (optionnels)
+  chantier?: { id: string; nom: string; reference: string } | null;
+  client?: { id: string; nom: string } | null;
+  devis?: { id: string; numero: string } | null;
+  facture?: { id: string; numero: string } | null;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -391,6 +396,30 @@ export function FileExplorer({
                         )}
                       </div>
                       {doc.description && <p className="ml-7 text-xs text-slate-400">{doc.description}</p>}
+                      {(doc.chantier || doc.client || doc.devis || doc.facture) && (
+                        <div className="ml-7 mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                          {doc.chantier && (
+                            <a href={`/chantiers/${doc.chantier.id}`} className="text-[11px] font-medium text-emerald-700 hover:underline" title={doc.chantier.nom}>
+                              {doc.chantier.reference}
+                            </a>
+                          )}
+                          {doc.client && (
+                            <a href={`/clients/${doc.client.id}`} className="text-[11px] text-slate-500 hover:underline">
+                              {doc.client.nom}
+                            </a>
+                          )}
+                          {doc.devis && (
+                            <a href={`/devis/${doc.devis.id}`} className="text-[11px] text-brand-blue hover:underline">
+                              {doc.devis.numero}
+                            </a>
+                          )}
+                          {doc.facture && (
+                            <a href={`/factures/${doc.facture.id}`} className="text-[11px] text-brand-navy hover:underline">
+                              {doc.facture.numero}
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="px-5 py-2 text-slate-400 text-xs">{formatSize(doc.taille)}</td>
                     <td className="px-5 py-2 text-slate-400 text-xs">{formatDate(doc.createdAt)}</td>

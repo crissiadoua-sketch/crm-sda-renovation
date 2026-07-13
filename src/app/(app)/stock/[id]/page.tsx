@@ -54,11 +54,11 @@ export default async function ArticleStockDetailPage({
     prisma.articleStock.findUnique({
       where: { id },
       include: {
-        fournisseur: { select: { nom: true } },
+        fournisseur: { select: { id: true, nom: true } },
         mouvements: {
           orderBy: { date: "desc" },
           take: 20,
-          include: { chantier: { select: { nom: true, reference: true } } },
+          include: { chantier: { select: { id: true, nom: true, reference: true } } },
         },
         historiquesPrix: {
           orderBy: { dateMAJ: "desc" },
@@ -101,6 +101,9 @@ export default async function ArticleStockDetailPage({
           </div>
           <p className="mt-1 text-sm text-slate-500">
             {CORPS_ETAT[article.corpsEtat] ?? article.corpsEtat} · {CATEGORIE_LABELS[article.categorie] ?? article.categorie} · {EMPLACEMENT_LABELS[article.emplacement] ?? article.emplacement}
+            {article.fournisseur && (
+              <> · <Link href={`/fournisseurs/${article.fournisseur.id}`} className="text-brand-blue hover:underline">{article.fournisseur.nom}</Link></>
+            )}
           </p>
         </div>
         <DeleteButton
@@ -290,8 +293,12 @@ export default async function ArticleStockDetailPage({
                       <td className="px-4 py-2 text-slate-500 text-xs">
                         {m.motif ?? "—"}{m.refDocument ? ` · ${m.refDocument}` : ""}
                       </td>
-                      <td className="px-4 py-2 text-slate-500 text-xs">
-                        {m.chantier ? `${m.chantier.reference} — ${m.chantier.nom}` : "—"}
+                      <td className="px-4 py-2 text-xs">
+                        {m.chantier ? (
+                          <Link href={`/chantiers/${m.chantier.id}`} className="text-brand-blue hover:underline">
+                            {m.chantier.reference} — {m.chantier.nom}
+                          </Link>
+                        ) : <span className="text-slate-400">—</span>}
                       </td>
                     </tr>
                   ))}

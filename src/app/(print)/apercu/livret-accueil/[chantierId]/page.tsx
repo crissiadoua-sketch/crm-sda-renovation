@@ -97,7 +97,7 @@ export default async function LivretAccueilPage({
   const adresseSDA   = parametres?.adresse ?? COMPANY.adresse;
   const villeSDA     = [parametres?.codePostal, parametres?.ville].filter(Boolean).join(" ") || `${COMPANY.codePostal} ${COMPANY.ville}`;
   const telSDA       = parametres?.telephone ?? COMPANY.telephone;
-  const emailSDA     = parametres?.email ?? COMPANY.email;
+  const emailSDA     = parametres?.emailPersonnalise || parametres?.email || COMPANY.email;
   const siretSDA     = parametres?.siret ?? COMPANY.siren;
   const tvaSDA       = parametres?.tvaIntracom ?? COMPANY.tvaIntracommunautaire;
 

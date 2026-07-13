@@ -14,6 +14,7 @@ export function Field({
   label,
   htmlFor,
   error,
+  hint,
   children,
   className = "",
   required,
@@ -21,6 +22,7 @@ export function Field({
   label: string;
   htmlFor?: string;
   error?: string | string[];
+  hint?: string;
   children: React.ReactNode;
   className?: string;
   required?: boolean;
@@ -33,6 +35,7 @@ export function Field({
         {required && <span className="ml-0.5 text-brand-orange-dark">*</span>}
       </label>
       {children}
+      {hint && !errorText && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
       {errorText && <p className="mt-1 text-sm text-brand-orange-dark">{errorText}</p>}
     </div>
   );

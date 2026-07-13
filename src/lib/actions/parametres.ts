@@ -22,6 +22,7 @@ const parametresSchema = z.object({
   bic: z.string().optional(),
   tauxTvaDefaut: z.coerce.number().min(0).max(100),
   emailComptable: z.string().optional(),
+  emailPersonnalise: z.string().optional(),
   conditionsDevis: z.string().optional(),
   conditionsFacture: z.string().optional(),
 });
@@ -59,6 +60,7 @@ export async function updateParametres(
       bic: data.bic ?? "",
       tauxTvaDefaut: data.tauxTvaDefaut,
       emailComptable: data.emailComptable ?? "",
+      emailPersonnalise: data.emailPersonnalise ?? "",
       conditionsDevis: data.conditionsDevis ?? "",
       conditionsFacture: data.conditionsFacture ?? "",
     },

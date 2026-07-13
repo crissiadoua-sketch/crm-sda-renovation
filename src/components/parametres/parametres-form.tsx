@@ -54,6 +54,7 @@ export function ParametresForm({ parametres, action }: { parametres: Parametres;
   const [ville, setVille] = useState(parametres.ville ?? "");
   const [telephone, setTelephone] = useState(parametres.telephone ?? "");
   const [email, setEmail] = useState(parametres.email ?? "");
+  const [emailPersonnalise, setEmailPersonnalise] = useState(parametres.emailPersonnalise ?? "");
   const [siret, setSiret] = useState(parametres.siret ?? "");
   const [tvaIntracom, setTvaIntracom] = useState(parametres.tvaIntracom ?? "");
 
@@ -172,6 +173,22 @@ export function ParametresForm({ parametres, action }: { parametres: Parametres;
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className={inputClasses}
+              />
+            </Field>
+            <Field
+              label="Email personnalisé"
+              htmlFor="emailPersonnalise"
+              error={errors.emailPersonnalise}
+              hint="Affiché dans l'en-tête des documents à la place de l'email principal (ex. christopher.siadoua@sda-renovation.com)"
+            >
+              <input
+                id="emailPersonnalise"
+                name="emailPersonnalise"
+                type="email"
+                value={emailPersonnalise}
+                onChange={(e) => setEmailPersonnalise(e.target.value)}
+                placeholder="prenom.nom@sda-renovation.com"
                 className={inputClasses}
               />
             </Field>
@@ -319,7 +336,9 @@ export function ParametresForm({ parametres, action }: { parametres: Parametres;
               {adresse && <p className="text-sm text-slate-600">{adresse}</p>}
               {villePreview && <p className="text-sm text-slate-600">{villePreview}</p>}
               {telephone && <p className="text-sm text-slate-600">Tél : {telephone}</p>}
-              {email && <p className="text-sm text-slate-600">Email : {email}</p>}
+              {(emailPersonnalise || email) && (
+                <p className="text-sm text-slate-600">Email : {emailPersonnalise || email}</p>
+              )}
               {siret && <p className="mt-2 text-xs text-slate-400">SIRET/SIREN : {siret}</p>}
               {tvaIntracom && <p className="text-xs text-slate-400">N° TVA intracommunautaire : {tvaIntracom}</p>}
             </div>

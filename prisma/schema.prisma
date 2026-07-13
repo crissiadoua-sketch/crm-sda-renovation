@@ -877,6 +877,7 @@ model Parametres {
   tvaIntracom       String?
   logoUrl           String?
   emailComptable    String?
+  emailPersonnalise String?
   leadsApiKey       String?
   conditionsDevis   String?
   conditionsFacture String?

@@ -260,6 +260,10 @@ export default async function TresorerieHebdoPage() {
         Les salaires sont positionnés au 25 du mois · Ce plan est indicatif et ne tient pas compte du solde bancaire actuel.
       </p>
       <p className="text-xs text-center text-slate-400">
+        <a href="/finances/tresorerie-13-semaines" className="text-brand-blue hover:underline">
+          → Vue 13 semaines (avec BCs estimés)
+        </a>
+        {" · "}
         <a href="/finances/fournisseurs-echeancier" className="text-brand-blue hover:underline">
           → Saisir des factures fournisseurs avec échéances
         </a>

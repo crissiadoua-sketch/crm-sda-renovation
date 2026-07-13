@@ -66,7 +66,7 @@ export default async function MargeRentabilitePage() {
     include: {
       devis: { where: { statut: "ACCEPTE", type: "INITIAL" } },
       factures: { where: { statut: { not: "ANNULEE" } } },
-      bonsCommande: { where: { statut: { in: ["CONFIRME", "RECU_PARTIEL", "RECU"] } } },
+      bonsCommande: { where: { statut: { not: "ANNULE" } } },
       bonsCommandeBeton: { where: { statut: { in: ["CONFIRME", "LIVRE"] } } },
       contrats: { where: { statut: { in: ["SIGNE", "TERMINE"] } } },
       depenses: { where: { type: "REEL" } },
@@ -222,7 +222,8 @@ export default async function MargeRentabilitePage() {
               <th className="px-4 py-3 text-right">DS réel</th>
               <th className="px-4 py-3 text-right">Écart DS</th>
               <th className="px-4 py-3 min-w-[140px]">Avancement</th>
-              <th className="px-4 py-3 text-right">Marge / Rentab.</th>
+              <th className="px-4 py-3 text-right">Marge brute</th>
+              <th className="px-4 py-3 text-right">Rentab. %</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>

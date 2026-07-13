@@ -114,6 +114,11 @@ export default async function RapportMensuelPage({
     facturesM1,
     depensesM1,
     bulletinsM1,
+    // Devis signés + chantiers ouverts
+    devisSignesM,
+    chantiersOuvertsM,
+    devisSignesM1,
+    chantiersOuvertsM1,
   ] = await Promise.all([
     // M courant
     prisma.paiement.findMany({
@@ -186,6 +191,26 @@ export default async function RapportMensuelPage({
       where: { periode: { in: periodM1 }, statut: { in: ["VALIDE", "PAYE"] } },
       select: { totalBrut: true, cotisationsPatronales: true },
     }),
+    // Devis signés (ACCEPTE) ce mois
+    prisma.devis.findMany({
+      where: { statut: "ACCEPTE", createdAt: { gte: debutM, lte: finM } },
+      select: { totalHT: true },
+    }),
+    // Chantiers ouverts ce mois
+    prisma.chantier.findMany({
+      where: { createdAt: { gte: debutM, lte: finM } },
+      select: { id: true },
+    }),
+    // Devis signés M-1
+    prisma.devis.findMany({
+      where: { statut: "ACCEPTE", createdAt: { gte: debutM1, lte: finM1 } },
+      select: { totalHT: true },
+    }),
+    // Chantiers ouverts M-1
+    prisma.chantier.findMany({
+      where: { createdAt: { gte: debutM1, lte: finM1 } },
+      select: { id: true },
+    }),
   ]);
 
   // ──────────────────────────────────────────────
@@ -236,6 +261,17 @@ export default async function RapportMensuelPage({
   const salairesM1 = bulletinsM1.reduce((s, b) => s + b.totalBrut + b.cotisationsPatronales, 0);
   const totalChargesM1 = depensesM1Total + salairesM1;
   const resultatNetM1 = caFactureM1 - totalChargesM1;
+
+  // Devis signés ce mois
+  const nbDevisSignesM = devisSignesM.length;
+  const valDevisSignesM = devisSignesM.reduce((s, d) => s + d.totalHT, 0);
+  const nbDevisSignesM1 = devisSignesM1.length;
+  const valDevisSignesM1 = devisSignesM1.reduce((s, d) => s + d.totalHT, 0);
+  const nbChantiersOuvertsM = chantiersOuvertsM.length;
+  const nbChantiersOuvertsM1 = chantiersOuvertsM1.length;
+
+  const dDevis = delta(nbDevisSignesM, nbDevisSignesM1);
+  const dChantiers = delta(nbChantiersOuvertsM, nbChantiersOuvertsM1);
 
   // Déltas
   const dCA = delta(caFactureM, caFactureM1);
@@ -388,16 +424,32 @@ export default async function RapportMensuelPage({
     .slice(0, 5);
 
   // ──────────────────────────────────────────────
-  // PRÉVISION TRÉSORERIE 3 MOIS
+  // PRÉVISION TRÉSORERIE 3 MOIS (données réelles)
   // ──────────────────────────────────────────────
   const chargesFixesMensuellesEstimee = depFixesM + totalPersonnelM;
   const previsions = [1, 2, 3].map((offset) => {
-    const date = new Date(y, m + offset, 1);
+    const dateDebPrev = new Date(y, m + offset, 1);
+    const dateFinPrev = new Date(y, m + offset + 1, 0, 23, 59, 59);
+    const label = dateDebPrev.toLocaleDateString("fr-FR", { month: "long" });
+
+    // Encaissements réels attendus ce mois-là (factures avec échéance dans ce mois)
+    const entreesReelles = facturesEnAttente
+      .filter((f) => {
+        if (!f.dateEcheance) return false;
+        const ech = new Date(f.dateEcheance);
+        return ech >= dateDebPrev && ech <= dateFinPrev;
+      })
+      .reduce((s, f) => s + Math.max(0, f.totalTTC - f.montantPaye), 0);
+
+    // Si aucune facture planifiée ce mois, on utilise la moyenne encaissée du mois courant
+    const entreesEstimees = entreesReelles > 0 ? entreesReelles : Math.round(caEncaisseM * 0.9);
+
     return {
-      label: date.toLocaleDateString("fr-FR", { month: "long" }),
-      entreesEstimees: caEncaisseM * 1.02 ** offset, // légère progression estimée
+      label,
+      entreesEstimees,
       sortiesEstimees: chargesFixesMensuellesEstimee,
-      soldePrevisionnel: caEncaisseM * 1.02 ** offset - chargesFixesMensuellesEstimee,
+      soldePrevisionnel: entreesEstimees - chargesFixesMensuellesEstimee,
+      isReal: entreesReelles > 0,
     };
   });
 
@@ -560,6 +612,48 @@ export default async function RapportMensuelPage({
         ))}
       </div>
 
+      {/* Devis signés + Chantiers ouverts */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          {
+            label: "Devis signés ce mois", value: nbDevisSignesM, prev: nbDevisSignesM1, d: dDevis,
+            sub: valDevisSignesM > 0 ? `${formatEuros(valDevisSignesM)} HT` : "—",
+            subPrev: valDevisSignesM1 > 0 ? `M-1 : ${formatEuros(valDevisSignesM1)} HT` : `M-1 : 0`,
+            icon: <BarChart3 className="h-4 w-4 text-brand-navy" />, color: "text-brand-navy",
+            isCount: true,
+          },
+          {
+            label: "Chantiers ouverts ce mois", value: nbChantiersOuvertsM, prev: nbChantiersOuvertsM1, d: dChantiers,
+            sub: `M-1 : ${nbChantiersOuvertsM1}`,
+            subPrev: "",
+            icon: <Building2 className="h-4 w-4 text-brand-blue" />, color: "text-brand-blue",
+            isCount: true,
+          },
+        ].map(({ label, value, prev, d, sub, subPrev, icon, color, isCount }) => (
+          <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm col-span-2 lg:col-span-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</span>
+              {icon}
+            </div>
+            <p className={`mt-2 text-2xl font-bold ${color}`}>{value}{isCount ? "" : ""}</p>
+            <div className="flex items-center gap-1 mt-0.5">
+              {d.dir === "up" ? (
+                <ArrowUpRight className="h-3 w-3 text-emerald-500" />
+              ) : d.dir === "down" ? (
+                <ArrowDownRight className="h-3 w-3 text-red-500" />
+              ) : (
+                <Minus className="h-3 w-3 text-slate-400" />
+              )}
+              <span className={`text-xs ${d.dir === "up" ? "text-emerald-600" : d.dir === "down" ? "text-red-600" : "text-slate-400"}`}>
+                {d.pct >= 0 ? "+" : ""}{d.pct.toFixed(0)} % vs {labelMoisPrec}
+              </span>
+            </div>
+            {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+            {subPrev && <p className="text-xs text-slate-300">{subPrev}</p>}
+          </div>
+        ))}
+      </div>
+
       {/* Compte de résultat synthétique */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-5 py-4">
@@ -676,10 +770,18 @@ export default async function RapportMensuelPage({
         <div className="grid grid-cols-1 gap-0 divide-y divide-slate-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {previsions.map((p, i) => (
             <div key={i} className="p-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 capitalize">{p.label}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 capitalize">{p.label}</p>
+                {p.isReal
+                  ? <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">RÉEL</span>
+                  : <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">ESTIMÉ</span>
+                }
+              </div>
               <div className="mt-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Entrées estimées</span>
+                  <span className="text-slate-500">
+                    {p.isReal ? "Encaissements attendus" : "Entrées estimées"}
+                  </span>
                   <span className="font-medium text-emerald-600">{formatEuros(p.entreesEstimees)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -698,8 +800,9 @@ export default async function RapportMensuelPage({
         </div>
         <div className="border-t border-slate-100 px-5 py-2.5">
           <p className="text-xs text-slate-400">
-            Prévision basée sur l&apos;encaissement du mois courant. Charges fixes estimées à {formatEuros(chargesFixesMensuellesEstimee)}/mois.
-            Ajuster les paramètres dans le module Trésorerie pour affiner.
+            Entrées <strong className="text-slate-500">RÉEL</strong> = factures échues dans ce mois (dateÉchéance réelle) ·
+            Entrées <strong className="text-slate-500">ESTIMÉ</strong> = moyenne encaissée du mois courant ×&nbsp;0,9 ·
+            Charges fixes estimées à {formatEuros(chargesFixesMensuellesEstimee)}/mois.
           </p>
         </div>
       </div>

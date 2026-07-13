@@ -306,7 +306,7 @@ export default async function PrevisionelPage({
     bucketMap.get(item.monthKey)!.push(item);
   }
 
-  const timeline = Array.from(bucketMap.entries())
+  const timelineRaw = Array.from(bucketMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, items]) => ({
       key, label: monthLabel(key), items,
@@ -314,6 +314,14 @@ export default async function PrevisionelPage({
       dec: items.filter(i => i.sens === "decaissement").reduce((s, i) => s + i.montant, 0),
     }))
     .filter(b => b.key >= nowKey || b.items.length > 0);
+
+  // Solde cumulé par mois
+  let _cumSolde = 0;
+  const timeline = timelineRaw.map((m) => {
+    const soldeMois = m.enc - m.dec;
+    _cumSolde += soldeMois;
+    return { ...m, soldeMois, soldeCumul: _cumSolde };
+  });
 
   const SOUS_TYPE_CFG = {
     facture:      { icon: "💰", badge: "bg-emerald-100 text-emerald-700", label: "Facture" },
@@ -612,9 +620,19 @@ export default async function PrevisionelPage({
                     {isCurrent && <span className="ml-2 rounded-full bg-brand-blue px-2 py-0.5 text-xs text-white">Mois en cours</span>}
                   </span>
                 </div>
-                <div className="flex gap-4 text-sm">
+                <div className="flex flex-wrap items-center gap-3 text-sm">
                   {month.enc > 0 && <span className="font-semibold text-emerald-600">+{formatEuros(month.enc)}</span>}
-                  {month.dec > 0 && <span className="font-semibold text-red-600">-{formatEuros(month.dec)}</span>}
+                  {month.dec > 0 && <span className="font-semibold text-red-600">−{formatEuros(month.dec)}</span>}
+                  {(month.enc > 0 || month.dec > 0) && (
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${month.soldeMois >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                      Solde : {month.soldeMois >= 0 ? "+" : ""}{formatEuros(month.soldeMois)}
+                    </span>
+                  )}
+                  {(month.enc > 0 || month.dec > 0) && (
+                    <span className={`text-xs font-medium ${month.soldeCumul >= 0 ? "text-slate-500" : "text-orange-600"}`}>
+                      Cumul : {month.soldeCumul >= 0 ? "+" : ""}{formatEuros(month.soldeCumul)}
+                    </span>
+                  )}
                   {month.enc === 0 && month.dec === 0 && <span className="text-xs text-slate-400">Aucun flux</span>}
                 </div>
               </div>

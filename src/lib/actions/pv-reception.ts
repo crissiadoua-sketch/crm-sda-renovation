@@ -237,6 +237,74 @@ export async function finaliserPvReception(id: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Signature électronique (page publique — sans compte)
+// ---------------------------------------------------------------------------
+
+export async function signerPvReception(
+  token: string,
+  role: "MO" | "PRESTATAIRE",
+  signataireNom: string,
+  signatureImage: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const pvr = await prisma.pvReception.findUnique({
+    where: { shareToken: token },
+    include: {
+      chantier: { select: { nom: true } },
+    },
+  });
+
+  if (!pvr) return { ok: false, error: "Lien invalide ou expiré." };
+  if (pvr.shareExpiry && pvr.shareExpiry < new Date()) return { ok: false, error: "Ce lien a expiré." };
+
+  const alreadySigned = role === "MO" ? !!pvr.dateSignatureMO : !!pvr.dateSignaturePrestataire;
+  if (alreadySigned) return { ok: false, error: "Ce PV a déjà été signé par cette partie." };
+
+  const dateSignature = new Date();
+
+  await prisma.pvReception.update({
+    where: { id: pvr.id },
+    data:
+      role === "MO"
+        ? { signatureMO: signatureImage, dateSignatureMO: dateSignature, repMO: signataireNom || pvr.repMO }
+        : { signaturePrestataire: signatureImage, dateSignaturePrestataire: dateSignature, repPrestataire: signataireNom || pvr.repPrestataire },
+  });
+
+  // Notification à SDA
+  try {
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.com";
+    const dateStr = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(dateSignature);
+    const roleLabel = role === "MO" ? "Maître d'ouvrage" : "Prestataire / Sous-traitant";
+    await envoyerEmail({
+      from: "SDA Rénovation <contact@sda-renovation.com>",
+      to: "contact@sda-renovation.com",
+      subject: `✅ PV de réception ${pvr.numero} signé — ${roleLabel}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          <div style="background:#1E2F6E;padding:20px 24px;border-radius:8px 8px 0 0">
+            <p style="margin:0;color:#fff;font-size:18px;font-weight:bold">✅ PV de réception signé</p>
+            <p style="margin:4px 0 0;color:#93c5fd;font-size:13px">${pvr.numero}</p>
+          </div>
+          <div style="background:#fff;padding:24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <tr><td style="padding:6px 0;color:#64748b;width:40%">Signataire</td><td style="padding:6px 0;font-weight:600;color:#1e293b">${signataireNom}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b">Rôle</td><td style="padding:6px 0;color:#374151">${roleLabel}</td></tr>
+              ${pvr.chantier ? `<tr><td style="padding:6px 0;color:#64748b">Chantier</td><td style="padding:6px 0;color:#374151">${pvr.chantier.nom}</td></tr>` : ""}
+              <tr><td style="padding:6px 0;color:#64748b">Date</td><td style="padding:6px 0;color:#374151">${dateStr}</td></tr>
+            </table>
+            <div style="margin-top:20px;text-align:center">
+              <a href="${APP_URL}/pv-reception/${pvr.id}" style="display:inline-block;background:#1E2F6E;color:#fff;text-decoration:none;padding:10px 28px;border-radius:6px;font-size:14px;font-weight:600">Voir dans le CRM</a>
+            </div>
+          </div>
+        </div>`,
+      text: `PV ${pvr.numero} signé par ${signataireNom} (${roleLabel}) le ${dateStr}.`,
+    });
+  } catch { /* notification non bloquante */ }
+
+  revalidatePath(`/pv-reception/${pvr.id}`);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
 // Supprimer
 // ---------------------------------------------------------------------------
 export async function supprimerPvReception(id: string): Promise<void> {

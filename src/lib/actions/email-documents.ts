@@ -468,12 +468,20 @@ export async function envoyerFactureParEmail(
 
   if (!facture) return { ok: false, error: "Facture introuvable." };
 
+  // Générer le token de téléchargement si absent
+  let downloadToken = facture.downloadToken;
+  if (!downloadToken) {
+    downloadToken = randomBytes(32).toString("hex");
+    await prisma.facture.update({ where: { id }, data: { downloadToken } });
+  }
+
   // Met à jour le statut
   if (facture.statut === "BROUILLON") {
     await prisma.facture.update({ where: { id }, data: { statut: "ENVOYEE" } });
     revalidatePath(`/factures/${id}`);
   }
 
+  const dlUrl    = `${APP_URL}/api/factures/${id}/dl?token=${downloadToken}`;
   const resteDu  = Math.max(0, facture.totalTTC - facture.montantPaye);
   const typeLabel: Record<string, string> = {
     STANDARD: "Facture", ACOMPTE: "Facture d'acompte",
@@ -500,6 +508,7 @@ export async function envoyerFactureParEmail(
         ${resteDu > 0 && resteDu < facture.totalTTC ? `<p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#dc2626">Reste à payer : ${formatEuros(resteDu)}</p>` : ""}
         ${paiementHtml}
       `)
+    + boutonCta(dlUrl, "📄 Télécharger / Voir ma facture")
     + `<p style="margin:0;font-size:13px;color:#64748b">Merci de bien vouloir procéder au règlement avant l'échéance indiquée. Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>`
     + signature();
 
@@ -509,7 +518,7 @@ export async function envoyerFactureParEmail(
     to,
     subject: customSubject || `${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — SDA Rénovation`,
     html: emailLayout(`${typeLabel[facture.type] ?? "Facture"} N° ${facture.numero}`, corps, signataire),
-    text: `Bonjour,\n\n${message ? message + "\n\n" : ""}${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — ${facture.chantier.nom}\nMontant TTC : ${formatEuros(facture.totalTTC)}\n${facture.dateEcheance ? `Échéance : ${formatDate(facture.dateEcheance)}\n` : ""}${resteDu > 0 ? `Reste à payer : ${formatEuros(resteDu)}\n` : ""}\nCordialement,\nSDA Rénovation`,
+    text: `Bonjour,\n\n${message ? message + "\n\n" : ""}${typeLabel[facture.type] ?? "Facture"} ${facture.numero} — ${facture.chantier.nom}\nMontant TTC : ${formatEuros(facture.totalTTC)}\n${facture.dateEcheance ? `Échéance : ${formatDate(facture.dateEcheance)}\n` : ""}${resteDu > 0 ? `Reste à payer : ${formatEuros(resteDu)}\n` : ""}\nTélécharger : ${dlUrl}\n\nCordialement,\nSDA Rénovation`,
     cc,
     bcc,
   }, { type: "facture", documentId: id, documentRef: String(facture.numero), sentBy: signataire?.name ?? "" });
@@ -671,8 +680,12 @@ export async function envoyerContratSTParEmail(
     revalidatePath(`/contrats-sous-traitance/${id}`);
   }
 
+  const signatureUrl = contrat.signatureToken
+    ? `${APP_URL}/contrats/sign/${contrat.signatureToken}`
+    : null;
+
   const corps = `<p style="margin:0 0 16px;font-size:15px;color:#1e293b">Madame, Monsieur,</p>
-    ${message ? `<p style="margin:0 0 20px;font-size:14px;color:#334155;line-height:1.6">${message.replace(/\n/g, "<br>")}</p>` : `<p style="margin:0 0 20px;font-size:14px;color:#334155">Veuillez trouver ci-dessous notre contrat de sous-traitance.</p>`}
+    ${message ? `<p style="margin:0 0 20px;font-size:14px;color:#334155;line-height:1.6">${message.replace(/\n/g, "<br>")}</p>` : `<p style="margin:0 0 20px;font-size:14px;color:#334155">Veuillez trouver ci-dessous notre contrat de sous-traitance à signer électroniquement.</p>`}
     ${boiteDoc(`
       <p style="margin:0 0 6px;font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Contrat de sous-traitance</p>
       <p style="margin:0 0 14px;font-size:24px;font-weight:bold;color:#1E2F6E">${contrat.numero}</p>
@@ -681,6 +694,7 @@ export async function envoyerContratSTParEmail(
       ${contrat.objet ? `<p style="margin:0 0 4px;font-size:13px;color:#475569">Objet : ${contrat.objet}</p>` : ""}
       ${contrat.montantHT != null ? `<p style="margin:8px 0 0;font-size:17px;font-weight:bold;color:#1e293b">Montant HT : ${formatEuros(contrat.montantHT)}</p>` : ""}
     `)}
+    ${signatureUrl ? boutonCta(signatureUrl, "✍️ Signer le contrat électroniquement") : ""}
     <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
@@ -690,7 +704,7 @@ export async function envoyerContratSTParEmail(
     to,
     subject: customSubject || `Contrat de sous-traitance ${contrat.numero} — SDA Rénovation`,
     html: emailLayout(`Contrat de sous-traitance N° ${contrat.numero}`, corps, signataire),
-    text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Contrat ${contrat.numero}\nSous-traitant : ${contrat.sousTraitant.nom}\nChantier : ${contrat.chantier.nom}\n${contrat.montantHT != null ? `Montant HT : ${formatEuros(contrat.montantHT)}\n` : ""}\nCordialement,\nSDA Rénovation`,
+    text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Contrat ${contrat.numero}\nSous-traitant : ${contrat.sousTraitant.nom}\nChantier : ${contrat.chantier.nom}\n${contrat.montantHT != null ? `Montant HT : ${formatEuros(contrat.montantHT)}\n` : ""}${signatureUrl ? `\nLien de signature : ${signatureUrl}\n` : ""}\nCordialement,\nSDA Rénovation`,
     cc,
     bcc,
   }, { type: "contrat-st", documentId: id, documentRef: String(contrat.numero), sentBy: signataire?.name ?? "" });

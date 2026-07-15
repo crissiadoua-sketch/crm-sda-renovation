@@ -382,13 +382,15 @@ model Facture {
   totalTVA         Float            @default(0)
   totalTTC         Float            @default(0)
   montantPaye      Float            @default(0)
-  lienPaiement     String?
-  bridgeLinkId     String?
-  bridgeLinkStatut String?
-  mentionsLibres   String?
-  notesInternes    String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  lienPaiement        String?
+  bridgeLinkId        String?
+  bridgeLinkStatut    String?
+  mentionsLibres      String?
+  notesInternes       String?
+  downloadToken       String?          @unique
+  premiereOuvertureAt DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
   documents        Document[]
   chantier         Chantier         @relation(fields: [chantierId], references: [id])
   client           Client           @relation(fields: [clientId], references: [id])

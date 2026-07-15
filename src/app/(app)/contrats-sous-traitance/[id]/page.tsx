@@ -13,6 +13,7 @@ import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS } from "@/lib/corps-etat";
 import { LienSignatureContrat } from "@/components/contrats-sous-traitance/lien-signature";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
+import { PdfPreviewModal } from "@/components/ui/pdf-preview-modal";
 import { envoyerContratSTParEmail } from "@/lib/actions/email-documents";
 
 const STATUTS = ["BROUILLON", "ENVOYE", "SIGNE", "TERMINE", "RESILIE", "ANNULE"];
@@ -67,13 +68,11 @@ export default async function ContratDetailPage({ params }: { params: Promise<{ 
             documentLabel={`Contrat ${contrat.numero}`}
           defaultSubject={`Contrat de sous-traitance ${contrat.numero}${contrat.objet ? ` — ${contrat.objet}` : ""} — SDA Rénovation`}
           />
-          <Link
+          <PdfPreviewModal
             href={`/apercu/contrat-sous-traitance/${id}`}
-            target="_blank"
-            className="rounded-lg border border-brand-navy px-4 py-2 text-sm font-medium text-brand-navy hover:bg-brand-navy hover:text-white transition-colors"
-          >
-            Aperçu PDF
-          </Link>
+            label={`Aperçu PDF — ${contrat.numero}`}
+            buttonLabel="📄 Aperçu PDF"
+          />
           <DeleteButton
             action={supprimerContrat.bind(null, id)}
             confirmMessage={`Supprimer le contrat ${contrat.numero} ?`}
@@ -189,12 +188,20 @@ export default async function ContratDetailPage({ params }: { params: Promise<{ 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <p className="mb-3 font-semibold text-brand-navy">Signature électronique</p>
         {contrat.statut === "SIGNE" && contrat.dateSignature ? (
-          <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
-            <p className="text-sm font-semibold text-emerald-700">✅ Signé par {contrat.signataireNom}</p>
-            <p className="text-xs text-emerald-600 mt-1">Le {formatDate(contrat.dateSignature)}</p>
+          <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 flex flex-col gap-1">
+            <p className="text-sm font-semibold text-emerald-700">✅ Signé électroniquement</p>
+            <p className="text-sm text-emerald-700">Signataire : <strong>{contrat.signataireNom}</strong></p>
+            <p className="text-xs text-emerald-600">Le {formatDate(contrat.dateSignature)}</p>
+            <p className="text-xs text-emerald-500 mt-1">Notification envoyée à contact@sda-renovation.com</p>
           </div>
         ) : contrat.signatureToken ? (
-          <LienSignatureContrat token={contrat.signatureToken} />
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              En attente de signature — envoyez le lien ci-dessous au sous-traitant.
+              Une fois signé, vous recevrez une notification par email.
+            </p>
+            <LienSignatureContrat token={contrat.signatureToken} />
+          </div>
         ) : null}
       </div>
     </div>

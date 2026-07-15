@@ -145,7 +145,12 @@ export default async function FactureDetailPage({
               <p className="text-sm font-medium text-emerald-600">Intégralement payée</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {facture.premiereOuvertureAt && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700">
+                📥 Vue le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(new Date(facture.premiereOuvertureAt))}
+              </span>
+            )}
             <EnvoyerEmailModal
               action={envoyerFactureParEmail.bind(null, facture.id)}
               defaultTo={facture.client.email ?? ""}

@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY } from "@/lib/company";
-import { formatDate } from "@/lib/format";
 import Link from "next/link";
+import { SignaturePadPv } from "./signature-pad-pv";
 
 function fmt(d: Date | null | undefined): string {
   if (!d) return "—";
@@ -25,11 +25,12 @@ export default async function PvPublicPage({
   const pvr = await prisma.pvReception.findUnique({
     where: { shareToken: token },
     include: {
-      fournisseur: { select: { nom: true, adresse: true, codePostal: true, ville: true, email: true, telephone: true } },
-      chantier:    { select: { nom: true, adresse: true } },
-      client:      { select: { nom: true, raisonSociale: true } },
-      lignes:      { orderBy: { ordre: "asc" } },
-      reserves:    { orderBy: { ordre: "asc" } },
+      fournisseur:  { select: { nom: true, adresse: true, codePostal: true, ville: true, email: true, telephone: true } },
+      sousTraitant: { select: { nom: true } },
+      chantier:     { select: { nom: true, adresse: true } },
+      client:       { select: { nom: true, raisonSociale: true } },
+      lignes:       { orderBy: { ordre: "asc" } },
+      reserves:     { orderBy: { ordre: "asc" } },
     },
   });
 
@@ -179,10 +180,59 @@ export default async function PvPublicPage({
           </div>
         )}
 
+        {/* ── Signatures électroniques ── */}
+        {pvr.resultat && (
+          <div className="mt-2 mb-6">
+            <h2 className="font-bold text-[#1E2F6E] mb-4 text-lg">Signatures électroniques</h2>
+            <div className="flex flex-col gap-4">
+              {/* MO */}
+              {pvr.dateSignatureMO ? (
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-4">
+                  <p className="text-sm font-bold text-emerald-700">✅ Maître d&apos;ouvrage — Signé</p>
+                  {pvr.repMO && <p className="text-sm text-emerald-600 mt-0.5">par {pvr.repMO}</p>}
+                  <p className="text-xs text-emerald-500 mt-1">le {fmt(pvr.dateSignatureMO)}</p>
+                  {pvr.signatureMO && (
+                    <img src={pvr.signatureMO} alt="Signature MO" className="mt-2 h-12 object-contain" />
+                  )}
+                </div>
+              ) : (
+                <SignaturePadPv
+                  token={token}
+                  pvNumero={pvr.numero}
+                  role="MO"
+                  roleLabel="Maître d'ouvrage"
+                  defaultNom={pvr.repMO ?? ""}
+                />
+              )}
+              {/* Prestataire */}
+              {pvr.dateSignaturePrestataire ? (
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-4">
+                  <p className="text-sm font-bold text-emerald-700">✅ Prestataire — Signé</p>
+                  {pvr.repPrestataire && <p className="text-sm text-emerald-600 mt-0.5">par {pvr.repPrestataire}</p>}
+                  <p className="text-xs text-emerald-500 mt-1">le {fmt(pvr.dateSignaturePrestataire)}</p>
+                  {pvr.signaturePrestataire && (
+                    <img src={pvr.signaturePrestataire} alt="Signature Prestataire" className="mt-2 h-12 object-contain" />
+                  )}
+                </div>
+              ) : (
+                <SignaturePadPv
+                  token={token}
+                  pvNumero={pvr.numero}
+                  role="PRESTATAIRE"
+                  roleLabel={pvr.sousTraitant?.nom ?? pvr.fournisseur?.nom ?? "Prestataire"}
+                  defaultNom={pvr.repPrestataire ?? ""}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Pied */}
         <div className="border-t border-slate-200 pt-4 text-center text-xs text-slate-400">
           <p>Document partagé par {COMPANY.nom} · {COMPANY.email}</p>
-          <p className="mt-1">Ce document est en lecture seule. Pour toute question, contactez directement SDA Rénovation.</p>
+          {!pvr.resultat && (
+            <p className="mt-1">La signature sera disponible une fois le PV finalisé avec un résultat.</p>
+          )}
         </div>
       </div>
     </div>

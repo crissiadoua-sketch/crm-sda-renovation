@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/dal";
 import { PvReceptionEditor } from "./pv-editor";
 import { envoyerPvReceptionParEmail } from "@/lib/actions/email-documents";
+import { formatDate } from "@/lib/format";
 
 export default async function PvReceptionDetailPage({
   params,
@@ -61,7 +62,29 @@ export default async function PvReceptionDetailPage({
     ADMIN: "Administrateur",
   };
 
+  const hasSignature = pvr.dateSignatureMO || pvr.dateSignaturePrestataire;
+
   return (
+    <div className="flex flex-col gap-4">
+    {hasSignature && (
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex flex-wrap gap-4">
+        <p className="w-full text-sm font-semibold text-emerald-800">✅ Signatures électroniques enregistrées</p>
+        {pvr.dateSignatureMO && (
+          <div>
+            <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Maître d&apos;ouvrage</p>
+            <p className="text-sm text-emerald-700">{pvr.repMO ?? "—"}</p>
+            <p className="text-xs text-emerald-600">{formatDate(pvr.dateSignatureMO)}</p>
+          </div>
+        )}
+        {pvr.dateSignaturePrestataire && (
+          <div>
+            <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Prestataire</p>
+            <p className="text-sm text-emerald-700">{pvr.repPrestataire ?? "—"}</p>
+            <p className="text-xs text-emerald-600">{formatDate(pvr.dateSignaturePrestataire)}</p>
+          </div>
+        )}
+      </div>
+    )}
     <PvReceptionEditor
       pvr={{
         ...pvr,
@@ -99,5 +122,6 @@ export default async function PvReceptionDetailPage({
       }}
       envoyerParEmail={envoyerPvReceptionParEmail.bind(null, pvr.id)}
     />
+    </div>
   );
 }

@@ -111,11 +111,16 @@ export async function signerContrat(
 ): Promise<{ ok: boolean; error?: string }> {
   const contrat = await prisma.contratSousTraitance.findUnique({
     where: { signatureToken: token },
-    select: { id: true, dateSignature: true },
+    include: {
+      sousTraitant: { select: { nom: true, email: true } },
+      chantier:     { select: { nom: true } },
+    },
   });
 
   if (!contrat) return { ok: false, error: "Lien invalide ou expiré." };
   if (contrat.dateSignature) return { ok: false, error: "Ce contrat a déjà été signé." };
+
+  const dateSignature = new Date();
 
   await prisma.contratSousTraitance.update({
     where: { id: contrat.id },
@@ -123,10 +128,43 @@ export async function signerContrat(
       statut: "SIGNE",
       signataireNom,
       signatureImage,
-      dateSignature: new Date(),
+      dateSignature,
       signatureIp: signatureIp ?? null,
     },
   });
+
+  // Notification email à SDA
+  try {
+    const { envoyerEmail } = await import("@/lib/email");
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.com";
+    const dateStr = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(dateSignature);
+    await envoyerEmail({
+      from: "SDA Rénovation <contact@sda-renovation.com>",
+      to: "contact@sda-renovation.com",
+      subject: `✅ Contrat ${contrat.numero} signé — ${contrat.sousTraitant.nom}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          <div style="background:#1E2F6E;padding:20px 24px;border-radius:8px 8px 0 0">
+            <p style="margin:0;color:#fff;font-size:18px;font-weight:bold">✅ Contrat signé électroniquement</p>
+            <p style="margin:4px 0 0;color:#93c5fd;font-size:13px">${contrat.numero}</p>
+          </div>
+          <div style="background:#fff;padding:24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+            <p style="margin:0 0 16px;font-size:14px;color:#334155">Le contrat de sous-traitance <strong>${contrat.numero}</strong> vient d'être signé.</p>
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <tr><td style="padding:6px 0;color:#64748b;width:40%">Signataire</td><td style="padding:6px 0;font-weight:600;color:#1e293b">${signataireNom}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b">Sous-traitant</td><td style="padding:6px 0;color:#374151">${contrat.sousTraitant.nom}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b">Chantier</td><td style="padding:6px 0;color:#374151">${contrat.chantier.nom}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b">Date</td><td style="padding:6px 0;color:#374151">${dateStr}</td></tr>
+              ${signatureIp ? `<tr><td style="padding:6px 0;color:#64748b">IP</td><td style="padding:6px 0;font-family:monospace;color:#374151">${signatureIp}</td></tr>` : ""}
+            </table>
+            <div style="margin-top:20px;text-align:center">
+              <a href="${APP_URL}/contrats-sous-traitance/${contrat.id}" style="display:inline-block;background:#1E2F6E;color:#fff;text-decoration:none;padding:10px 28px;border-radius:6px;font-size:14px;font-weight:600">Voir dans le CRM</a>
+            </div>
+          </div>
+        </div>`,
+      text: `Contrat ${contrat.numero} signé par ${signataireNom} (${contrat.sousTraitant.nom}) - Chantier : ${contrat.chantier.nom} - Le ${dateStr}`,
+    });
+  } catch { /* notification non bloquante */ }
 
   revalidatePath(`/contrats-sous-traitance/${contrat.id}`);
   return { ok: true };

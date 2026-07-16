@@ -228,35 +228,32 @@ export function PvReceptionEditor({
     setForm(prev => ({
       ...prev,
       chantierId,
-      objet:                  prev.objet                  || (ch.nom ? `Réception des travaux — ${ch.nom}` : ""),
-      lieuReception:          prev.lieuReception          || ch.adresse || "",
-      periodeDebut:           prev.periodeDebut           || toDate(ch.dateDebut),
-      periodeFin:             prev.periodeFin             || toDate(ch.dateFin),
-      refDevis:               prev.refDevis               || devisNum,
-      refCommande:            prev.refCommande            || bcNum,
-      descriptionPrestations: prev.descriptionPrestations || devisObjet,
+      // Chantier prime toujours sur l'ancienne valeur — sinon on garde l'ancienne
+      objet:                  (ch.nom ? `Réception des travaux — ${ch.nom}` : "") || prev.objet,
+      lieuReception:          ch.adresse                 || prev.lieuReception,
+      periodeDebut:           toDate(ch.dateDebut)       || prev.periodeDebut,
+      periodeFin:             toDate(ch.dateFin)         || prev.periodeFin,
+      refDevis:               devisNum                   || prev.refDevis,
+      refCommande:            bcNum                      || prev.refCommande,
+      descriptionPrestations: devisObjet                 || prev.descriptionPrestations,
       ...(categorie === "TRAVAUX_CLIENT" ? {
-        clientId:   prev.clientId   || ch.clientId || "",
-        repMO:      prev.repMO      || clientNom,
-        emailRepMO: prev.emailRepMO || ch.client?.email || "",
+        clientId:   ch.clientId         || prev.clientId,
+        repMO:      clientNom           || prev.repMO,
+        emailRepMO: ch.client?.email    || prev.emailRepMO,
       } : {}),
     }));
 
-    // Pré-remplir les lignes si toutes vides et que le devis a des lignes
+    // Lignes : toujours remplacer par celles du nouveau devis si disponibles
     const devisLignes = devis0?.lignes;
     if (devisLignes && devisLignes.length > 0) {
-      setLignes(prev => {
-        const allEmpty = prev.every(l => !l.designation.trim());
-        if (!allEmpty) return prev;
-        return devisLignes.map(l => ({
-          designation:  l.designation,
-          reference:    l.codeArticle ?? "",
-          quantite:     l.quantite?.toString() ?? "",
-          unite:        l.unite ?? "",
-          conformite:   "CONFORME",
-          observations: "",
-        }));
-      });
+      setLignes(devisLignes.map(l => ({
+        designation:  l.designation,
+        reference:    l.codeArticle ?? "",
+        quantite:     l.quantite?.toString() ?? "",
+        unite:        l.unite ?? "",
+        conformite:   "CONFORME",
+        observations: "",
+      })));
     }
   };
 
@@ -269,9 +266,9 @@ export function PvReceptionEditor({
     setForm(prev => ({
       ...prev,
       sousTraitantId,
-      repPrestataire:      prev.repPrestataire || st.representant || st.contact || "",
-      fonctionPrestataire: prev.fonctionPrestataire || st.qualiteRepresentant || "",
-      emailPrestataire:    prev.emailPrestataire || st.email || "",
+      repPrestataire:      st.representant || st.contact || prev.repPrestataire,
+      fonctionPrestataire: st.qualiteRepresentant       || prev.fonctionPrestataire,
+      emailPrestataire:    st.email                     || prev.emailPrestataire,
     }));
   };
 

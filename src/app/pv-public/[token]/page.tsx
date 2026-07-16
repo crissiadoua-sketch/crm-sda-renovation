@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY } from "@/lib/company";
-import { SignaturePadPv } from "./signature-pad-pv";
+import { ControleEtSignature } from "./controle-et-signature";
 
 function fmt(d: Date | null | undefined): string {
   if (!d) return "—";
@@ -330,24 +330,25 @@ export default async function PvPublicPage({
             </div>
           )}
 
-          {/* Personne n'a encore signé → pad de signature */}
+          {/* Personne n'a encore signé → contrôle interactif + signature */}
           {pvr.statut !== "BROUILLON" && !externalSigned && (
             <div className="flex flex-col gap-3">
-              <h2 className="font-bold text-[#1E2F6E] text-lg">Votre signature est requise</h2>
+              <h2 className="font-bold text-[#1E2F6E] text-lg">Votre évaluation et signature</h2>
               <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3">
                 <p className="text-sm text-blue-800">
-                  Après lecture du document ci-dessus, veuillez apposer votre signature électronique
-                  pour valider la réception. SDA Rénovation signera à son tour, puis vous pourrez
-                  télécharger le PV définitivement signé.
+                  Après lecture du document ci-dessus, renseignez la conformité pour chaque livrable,
+                  sélectionnez votre décision de réception, puis apposez votre signature électronique.
+                  SDA Rénovation signera à son tour et vous pourrez télécharger le PV définitivement signé.
                 </p>
               </div>
-              <SignaturePadPv
+              <ControleEtSignature
                 token={token}
                 pvNumero={pvr.numero}
-                pvId={pvr.id}
                 role={ext.role}
                 roleLabel={ext.titrePartie}
                 defaultNom={ext.repNom}
+                lignes={pvr.lignes}
+                defaultResultat={pvr.resultat}
               />
             </div>
           )}

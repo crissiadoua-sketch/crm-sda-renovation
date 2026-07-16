@@ -73,10 +73,12 @@ export default async function ContratDetailPage({ params }: { params: Promise<{ 
             label={`Aperçu PDF — ${contrat.numero}`}
             buttonLabel="📄 Aperçu PDF"
           />
-          <DeleteButton
-            action={supprimerContrat.bind(null, id)}
-            confirmMessage={`Supprimer le contrat ${contrat.numero} ?`}
-          />
+          {contrat.statut === "BROUILLON" && (
+            <DeleteButton
+              action={supprimerContrat.bind(null, id)}
+              confirmMessage={`Supprimer le contrat ${contrat.numero} ?`}
+            />
+          )}
         </div>
       </div>
 

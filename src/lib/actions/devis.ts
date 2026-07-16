@@ -157,6 +157,8 @@ export async function creerAvenant(devisParentId: string) {
 }
 
 export async function deleteDevis(id: string) {
+  const _doc = await prisma.devis.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   try {
     await prisma.devis.delete({ where: { id } });
   } catch {

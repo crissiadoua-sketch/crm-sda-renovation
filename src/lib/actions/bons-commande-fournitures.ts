@@ -99,6 +99,8 @@ export async function sauvegarderBcf(
 }
 
 export async function supprimerBcf(id: string): Promise<void> {
+  const _doc = await prisma.bonCommandeFournitures.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.bonCommandeFournitures.delete({ where: { id } });
   revalidatePath("/bons-commande/fournitures");
   redirect("/bons-commande/fournitures");

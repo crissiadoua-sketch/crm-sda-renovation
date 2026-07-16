@@ -162,10 +162,12 @@ export default async function FactureDetailPage({
               label={`Aperçu PDF — ${facture.numero}`}
               buttonLabel="📄 Aperçu PDF"
             />
-            <DeleteButton
-              action={deleteFacture.bind(null, facture.id)}
-              confirmMessage={`Supprimer la facture ${facture.numero} ? Cette action est irréversible.`}
-            />
+            {facture.statut === "BROUILLON" && (
+              <DeleteButton
+                action={deleteFacture.bind(null, facture.id)}
+                confirmMessage={`Supprimer la facture ${facture.numero} ? Cette action est irréversible.`}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -1046,7 +1046,7 @@ export function PvReceptionEditor({
                 className="w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white hover:opacity-90 transition disabled:opacity-50">
                 💾 Enregistrer
               </button>
-              {!confirmDelete ? (
+              {pvr.statut === "BROUILLON" && (!confirmDelete ? (
                 <button onClick={() => setConfirmDelete(true)} type="button"
                   className="w-full rounded-lg border border-red-200 py-2 text-sm text-red-500 hover:bg-red-50 transition">
                   Supprimer ce PV
@@ -1065,7 +1065,7 @@ export function PvReceptionEditor({
                     </button>
                   </div>
                 </div>
-              )}
+              ))}
             </div>
           </div>
         </div>

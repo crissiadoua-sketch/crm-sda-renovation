@@ -605,13 +605,15 @@ export function EditeurMemoire({
             </button>
 
             {/* Supprimer */}
-            <button
-              onClick={handleSupprimer}
-              disabled={isPending}
-              className="flex items-center gap-1.5 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-50"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            {mt.statut === "BROUILLON" && (
+              <button
+                onClick={handleSupprimer}
+                disabled={isPending}
+                className="flex items-center gap-1.5 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -782,13 +784,15 @@ export function EditeurMemoire({
             >
               <Copy className="h-3.5 w-3.5" /> Dupliquer
             </button>
-            <button
-              onClick={handleSupprimer}
-              disabled={isPending}
-              className="flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-xs text-red-500 hover:bg-red-50 transition-colors"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Supprimer
-            </button>
+            {mt.statut === "BROUILLON" && (
+              <button
+                onClick={handleSupprimer}
+                disabled={isPending}
+                className="flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-xs text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Supprimer
+              </button>
+            )}
           </div>
         </div>
       </aside>

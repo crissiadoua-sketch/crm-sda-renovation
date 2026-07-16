@@ -111,6 +111,8 @@ export async function sauvegarderFicheAgrement(
 }
 
 export async function supprimerFicheAgrement(id: string) {
+  const _doc = await prisma.ficheAgrementProduit.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.ficheAgrementProduit.delete({ where: { id } });
   revalidatePath("/etude-prix/agrement-produits");
   redirect("/etude-prix/agrement-produits");

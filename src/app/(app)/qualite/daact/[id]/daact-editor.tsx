@@ -340,13 +340,15 @@ export function DAACTEditor({ daact, chantiers, clients }: Props) {
           {isSaving ? "Enregistrement…" : "Enregistrer"}
         </button>
 
-        <button
-          type="button"
-          onClick={handleDelete}
-          className="w-full border border-red-300 text-red-600 hover:bg-red-50 rounded-lg py-2 text-sm font-medium transition-colors"
-        >
-          Supprimer
-        </button>
+        {daact.statut === "BROUILLON" && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="w-full border border-red-300 text-red-600 hover:bg-red-50 rounded-lg py-2 text-sm font-medium transition-colors"
+          >
+            Supprimer
+          </button>
+        )}
 
         <Link
           href="/qualite/daact"

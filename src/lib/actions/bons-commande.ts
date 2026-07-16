@@ -130,6 +130,8 @@ export async function changerStatutBc(id: string, statut: string): Promise<void>
 // ---------------------------------------------------------------------------
 
 export async function supprimerBonCommande(id: string): Promise<void> {
+  const _doc = await prisma.bonCommande.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.bonCommande.delete({ where: { id } });
   revalidatePath("/bons-commande");
   redirect("/bons-commande");

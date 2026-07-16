@@ -95,7 +95,9 @@ export default async function OrdreMissionDetailPage({ params }: { params: Promi
             <FileDown className="h-4 w-4 text-blue-600" />
             Word
           </a>
-          <DeleteButton action={supprimerOrdreMission.bind(null, id)} confirmMessage={`Supprimer l'ordre de mission ${om.numero} ?`} />
+          {om.statut === "BROUILLON" && (
+            <DeleteButton action={supprimerOrdreMission.bind(null, id)} confirmMessage={`Supprimer l'ordre de mission ${om.numero} ?`} />
+          )}
         </div>
       </div>
 

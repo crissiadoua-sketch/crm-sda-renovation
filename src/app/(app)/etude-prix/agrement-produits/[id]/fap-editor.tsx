@@ -623,12 +623,14 @@ export function FapEditor({
           🖨 Imprimer
         </button>
 
-        <DeleteButton
-          action={supprimerFicheAgrement.bind(null, fiche.id)}
-          confirmMessage={`Supprimer la fiche ${fiche.numero} ?`}
-        >
-          Supprimer la fiche
-        </DeleteButton>
+        {fiche.statut === "BROUILLON" && (
+          <DeleteButton
+            action={supprimerFicheAgrement.bind(null, fiche.id)}
+            confirmMessage={`Supprimer la fiche ${fiche.numero} ?`}
+          >
+            Supprimer la fiche
+          </DeleteButton>
+        )}
       </aside>
     </div>
     </FullscreenToggle>

@@ -98,6 +98,8 @@ export async function sauvegarderDemandeAppro(id: string, data: DAData) {
 }
 
 export async function supprimerDemandeAppro(id: string) {
+  const _doc = await prisma.demandeApprovisionnement.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.demandeApprovisionnement.delete({ where: { id } });
   revalidatePath("/exploitation/demandes-appro");
   redirect("/exploitation/demandes-appro");

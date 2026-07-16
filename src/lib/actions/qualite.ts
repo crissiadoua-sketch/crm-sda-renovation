@@ -41,6 +41,8 @@ export async function sauvegarderPAQ(id: string, data: {
 }
 
 export async function supprimerPAQ(id: string) {
+  const _doc = await prisma.planAssuranceQualite.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.planAssuranceQualite.delete({ where: { id } });
   revalidatePath("/qualite/paq");
   redirect("/qualite/paq");
@@ -130,6 +132,8 @@ export async function sauvegarderDAACT(id: string, data: {
 }
 
 export async function supprimerDAACT(id: string) {
+  const _doc = await prisma.dAACT.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.dAACT.delete({ where: { id } });
   revalidatePath("/qualite/daact");
   redirect("/qualite/daact");

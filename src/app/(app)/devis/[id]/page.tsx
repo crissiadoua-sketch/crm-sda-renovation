@@ -162,10 +162,12 @@ export default async function DevisDetailPage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-2xl font-bold text-brand-navy">{formatEuros(devis.totalTTC)}</p>
-          <DeleteButton
-            action={deleteDevis.bind(null, devis.id)}
-            confirmMessage={`Supprimer le devis ${devis.numero} ? Cette action est irréversible.`}
-          />
+          {devis.statut === "BROUILLON" && (
+            <DeleteButton
+              action={deleteDevis.bind(null, devis.id)}
+              confirmMessage={`Supprimer le devis ${devis.numero} ? Cette action est irréversible.`}
+            />
+          )}
         </div>
       </div>
 

@@ -61,6 +61,8 @@ export async function mettreAJourOrdreMission(id: string, formData: FormData): P
 }
 
 export async function supprimerOrdreMission(id: string): Promise<void> {
+  const _doc = await prisma.ordreMission.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.ordreMission.delete({ where: { id } });
   revalidatePath("/ordres-mission");
   redirect("/ordres-mission");

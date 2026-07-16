@@ -112,6 +112,8 @@ export async function sauvegarderPVReunionChantier(id: string, data: PVRCData) {
 }
 
 export async function supprimerPVReunionChantier(id: string) {
+  const _doc = await prisma.pVReunionChantier.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.pVReunionChantier.delete({ where: { id } });
   revalidatePath("/exploitation/pv-reunion");
   redirect("/exploitation/pv-reunion");

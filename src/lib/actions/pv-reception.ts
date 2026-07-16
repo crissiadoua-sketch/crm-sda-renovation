@@ -444,6 +444,8 @@ export async function signerPvReceptionSDA(
 // Supprimer
 // ---------------------------------------------------------------------------
 export async function supprimerPvReception(id: string): Promise<void> {
+  const _doc = await prisma.pvReception.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.pvReception.delete({ where: { id } });
   revalidatePath("/pv-reception");
   redirect("/pv-reception");

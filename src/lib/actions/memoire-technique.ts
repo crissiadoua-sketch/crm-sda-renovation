@@ -290,6 +290,8 @@ export async function dupliquerMemoire(memoireId: string) {
 // ---------------------------------------------------------------------------
 
 export async function supprimerMemoire(memoireId: string) {
+  const _doc = await prisma.memoireTechnique.findUnique({ where: { id: memoireId }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.memoireTechnique.delete({ where: { id: memoireId } });
   revalidatePath("/memoires-techniques");
   redirect("/memoires-techniques");

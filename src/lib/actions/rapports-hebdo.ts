@@ -81,6 +81,8 @@ export async function sauvegarderRapportHebdo(id: string, data: RCHData) {
 }
 
 export async function supprimerRapportHebdo(id: string) {
+  const _doc = await prisma.rapportHebdomadaire.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.rapportHebdomadaire.delete({ where: { id } });
   revalidatePath("/exploitation/rapports-hebdo");
   redirect("/exploitation/rapports-hebdo");

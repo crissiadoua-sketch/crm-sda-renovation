@@ -92,6 +92,8 @@ export async function sauvegarderBonReservationPompe(
 }
 
 export async function supprimerBonReservationPompe(id: string): Promise<void> {
+  const _doc = await prisma.bonReservationPompe.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.bonReservationPompe.delete({ where: { id } });
   revalidatePath("/bons-commande/pompe");
   redirect("/bons-commande/pompe");

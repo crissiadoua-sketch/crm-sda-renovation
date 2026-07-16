@@ -73,6 +73,8 @@ export async function updateDOEInfo(id: string, formData: FormData): Promise<voi
 }
 
 export async function deleteDOE(id: string): Promise<void> {
+  const _doc = await prisma.dOE.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.dOE.delete({ where: { id } });
   revalidatePath("/doe");
   redirect("/doe");

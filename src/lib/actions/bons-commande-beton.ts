@@ -134,6 +134,8 @@ export async function sauvegarderBonCommandeBeton(
 }
 
 export async function supprimerBonCommandeBeton(id: string): Promise<void> {
+  const _doc = await prisma.bonCommandeBeton.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.bonCommandeBeton.delete({ where: { id } });
   revalidatePath("/bons-commande/beton");
   redirect("/bons-commande/beton");

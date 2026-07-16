@@ -148,6 +148,8 @@ export async function updateMentionsFacture(id: string, formData: FormData): Pro
 }
 
 export async function deleteFacture(id: string): Promise<void> {
+  const _doc = await prisma.facture.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   try {
     await prisma.facture.delete({ where: { id } });
   } catch {

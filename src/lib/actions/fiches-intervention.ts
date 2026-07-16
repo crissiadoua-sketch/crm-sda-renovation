@@ -75,6 +75,8 @@ export async function sauvegarderFicheIntervention(id: string, data: FIData) {
 }
 
 export async function supprimerFicheIntervention(id: string) {
+  const _doc = await prisma.ficheIntervention.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.ficheIntervention.delete({ where: { id } });
   revalidatePath("/exploitation/fiches-intervention");
   redirect("/exploitation/fiches-intervention");

@@ -94,6 +94,8 @@ export async function creerContratDepuisOrdreMission(ordreMissionId: string): Pr
 }
 
 export async function supprimerContrat(id: string): Promise<void> {
+  const _doc = await prisma.contratSousTraitance.findUnique({ where: { id }, select: { statut: true } });
+  if (!_doc || _doc.statut !== "BROUILLON") return;
   await prisma.contratSousTraitance.delete({ where: { id } });
   revalidatePath("/contrats-sous-traitance");
   redirect("/contrats-sous-traitance");

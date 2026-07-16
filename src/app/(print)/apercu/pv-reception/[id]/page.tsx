@@ -427,8 +427,13 @@ export default async function ApercuPvReceptionPage({
 
           {/* ══ SIGNATURES ════════════════════════════════════════════════════════ */}
           <div className="mb-3 rounded-lg border border-[#1E2F6E]/20 overflow-hidden">
-            <div className="bg-[#FFA726] px-4 py-2">
+            <div className="bg-[#FFA726] px-4 py-2 flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-widest text-white">Signatures</p>
+              {pvr.statut === "SIGNE" && (
+                <span className="text-[10px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full">
+                  ✅ Signé électroniquement par les deux parties
+                </span>
+              )}
             </div>
             <div className="grid grid-cols-2 divide-x divide-slate-200">
               {/* MO */}
@@ -440,12 +445,30 @@ export default async function ApercuPvReceptionPage({
                 {pvr.repMO && (
                   <p className="text-xs text-slate-600">{pvr.repMO}{pvr.fonctionRepMO ? ` — ${pvr.fonctionRepMO}` : ""}</p>
                 )}
-                <div className="mt-4 border-t border-dashed border-slate-300 pt-3">
-                  <p className="text-[10px] text-slate-400">Lu et approuvé — Signature :</p>
-                  <div className="h-14"></div>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    À {categorie === "TRAVAUX_CLIENT" ? "_____________" : COMPANY.ville}, le _____ / _____ / _________
-                  </p>
+                <div className="mt-3 border-t border-dashed border-slate-300 pt-3">
+                  {pvr.signatureMO ? (
+                    <>
+                      <p className="text-[10px] text-emerald-600 font-semibold mb-1">✅ Signé électroniquement</p>
+                      <img
+                        src={pvr.signatureMO}
+                        alt="Signature"
+                        className="h-14 object-contain"
+                        style={{ maxWidth: "100%", display: "block" }}
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        {pvr.repMO ?? moNom}
+                        {pvr.dateSignatureMO ? ` — le ${formatDate(pvr.dateSignatureMO)}` : ""}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[10px] text-slate-400">Lu et approuvé — Signature :</p>
+                      <div className="h-14"></div>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        À {categorie === "TRAVAUX_CLIENT" ? "_____________" : COMPANY.ville}, le _____ / _____ / _________
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
               {/* Exécutant */}
@@ -457,17 +480,36 @@ export default async function ApercuPvReceptionPage({
                 {pvr.repPrestataire && (
                   <p className="text-xs text-slate-600">{pvr.repPrestataire}{pvr.fonctionPrestataire ? ` — ${pvr.fonctionPrestataire}` : ""}</p>
                 )}
-                <div className="mt-4 border-t border-dashed border-slate-300 pt-3">
-                  <p className="text-[10px] text-slate-400">Lu et approuvé — Signature :</p>
-                  <div className="h-14"></div>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    À {categorie === "TRAVAUX_CLIENT" ? COMPANY.ville : "_____________"}, le _____ / _____ / _________
-                  </p>
+                <div className="mt-3 border-t border-dashed border-slate-300 pt-3">
+                  {pvr.signaturePrestataire ? (
+                    <>
+                      <p className="text-[10px] text-emerald-600 font-semibold mb-1">✅ Signé électroniquement</p>
+                      <img
+                        src={pvr.signaturePrestataire}
+                        alt="Signature"
+                        className="h-14 object-contain"
+                        style={{ maxWidth: "100%", display: "block" }}
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        {pvr.repPrestataire ?? executantNom}
+                        {pvr.dateSignaturePrestataire ? ` — le ${formatDate(pvr.dateSignaturePrestataire)}` : ""}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[10px] text-slate-400">Lu et approuvé — Signature :</p>
+                      <div className="h-14"></div>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        À {categorie === "TRAVAUX_CLIENT" ? COMPANY.ville : "_____________"}, le _____ / _____ / _________
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
             <div className="border-t border-slate-200 bg-slate-50 px-4 py-2 text-[10px] text-slate-400 text-center">
               Document établi en 2 exemplaires originaux — un exemplaire pour chaque partie signataire
+              {pvr.statut === "SIGNE" && " · Signature électronique conforme à l'article 1367 du Code civil"}
             </div>
           </div>
 

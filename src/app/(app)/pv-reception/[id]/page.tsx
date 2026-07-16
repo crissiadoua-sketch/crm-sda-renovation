@@ -34,7 +34,28 @@ export default async function PvReceptionDetailPage({
     }),
     prisma.chantier.findMany({
       orderBy: { createdAt: "desc" },
-      include: { client: { select: { id: true, nom: true, raisonSociale: true, email: true, telephone: true, adresse: true, codePostal: true, ville: true } } },
+      include: {
+        client: { select: { id: true, nom: true, prenom: true, raisonSociale: true, email: true, telephone: true, adresse: true, codePostal: true, ville: true } },
+        devis: {
+          where: { statut: { not: "ANNULE" } },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            numero: true,
+            objet: true,
+            lignes: {
+              where: { type: "LIGNE" },
+              orderBy: { ordre: "asc" },
+              select: { designation: true, unite: true, quantite: true, codeArticle: true },
+            },
+          },
+        },
+        bonsCommande: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { numero: true },
+        },
+      },
     }),
     prisma.client.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, raisonSociale: true } }),
     prisma.sousTraitant.findMany({

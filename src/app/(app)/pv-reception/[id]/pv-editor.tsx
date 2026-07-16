@@ -4,9 +4,6 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   sauvegarderPvReception,
-  finaliserPvReception,
-  genererLienPartage,
-  envoyerLienPvParEmail,
   supprimerPvReception,
 } from "@/lib/actions/pv-reception";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
@@ -114,7 +111,7 @@ export function PvReceptionEditor({
 }: {
   pvr: PVR;
   fournisseurs: { id: string; nom: string; email?: string | null; telephone?: string | null; contact?: string | null }[];
-  chantiers:    { id: string; nom: string; adresse?: string | null; clientId?: string | null; client?: { id: string; nom: string; raisonSociale?: string | null; email?: string | null; telephone?: string | null; adresse?: string | null; codePostal?: string | null; ville?: string | null } | null }[];
+  chantiers:    { id: string; nom: string; adresse?: string | null; clientId?: string | null; dateDebut?: Date | null; dateFin?: Date | null; client?: { id: string; nom: string; prenom?: string | null; raisonSociale?: string | null; email?: string | null; telephone?: string | null; adresse?: string | null; codePostal?: string | null; ville?: string | null } | null; devis?: { numero: string; objet: string | null; lignes?: { designation: string; unite: string | null; quantite: number | null; codeArticle: string | null }[] }[]; bonsCommande?: { numero: string }[] }[];
   clients:      { id: string; nom: string; raisonSociale?: string | null }[];
   sousTraitants: { id: string; nom: string; specialite?: string | null; contact?: string | null; email?: string | null; telephone?: string | null; representant?: string | null; qualiteRepresentant?: string | null }[];
   contratsSTR:  { id: string; reference: string; objet: string | null; sousTraitantId: string; chantierId: string | null; montantHT: number | null; sousTraitant: { id: string; nom: string }; chantier: { id: string; nom: string } | null }[];
@@ -125,13 +122,6 @@ export function PvReceptionEditor({
   const [saved, setSaved]               = useState(false);
   const [activeTab, setActiveTab]       = useState<"identite" | "prestations" | "controle" | "reserves" | "garanties" | "resultat">("identite");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [shareUrl, setShareUrl]         = useState<string | null>(pvr.shareToken ? `/pv-public/${pvr.shareToken}` : null);
-  const [copied, setCopied]             = useState(false);
-  const [envoiStatut, setEnvoiStatut]   = useState<Record<"prestataire" | "repMO", "idle" | "envoi" | "ok" | "erreur">>({
-    prestataire: "idle",
-    repMO: "idle",
-  });
-  const [envoiErreur, setEnvoiErreur]   = useState<string | null>(null);
 
   const categorie = pvr.categorie;
   const labels = getLabels(categorie);
@@ -226,16 +216,48 @@ export function PvReceptionEditor({
     const ch = chantiers.find(c => c.id === chantierId);
     if (!ch) { set("chantierId", chantierId); return; }
 
+    const devis0      = ch.devis?.[0];
+    const devisNum    = devis0?.numero ?? "";
+    const devisObjet  = devis0?.objet ?? "";
+    const bcNum       = ch.bonsCommande?.[0]?.numero ?? "";
+    const clientNom   = ch.client?.raisonSociale
+      ?? (ch.client ? `${ch.client.prenom ?? ""} ${ch.client.nom}`.trim() : "");
+    const toDate = (d: Date | null | undefined) =>
+      d ? new Date(d).toISOString().slice(0, 10) : "";
+
     setForm(prev => ({
       ...prev,
       chantierId,
-      lieuReception: prev.lieuReception || ch.adresse || "",
-      // Pour TRAVAUX_CLIENT : pré-remplir le client du chantier
-      clientId: (categorie === "TRAVAUX_CLIENT" && !prev.clientId && ch.clientId) ? ch.clientId : prev.clientId,
-      // Pré-remplir repMO avec les coordonnées du client pour TRAVAUX_CLIENT
-      repMO:       (categorie === "TRAVAUX_CLIENT" && !prev.repMO && ch.client) ? (ch.client.raisonSociale ?? `${ch.client.nom}`) : prev.repMO,
-      emailRepMO:  (categorie === "TRAVAUX_CLIENT" && !prev.emailRepMO && ch.client?.email) ? ch.client.email : prev.emailRepMO,
+      objet:                  prev.objet                  || (ch.nom ? `Réception des travaux — ${ch.nom}` : ""),
+      lieuReception:          prev.lieuReception          || ch.adresse || "",
+      periodeDebut:           prev.periodeDebut           || toDate(ch.dateDebut),
+      periodeFin:             prev.periodeFin             || toDate(ch.dateFin),
+      refDevis:               prev.refDevis               || devisNum,
+      refCommande:            prev.refCommande            || bcNum,
+      descriptionPrestations: prev.descriptionPrestations || devisObjet,
+      ...(categorie === "TRAVAUX_CLIENT" ? {
+        clientId:   prev.clientId   || ch.clientId || "",
+        repMO:      prev.repMO      || clientNom,
+        emailRepMO: prev.emailRepMO || ch.client?.email || "",
+      } : {}),
     }));
+
+    // Pré-remplir les lignes si toutes vides et que le devis a des lignes
+    const devisLignes = devis0?.lignes;
+    if (devisLignes && devisLignes.length > 0) {
+      setLignes(prev => {
+        const allEmpty = prev.every(l => !l.designation.trim());
+        if (!allEmpty) return prev;
+        return devisLignes.map(l => ({
+          designation:  l.designation,
+          reference:    l.codeArticle ?? "",
+          quantite:     l.quantite?.toString() ?? "",
+          unite:        l.unite ?? "",
+          conformite:   "CONFORME",
+          observations: "",
+        }));
+      });
+    }
   };
 
   // ── Pré-remplissage depuis sous-traitant ─────────────────────────────────
@@ -385,47 +407,6 @@ export function PvReceptionEditor({
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     });
-  };
-
-  const handleFinaliser = () => {
-    startTransition(async () => {
-      await sauvegarderPvReception(pvr.id, { ...buildPayload(), statut: "FINALISE" });
-      const token = await finaliserPvReception(pvr.id);
-      setForm(f => ({ ...f, statut: "FINALISE" }));
-      setShareUrl(`/pv-public/${token}`);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    });
-  };
-
-  const handleGenererLien = () => {
-    startTransition(async () => {
-      const token = await genererLienPartage(pvr.id);
-      setShareUrl(`/pv-public/${token}`);
-    });
-  };
-
-  const handleEnvoyerEmail = (cible: "prestataire" | "repMO", destinataire: string) => {
-    setEnvoiStatut((s) => ({ ...s, [cible]: "envoi" }));
-    setEnvoiErreur(null);
-    startTransition(async () => {
-      const res = await envoyerLienPvParEmail(pvr.id, destinataire);
-      if (res.ok) {
-        setEnvoiStatut((s) => ({ ...s, [cible]: "ok" }));
-        setTimeout(() => setEnvoiStatut((s) => ({ ...s, [cible]: "idle" })), 4000);
-      } else {
-        setEnvoiStatut((s) => ({ ...s, [cible]: "erreur" }));
-        setEnvoiErreur(res.error ?? "Erreur d'envoi.");
-      }
-    });
-  };
-
-  const handleCopy = () => {
-    if (!shareUrl) return;
-    const fullUrl = shareUrl.startsWith("http") ? shareUrl : `${window.location.origin}${shareUrl}`;
-    navigator.clipboard.writeText(fullUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
   };
 
   const handleDelete = () => {
@@ -1051,65 +1032,6 @@ export function PvReceptionEditor({
                     <p className="text-xs font-normal text-blue-500">Document modifiable</p>
                   </div>
                 </a>
-              </div>
-            </Section>
-
-            <Section title="Lien de partage / Envoi par email" icon="📧">
-              <div className="flex flex-col gap-3">
-                {!shareUrl ? (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-slate-500 mb-3">Finalisez le PV pour générer un lien partageable sécurisé.</p>
-                    <button onClick={handleFinaliser} disabled={isPending || !form.resultat}
-                      className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40 transition">
-                      {isPending ? "Finalisation…" : "Finaliser et générer le lien"}
-                    </button>
-                    {!form.resultat && <p className="text-xs text-red-500 mt-2">⚠ Sélectionnez un résultat d'abord.</p>}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-xs text-slate-500">Lien de lecture sécurisé (valable 1 an) :</p>
-                    <div className="flex gap-2">
-                      <input readOnly
-                        value={`${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}`}
-                        className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-600" />
-                      <button onClick={handleCopy}
-                        className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${copied ? "bg-green-600 text-white" : "bg-brand-navy text-white hover:opacity-90"}`}>
-                        {copied ? "Copié ✓" : "Copier"}
-                      </button>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {form.emailRepMO && (
-                        <div className="flex flex-1 flex-col gap-1 min-w-40">
-                          <button onClick={() => handleEnvoyerEmail("repMO", form.emailRepMO)}
-                            disabled={isPending || envoiStatut.repMO === "envoi"}
-                            className="flex-1 rounded-lg bg-brand-navy py-2 text-center text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition">
-                            {envoiStatut.repMO === "envoi" ? "Envoi…" : envoiStatut.repMO === "ok" ? "Envoyé ✓" : `✉ Envoyer au ${categorie === "TRAVAUX_CLIENT" ? "client" : "MO"}`}
-                          </button>
-                          <a href={`mailto:${form.emailRepMO}?subject=PV de Réception ${pvr.numero}&body=Bonjour,%0A%0AVeuillez trouver le lien vers le PV ${pvr.numero} :%0A%0A${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}%0A%0ACordialement,%0ASDA Rénovation`}
-                            className="text-center text-[11px] text-slate-400 hover:text-slate-600 underline">ou via ma messagerie</a>
-                        </div>
-                      )}
-                      {form.emailPrestataire && (
-                        <div className="flex flex-1 flex-col gap-1 min-w-40">
-                          <button onClick={() => handleEnvoyerEmail("prestataire", form.emailPrestataire)}
-                            disabled={isPending || envoiStatut.prestataire === "envoi"}
-                            className="flex-1 rounded-lg bg-[#29ABE2] py-2 text-center text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition">
-                            {envoiStatut.prestataire === "envoi" ? "Envoi…" : envoiStatut.prestataire === "ok" ? "Envoyé ✓" : `✉ Envoyer au ${categorie === "TRAVAUX_SOUS_TRAITANT" ? "sous-traitant" : "prestataire"}`}
-                          </button>
-                          <a href={`mailto:${form.emailPrestataire}?subject=PV de Réception ${pvr.numero}&body=Bonjour,%0A%0AVeuillez trouver le lien vers le PV ${pvr.numero} :%0A%0A${typeof window !== "undefined" ? window.location.origin : ""}${shareUrl}%0A%0ACordialement,%0ASDA Rénovation`}
-                            className="text-center text-[11px] text-slate-400 hover:text-slate-600 underline">ou via ma messagerie</a>
-                        </div>
-                      )}
-                    </div>
-                    {(envoiStatut.prestataire === "erreur" || envoiStatut.repMO === "erreur") && envoiErreur && (
-                      <p className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-600">{envoiErreur}</p>
-                    )}
-                    <button onClick={handleGenererLien} disabled={isPending}
-                      className="text-xs text-slate-400 hover:text-slate-600 underline text-center">
-                      Regénérer le lien
-                    </button>
-                  </div>
-                )}
               </div>
             </Section>
 

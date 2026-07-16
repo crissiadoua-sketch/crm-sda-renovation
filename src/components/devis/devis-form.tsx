@@ -1,13 +1,25 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useActionState } from "react";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { toDateInputValue } from "@/lib/format";
 import type { DevisState } from "@/lib/actions/devis";
-import type { Devis, Chantier } from "@/generated/prisma/client";
+import type { Devis } from "@/generated/prisma/client";
 
 type Action = (prevState: DevisState, formData: FormData) => Promise<DevisState>;
+
+type ChantierWithClient = {
+  id: string;
+  reference: string | null;
+  nom: string;
+  clientId: string | null;
+  client: {
+    nom: string;
+    prenom: string | null;
+    raisonSociale: string | null;
+  } | null;
+};
 
 const statutLabels: Record<string, string> = {
   BROUILLON: "Brouillon",
@@ -22,16 +34,31 @@ export function DevisForm({
   chantiers,
   defaultChantierId,
   action,
-  isSigne,
 }: {
   devis?: Devis;
-  chantiers: Chantier[];
+  chantiers: ChantierWithClient[];
   defaultChantierId?: string;
   action: Action;
   isSigne?: boolean;
 }) {
   const [state, formAction] = useActionState(action, undefined);
   const errors = state?.errors ?? {};
+
+  const [chantierId, setChantierId] = useState<string>(devis?.chantierId ?? defaultChantierId ?? "");
+  const [objet, setObjet] = useState<string>(devis?.objet ?? "");
+  const [maitreOuvrage, setMaitreOuvrage] = useState<string>(devis?.maitreOuvrage ?? "");
+
+  // ── Pré-remplissage depuis chantier ──────────────────────────────────────
+  const handleChantierChange = (newId: string) => {
+    setChantierId(newId);
+    const ch = chantiers.find((c) => c.id === newId);
+    if (!ch) return;
+    const clientNom =
+      ch.client?.raisonSociale ??
+      (ch.client ? `${ch.client.prenom ?? ""} ${ch.client.nom}`.trim() : "");
+    setObjet(ch.nom);
+    setMaitreOuvrage((prev) => prev || clientNom);
+  };
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -40,7 +67,8 @@ export function DevisForm({
           <select
             id="chantierId"
             name="chantierId"
-            defaultValue={devis?.chantierId ?? defaultChantierId ?? ""}
+            value={chantierId}
+            onChange={(e) => handleChantierChange(e.target.value)}
             required
             className={inputClasses}
           >
@@ -77,7 +105,8 @@ export function DevisForm({
         <input
           id="objet"
           name="objet"
-          defaultValue={devis?.objet ?? ""}
+          value={objet}
+          onChange={(e) => setObjet(e.target.value)}
           placeholder="Ex. Rénovation complète d'un appartement T3"
           className={inputClasses}
         />
@@ -103,7 +132,8 @@ export function DevisForm({
             <input
               id="maitreOuvrage"
               name="maitreOuvrage"
-              defaultValue={devis?.maitreOuvrage ?? ""}
+              value={maitreOuvrage}
+              onChange={(e) => setMaitreOuvrage(e.target.value)}
               className={inputClasses}
             />
           </Field>

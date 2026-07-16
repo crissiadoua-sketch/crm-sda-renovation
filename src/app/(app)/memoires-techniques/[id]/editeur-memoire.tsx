@@ -90,11 +90,55 @@ export function EditeurMemoire({
   devisDisponibles,
 }: {
   mt: MtData;
-  devisDisponibles: { id: string; numero: string; objet: string | null }[];
+  devisDisponibles: { id: string; numero: string; objet: string | null; totalHT: number | null }[];
 }) {
+  // Calcul du nom client pour initialiser maitreOuvrage si vide
+  const clientNomFallback = initialMt.chantier?.client?.raisonSociale
+    ?? (initialMt.chantier?.client
+        ? `${initialMt.chantier.client.prenom ?? ""} ${initialMt.chantier.client.nom}`.trim()
+        : "");
+
   const [mt] = useState<MtData>(initialMt);
   const [sections, setSections] = useState<Record<string, SectionData>>(initialMt.sections);
   const [annexes, setAnnexes] = useState<AnnexeData[]>(initialMt.annexes);
+
+  // ── Métadonnées éditables avec auto-remplissage ───────────────────────────
+  const [metaMaitreOuvrage, setMetaMaitreOuvrage] = useState(
+    initialMt.maitreOuvrage ?? clientNomFallback
+  );
+  const [metaMontantEstime, setMetaMontantEstime] = useState(
+    initialMt.montantEstime != null ? initialMt.montantEstime.toString() : ""
+  );
+  const [metaDevisId, setMetaDevisId] = useState(initialMt.devis?.id ?? "");
+  const [metaSaving, setMetaSaving] = useState(false);
+  const [metaSaved, setMetaSaved] = useState(false);
+
+  // Pré-remplissage montantEstime depuis devis sélectionné
+  const handleDevisChange = (devisId: string) => {
+    setMetaDevisId(devisId);
+    if (!devisId) return;
+    const d = devisDisponibles.find((dv) => dv.id === devisId);
+    if (!d) return;
+    setMetaMontantEstime((prev) => prev || (d.totalHT != null ? d.totalHT.toString() : ""));
+  };
+
+  const handleSaveMeta = async () => {
+    setMetaSaving(true);
+    const fd = new FormData();
+    fd.set("titre",          mt.titre);
+    fd.set("maitreOuvrage",  metaMaitreOuvrage);
+    fd.set("objetMarche",    mt.objetMarche ?? "");
+    fd.set("lotNumero",      mt.lotNumero ?? "");
+    fd.set("lotDesignation", mt.lotDesignation ?? "");
+    fd.set("montantEstime",  metaMontantEstime);
+    fd.set("dateRemise",     mt.dateRemise ?? "");
+    fd.set("devisId",        metaDevisId);
+    await mettreAJourMetadonnees(mt.id, fd);
+    setMetaSaving(false);
+    setMetaSaved(true);
+    setTimeout(() => setMetaSaved(false), 3000);
+  };
+
   const [activeSection, setActiveSection] = useState<string | null>(() => {
     const keys = Object.keys(initialMt.sections).sort(
       (a, b) => (initialMt.sections[a].ordre ?? 0) - (initialMt.sections[b].ordre ?? 0)
@@ -374,6 +418,7 @@ export function EditeurMemoire({
 
           {activeTab === "infos" && (
             <div className="p-3 flex flex-col gap-3 text-[11px]">
+              {/* Infos fixes chantier / client */}
               <div className="flex flex-col gap-1">
                 <span className="text-slate-400 uppercase tracking-wide font-semibold text-[10px]">Chantier</span>
                 <span className="flex items-center gap-1 text-slate-700 font-medium">
@@ -393,13 +438,6 @@ export function EditeurMemoire({
                 </div>
               )}
 
-              {mt.maitreOuvrage && (
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-slate-400 uppercase tracking-wide font-semibold text-[10px]">Maître d'ouvrage</span>
-                  <span className="text-slate-700">{mt.maitreOuvrage}</span>
-                </div>
-              )}
-
               {mt.objetMarche && (
                 <div className="flex flex-col gap-0.5">
                   <span className="text-slate-400 uppercase tracking-wide font-semibold text-[10px]">Objet du marché</span>
@@ -414,16 +452,6 @@ export function EditeurMemoire({
                 </div>
               )}
 
-              {mt.montantEstime && (
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-slate-400 uppercase tracking-wide font-semibold text-[10px]">Montant estimé</span>
-                  <span className="flex items-center gap-1 text-slate-700 font-semibold">
-                    <Euro className="h-3 w-3" />
-                    {mt.montantEstime.toLocaleString("fr-FR")} HT
-                  </span>
-                </div>
-              )}
-
               {mt.dateRemise && (
                 <div className="flex flex-col gap-0.5">
                   <span className="text-slate-400 uppercase tracking-wide font-semibold text-[10px]">Date de remise</span>
@@ -434,15 +462,61 @@ export function EditeurMemoire({
                 </div>
               )}
 
-              {mt.devis && (
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-slate-400 uppercase tracking-wide font-semibold text-[10px]">Devis lié</span>
-                  <span className="flex items-center gap-1 text-slate-700">
-                    <FileText className="h-3 w-3" />
-                    {mt.devis.numero} {mt.devis.totalHT ? `— ${mt.devis.totalHT.toLocaleString("fr-FR")} € HT` : ""}
-                  </span>
-                </div>
-              )}
+              {/* ── Métadonnées éditables ─────────────────────────────────── */}
+              <hr className="border-slate-100 my-1" />
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Métadonnées</p>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Maître d&apos;ouvrage
+                </label>
+                <input
+                  value={metaMaitreOuvrage}
+                  onChange={(e) => setMetaMaitreOuvrage(e.target.value)}
+                  placeholder="Nom du maître d'ouvrage"
+                  className="w-full rounded border border-slate-200 bg-white px-2 py-1 text-[11px] focus:outline-none focus:border-brand-blue/50"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Devis lié
+                </label>
+                <select
+                  value={metaDevisId}
+                  onChange={(e) => handleDevisChange(e.target.value)}
+                  className="w-full rounded border border-slate-200 bg-white px-2 py-1 text-[11px] focus:outline-none focus:border-brand-blue/50"
+                >
+                  <option value="">— Aucun —</option>
+                  {devisDisponibles.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.numero}{d.totalHT != null ? ` — ${d.totalHT.toLocaleString("fr-FR")} € HT` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 flex items-center gap-1">
+                  <Euro className="h-3 w-3" /> Montant estimé HT
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={metaMontantEstime}
+                  onChange={(e) => setMetaMontantEstime(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded border border-slate-200 bg-white px-2 py-1 text-[11px] focus:outline-none focus:border-brand-blue/50"
+                />
+              </div>
+
+              <button
+                onClick={handleSaveMeta}
+                disabled={metaSaving}
+                className="mt-1 flex items-center justify-center gap-1.5 rounded-lg bg-brand-navy px-3 py-1.5 text-[10px] font-semibold text-white hover:opacity-90 transition disabled:opacity-50"
+              >
+                {metaSaving ? "…" : metaSaved ? "✓ Enregistré" : "Enregistrer les métadonnées"}
+              </button>
             </div>
           )}
         </div>

@@ -76,7 +76,10 @@ export default async function DevisDetailPage({
         },
       },
     }),
-    prisma.chantier.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.chantier.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { client: { select: { nom: true, prenom: true, raisonSociale: true } } },
+    }),
     prisma.parametres.findUnique({ where: { id: "default" } }),
     prisma.ouvrage.findMany({
       where: { actif: true },
@@ -215,33 +218,27 @@ export default async function DevisDetailPage({
             </button>
           </form>
         )}
-        {devis.statut === "ACCEPTE" && (
-          <PlanificationFacturationModal
-            devisId={devis.id}
-            devisNumero={devis.numero}
-            totalHT={devis.totalHT}
-            totalTTC={devis.totalTTC}
-            montantDéjàFacturéHT={devis.factures.reduce((s, f) => s + f.totalHT, 0)}
-          />
-        )}
-        {devis.statut === "ACCEPTE" && (
-          <Link
-            href={`/bons-commande?chantierId=${devis.chantierId}&creer=1`}
-            className={buttonClasses("secondary")}
-          >
-            <ShoppingCart className="h-4 w-4" />
-            Créer BC matériaux
-          </Link>
-        )}
-        {devis.statut === "ACCEPTE" && (
-          <Link
-            href={`/bons-commande/beton?chantierId=${devis.chantierId}&creer=1`}
-            className={buttonClasses("secondary")}
-          >
-            <ShoppingCart className="h-4 w-4" />
-            Créer BC Béton
-          </Link>
-        )}
+        <PlanificationFacturationModal
+          devisId={devis.id}
+          devisNumero={devis.numero}
+          totalHT={devis.totalHT}
+          totalTTC={devis.totalTTC}
+          montantDéjàFacturéHT={devis.factures.reduce((s, f) => s + f.totalHT, 0)}
+        />
+        <Link
+          href={`/bons-commande?chantierId=${devis.chantierId}&creer=1`}
+          className={buttonClasses("secondary")}
+        >
+          <ShoppingCart className="h-4 w-4" />
+          Créer BC matériaux
+        </Link>
+        <Link
+          href={`/bons-commande/beton?chantierId=${devis.chantierId}&creer=1`}
+          className={buttonClasses("secondary")}
+        >
+          <ShoppingCart className="h-4 w-4" />
+          Créer BC Béton
+        </Link>
         <form action={creerFactureTotaleDepuisDevis.bind(null, devis.id)}>
           <button
             type="submit"
@@ -288,21 +285,17 @@ export default async function DevisDetailPage({
             <Receipt className="h-4 w-4 text-slate-400" />
             Factures créées depuis ce devis
           </h3>
-          {devis.statut === "ACCEPTE" && (
-            <PlanificationFacturationModal
-              devisId={devis.id}
-              devisNumero={devis.numero}
-              totalHT={devis.totalHT}
-              totalTTC={devis.totalTTC}
-              montantDéjàFacturéHT={devis.factures.reduce((s, f) => s + f.totalHT, 0)}
-            />
-          )}
+          <PlanificationFacturationModal
+            devisId={devis.id}
+            devisNumero={devis.numero}
+            totalHT={devis.totalHT}
+            totalTTC={devis.totalTTC}
+            montantDéjàFacturéHT={devis.factures.reduce((s, f) => s + f.totalHT, 0)}
+          />
         </div>
         {devis.factures.length === 0 ? (
           <p className="text-sm text-slate-400">
-            {devis.statut === "ACCEPTE"
-              ? "Aucune facture générée — utilisez \"Planifier la facturation\" ci-dessus."
-              : "Aucune facture — le devis doit être Accepté avant de pouvoir facturer."}
+            Aucune facture générée — utilisez &ldquo;Planifier la facturation&rdquo; ci-dessus.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">

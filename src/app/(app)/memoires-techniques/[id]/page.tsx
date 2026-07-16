@@ -35,7 +35,7 @@ export default async function MemoireTechniquePage({
 
   const devisDisponibles = await prisma.devis.findMany({
     where: { chantierId: mt.chantierId },
-    select: { id: true, numero: true, objet: true },
+    select: { id: true, numero: true, objet: true, totalHT: true },
     orderBy: { numero: "desc" },
   });
 

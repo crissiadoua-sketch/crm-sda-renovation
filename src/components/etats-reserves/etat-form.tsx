@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useActionState } from "react";
 import { ClipboardX, CheckCircle2, Info } from "lucide-react";
 import { Field, inputClasses } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -23,6 +23,18 @@ export function EtatReservesForm({
 }) {
   const [state, formAction] = useActionState(action, undefined);
   const errors = state?.errors ?? {};
+
+  const [chantierId, setChantierId] = useState<string>(etat?.chantierId ?? "");
+  const [clientId, setClientId] = useState<string>(etat?.clientId ?? "");
+
+  // ── Pré-remplissage depuis chantier ──────────────────────────────────────
+  const handleChantierChange = (newId: string) => {
+    setChantierId(newId);
+    if (!newId) return;
+    const ch = chantiers.find((c) => c.id === newId);
+    if (!ch) return;
+    setClientId((prev) => prev || ch.clientId || "");
+  };
 
   const isLeve = etat?.statut === "LEVE";
 
@@ -64,7 +76,13 @@ export function EtatReservesForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Chantier associé" htmlFor="chantierId" error={errors.chantierId}>
-          <select id="chantierId" name="chantierId" defaultValue={etat?.chantierId ?? ""} className={inputClasses}>
+          <select
+            id="chantierId"
+            name="chantierId"
+            value={chantierId}
+            onChange={(e) => handleChantierChange(e.target.value)}
+            className={inputClasses}
+          >
             <option value="">— Sélectionner un chantier —</option>
             {chantiers.map((c) => (
               <option key={c.id} value={c.id}>
@@ -74,7 +92,13 @@ export function EtatReservesForm({
           </select>
         </Field>
         <Field label="Client (maître d'ouvrage)" htmlFor="clientId" error={errors.clientId}>
-          <select id="clientId" name="clientId" defaultValue={etat?.clientId ?? ""} className={inputClasses}>
+          <select
+            id="clientId"
+            name="clientId"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            className={inputClasses}
+          >
             <option value="">— Sélectionner un client —</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>

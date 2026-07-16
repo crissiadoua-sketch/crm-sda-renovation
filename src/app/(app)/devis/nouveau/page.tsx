@@ -14,6 +14,7 @@ export default async function NouveauDevisPage({
   const chantiers = await prisma.chantier.findMany({
     where: clientId ? { clientId } : undefined,
     orderBy: { createdAt: "desc" },
+    include: { client: { select: { nom: true, prenom: true, raisonSociale: true } } },
   });
 
   // Si un seul chantier (venant d'un client), le pré-sélectionner

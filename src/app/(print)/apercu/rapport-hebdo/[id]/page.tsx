@@ -113,7 +113,7 @@ export default async function ApercuRapportHebdoPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Tâches de la semaine</p>
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="bg-[#FFA726] text-white">
+                  <tr className="bg-[#F7941E] text-white">
                     <th className="px-2 py-1.5 text-left font-semibold w-6">#</th>
                     <th className="px-2 py-1.5 text-left font-semibold">Tâche</th>
                     <th className="px-2 py-1.5 text-center font-semibold w-16">Début %</th>
@@ -157,7 +157,7 @@ export default async function ApercuRapportHebdoPage({
 
           {/* Travaux effectués */}
           {rapport.travauxEffectues && (
-            <div className="mb-4 rounded-lg border border-[#F7941E]/40 bg-[#FFA726]/5 px-4 py-3">
+            <div className="mb-4 rounded-lg border border-[#F7941E]/40 bg-[#F7941E]/5 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#1E2F6E] mb-1">Travaux effectués</p>
               <p className="text-xs text-slate-700 whitespace-pre-wrap">{rapport.travauxEffectues}</p>
             </div>
@@ -165,7 +165,7 @@ export default async function ApercuRapportHebdoPage({
 
           {/* Problèmes rencontrés */}
           {rapport.problemes && (
-            <div className="mb-4 rounded-lg border border-[#F7941E]/40 bg-[#FFA726]/5 px-4 py-3">
+            <div className="mb-4 rounded-lg border border-[#F7941E]/40 bg-[#F7941E]/5 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#F7941E] mb-1">Problèmes rencontrés</p>
               <p className="text-xs text-slate-700 whitespace-pre-wrap">{rapport.problemes}</p>
             </div>

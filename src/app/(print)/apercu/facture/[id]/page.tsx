@@ -100,7 +100,7 @@ export default async function ApercuFacturePage({
           <div className="mb-6">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-[#FFA726] text-white">
+                <tr className="bg-[#F7941E] text-white">
                   <th className="px-3 py-2 text-left font-semibold text-xs w-16">Code</th>
                   <th className="px-3 py-2 text-left font-semibold text-xs">Désignation</th>
                   <th className="px-3 py-2 text-center font-semibold text-xs w-14">Unité</th>
@@ -113,7 +113,7 @@ export default async function ApercuFacturePage({
                 {facture.lignes.map((ligne, i) => {
                   if (ligne.type === "CHAPITRE") {
                     return (
-                      <tr key={ligne.id} className="bg-[#FFA726]/8" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+                      <tr key={ligne.id} className="bg-[#F7941E]/8" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                         <td colSpan={6} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#F7941E]/50">{ligne.designation}</td>
                       </tr>
                     );

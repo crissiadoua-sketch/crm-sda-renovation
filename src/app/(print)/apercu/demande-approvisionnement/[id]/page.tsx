@@ -113,7 +113,7 @@ export default async function ApercuDemandeApprovisionnementPage({
           <div className="mb-5">
             <table className="w-full border-collapse text-xs">
               <thead>
-                <tr className="bg-[#FFA726] text-white">
+                <tr className="bg-[#F7941E] text-white">
                   <th className="px-2 py-1.5 text-left font-semibold w-6">#</th>
                   <th className="px-2 py-1.5 text-left font-semibold">Désignation</th>
                   <th className="px-2 py-1.5 text-left font-semibold w-20">Référence</th>

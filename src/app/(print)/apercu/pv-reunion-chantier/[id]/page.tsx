@@ -17,7 +17,10 @@ export default async function ApercuPVReunionChantierPage({
     include: {
       chantier: true,
       client: true,
-      participants: true,
+      participants: {
+        orderBy: { nom: "asc" },
+        select: { id: true, nom: true, societe: true, fonction: true, present: true, signatureImage: true, dateSigne: true },
+      },
       points: { orderBy: { ordre: "asc" } },
       actions: { orderBy: { ordre: "asc" } },
     },
@@ -183,19 +186,71 @@ export default async function ApercuPVReunionChantierPage({
             </div>
           )}
 
-          {/* Signatures */}
-          <div className="mb-4 grid grid-cols-2 gap-6">
-            {[
-              { label: "Animateur", nom: pv.animateur },
-              { label: "Rédacteur", nom: pv.redacteur },
-            ].map(({ label, nom }) => (
-              <div key={label} className="rounded-lg border border-slate-200 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">{label}</p>
-                <p className="text-xs text-slate-600 mb-5">{nom ?? "____________________________"}</p>
-                <div className="h-12 border-b border-dashed border-slate-300" />
-                <p className="mt-1 text-[10px] text-slate-400">Date : ___________________</p>
+          {/* ══ SIGNATURES ══════════════════════════════════════════════ */}
+          <div className="mb-4 rounded-lg border border-[#1E2F6E]/20 overflow-hidden">
+            <div className="bg-[#F7941E] px-4 py-2 flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-widest text-white">Signatures</p>
+              {pv.dateSigSDA && (
+                <span className="text-[10px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full">
+                  ✅ Signé électroniquement par les deux parties
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-slate-200">
+              {pv.participants.map((p) => (
+                <div key={p.id} className="px-4 py-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+                    {p.societe ?? "Participant"}
+                  </p>
+                  <p className="text-xs font-bold text-[#1E2F6E]">{p.nom}</p>
+                  <div className="mt-3 border-t border-dashed border-slate-300 pt-3">
+                    {p.signatureImage && p.dateSigne ? (
+                      <>
+                        <p className="text-[10px] text-emerald-600 font-semibold mb-1">✅ Signé électroniquement</p>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.signatureImage} alt="Signature" className="h-14 object-contain" style={{ maxWidth: "100%", display: "block" }} />
+                        <p className="text-[10px] text-slate-500 mt-1">
+                          {p.nom} — le {formatDate(p.dateSigne)}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[10px] text-slate-400">Lu et approuvé — Signature :</p>
+                        <div className="h-14"></div>
+                        <p className="text-[10px] text-slate-400 mt-1">À _______________, le _____ / _____ / _________</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {/* SDA */}
+              <div className="px-4 py-4 col-span-2 border-t border-slate-200">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">SDA Rénovation</p>
+                <p className="text-xs font-bold text-[#1E2F6E]">{pv.signataireNomSDA ?? COMPANY.nom}</p>
+                <div className="mt-3 border-t border-dashed border-slate-300 pt-3">
+                  {pv.signatureSDA && pv.dateSigSDA ? (
+                    <>
+                      <p className="text-[10px] text-emerald-600 font-semibold mb-1">✅ Contre-signé électroniquement</p>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={pv.signatureSDA} alt="Signature SDA" className="h-14 object-contain" style={{ maxWidth: "100%", display: "block" }} />
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        {pv.signataireNomSDA ?? COMPANY.nom} — le {formatDate(pv.dateSigSDA)}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[10px] text-slate-400">Signature SDA Rénovation :</p>
+                      <div className="h-14"></div>
+                      <p className="text-[10px] text-slate-400 mt-1">À {COMPANY.ville}, le _____ / _____ / _________</p>
+                    </>
+                  )}
+                </div>
               </div>
-            ))}
+            </div>
+            <div className="border-t border-slate-200 bg-slate-50 px-4 py-2 text-[10px] text-slate-400 text-center">
+              Document établi en {pv.participants.length + 1} exemplaires
+              {pv.dateSigSDA && " · Signature électronique conforme à l'article 1367 du Code civil"}
+            </div>
           </div>
 
           {/* Mention légale */}

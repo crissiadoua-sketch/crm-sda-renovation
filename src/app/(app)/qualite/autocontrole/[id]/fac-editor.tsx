@@ -33,7 +33,7 @@ type FAC = {
 
 type Props = {
   fac: FAC;
-  chantiers: { id: string; nom: string; ville?: string | null }[];
+  chantiers: { id: string; nom: string; ville?: string | null; clientId?: string | null; adresse?: string | null }[];
   clients: { id: string; nom: string; prenom?: string | null }[];
   paqs: { id: string; numero: string; objetMarche: string | null }[];
 };
@@ -80,6 +80,16 @@ export function FACEditor({ fac, chantiers, clients, paqs }: Props) {
   const [observations, setObservations] = useState(fac.observations ?? "");
   const [notes, setNotes] = useState(fac.notes ?? "");
   const [points, setPoints] = useState<Point[]>(fac.points);
+
+  function handleChantierChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const id = e.target.value;
+    setChantierId(id);
+    if (!id) return;
+    const ch = chantiers.find((c) => c.id === id);
+    if (!ch) return;
+    setClientId((prev) => ch.clientId || prev);
+    setLocalisation((prev) => ch.adresse || prev);
+  }
 
   function addPoint() {
     if (!newCritere.trim()) return;
@@ -191,7 +201,7 @@ export function FACEditor({ fac, chantiers, clients, paqs }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Chantier</label>
-                    <select value={chantierId} onChange={(e) => setChantierId(e.target.value)} className={fieldClass}>
+                    <select value={chantierId} onChange={handleChantierChange} className={fieldClass}>
                       <option value="">— Aucun —</option>
                       {chantiers.map((c) => (
                         <option key={c.id} value={c.id}>{c.nom}{c.ville ? ` (${c.ville})` : ""}</option>

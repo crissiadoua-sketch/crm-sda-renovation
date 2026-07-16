@@ -29,7 +29,7 @@ export default async function PAQDetailPage({
         },
       },
     }),
-    prisma.chantier.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, ville: true } }),
+    prisma.chantier.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, ville: true, clientId: true } }),
     prisma.client.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, prenom: true } }),
   ]);
 

@@ -35,7 +35,7 @@ type PAQ = {
 
 type Props = {
   paq: PAQ;
-  chantiers: { id: string; nom: string; ville?: string | null }[];
+  chantiers: { id: string; nom: string; ville?: string | null; clientId?: string | null }[];
   clients: { id: string; nom: string; prenom?: string | null }[];
 };
 
@@ -65,6 +65,16 @@ export function PAQEditor({ paq, chantiers, clients }: Props) {
   const [planControle, setPlanControle] = useState(paq.planControle ?? "");
   const [enregistrements, setEnregistrements] = useState(paq.enregistrements ?? "");
   const [notes, setNotes] = useState(paq.notes ?? "");
+
+  function handleChantierChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const id = e.target.value;
+    setChantierId(id);
+    if (!id) return;
+    const ch = chantiers.find((c) => c.id === id);
+    if (!ch) return;
+    setClientId((prev) => ch.clientId || prev);
+    setObjetMarche((prev) => ch.nom || prev);
+  }
 
   async function handleSave() {
     setIsSaving(true);
@@ -170,7 +180,7 @@ export function PAQEditor({ paq, chantiers, clients }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Chantier</label>
-                    <select value={chantierId} onChange={(e) => setChantierId(e.target.value)} className={fieldClass}>
+                    <select value={chantierId} onChange={handleChantierChange} className={fieldClass}>
                       <option value="">— Aucun —</option>
                       {chantiers.map((c) => (
                         <option key={c.id} value={c.id}>{c.nom}{c.ville ? ` (${c.ville})` : ""}</option>

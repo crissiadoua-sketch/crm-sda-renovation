@@ -21,7 +21,7 @@ export default async function FicheAutocontroleDetailPage({
         points: { orderBy: { ordre: "asc" } },
       },
     }),
-    prisma.chantier.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, ville: true } }),
+    prisma.chantier.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, ville: true, clientId: true, adresse: true } }),
     prisma.client.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, prenom: true } }),
     prisma.planAssuranceQualite.findMany({
       orderBy: { numero: "asc" },

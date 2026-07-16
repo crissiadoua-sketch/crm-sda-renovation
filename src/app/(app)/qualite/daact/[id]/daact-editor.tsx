@@ -24,7 +24,7 @@ type DAACT = {
 
 type Props = {
   daact: DAACT;
-  chantiers: { id: string; nom: string; ville?: string | null }[];
+  chantiers: { id: string; nom: string; ville?: string | null; clientId?: string | null; adresse?: string | null; dateFin?: string | null }[];
   clients: { id: string; nom: string; prenom?: string | null }[];
 };
 
@@ -53,6 +53,18 @@ export function DAACTEditor({ daact, chantiers, clients }: Props) {
   const [reservesMO, setReservesMO] = useState(daact.reservesMO ?? "");
   const [dateReponse, setDateReponse] = useState(daact.dateReponse ?? "");
   const [notes, setNotes] = useState(daact.notes ?? "");
+
+  function handleChantierChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const id = e.target.value;
+    setChantierId(id);
+    if (!id) return;
+    const ch = chantiers.find((c) => c.id === id);
+    if (!ch) return;
+    setClientId((prev) => ch.clientId || prev);
+    setAdresseChantier((prev) => ch.adresse || prev);
+    setDateAchevement((prev) => ch.dateFin ? ch.dateFin.slice(0, 10) : prev);
+    setNatureTravaux((prev) => ch.nom || prev);
+  }
 
   async function handleSave() {
     setIsSaving(true);
@@ -142,7 +154,7 @@ export function DAACTEditor({ daact, chantiers, clients }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Chantier</label>
-                    <select value={chantierId} onChange={(e) => setChantierId(e.target.value)} className={fieldClass}>
+                    <select value={chantierId} onChange={handleChantierChange} className={fieldClass}>
                       <option value="">— Aucun —</option>
                       {chantiers.map((c) => (
                         <option key={c.id} value={c.id}>{c.nom}{c.ville ? ` (${c.ville})` : ""}</option>

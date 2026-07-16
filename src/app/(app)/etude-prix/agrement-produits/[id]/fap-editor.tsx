@@ -220,6 +220,15 @@ export function FapEditor({
   // Notes
   const [notes, setNotes] = useState(fiche.notes ?? "");
 
+  function handleChantierChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const id = e.target.value;
+    setChantierId(id);
+    if (!id) return;
+    const ch = chantiers.find((c) => c.id === id);
+    if (!ch) return;
+    setOperation((prev) => ch.nom || prev);
+  }
+
   function handleSave() {
     startTransition(async () => {
       await sauvegarderFicheAgrement(fiche.id, {
@@ -341,7 +350,7 @@ export function FapEditor({
                 <label className="mb-1 block text-sm font-medium text-slate-600">Chantier</label>
                 <select
                   value={chantierId}
-                  onChange={(e) => setChantierId(e.target.value)}
+                  onChange={handleChantierChange}
                   className={selectClasses}
                 >
                   <option value="">— Aucun —</option>

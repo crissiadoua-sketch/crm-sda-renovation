@@ -19,7 +19,7 @@ export default async function DAACTDetailPage({
         client: true,
       },
     }),
-    prisma.chantier.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, ville: true } }),
+    prisma.chantier.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, ville: true, clientId: true, adresse: true, dateFin: true } }),
     prisma.client.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, prenom: true } }),
   ]);
 
@@ -32,5 +32,10 @@ export default async function DAACTDetailPage({
     dateReponse: daact.dateReponse ? daact.dateReponse.toISOString().slice(0, 10) : null,
   };
 
-  return <DAACTEditor daact={daactSerialized} chantiers={chantiers} clients={clients} />;
+  const chantiersSerialises = (chantiers as Array<{ id: string; nom: string; ville: string | null; clientId: string | null; adresse: string | null; dateFin: Date | null }>).map((c) => ({
+    ...c,
+    dateFin: c.dateFin ? c.dateFin.toISOString().slice(0, 10) : null,
+  }));
+
+  return <DAACTEditor daact={daactSerialized} chantiers={chantiersSerialises} clients={clients} />;
 }

@@ -1746,6 +1746,10 @@ model PVReunionChantier {
   prochaineDateReunion DateTime?
   prochaineLieu        String?
   notes                String?
+  // Signature SDA (contre-signature après les participants)
+  signatureSDA         String?
+  dateSigSDA           DateTime?
+  signataireNomSDA     String?
   createdAt            DateTime                       @default(now())
   updatedAt            DateTime                       @updatedAt
   chantier             Chantier?                      @relation("PVRCChantier", fields: [chantierId], references: [id])
@@ -1756,13 +1760,19 @@ model PVReunionChantier {
 }
 
 model PVReunionChantierParticipant {
-  id       String            @id @default(cuid())
-  pvId     String
-  nom      String
-  societe  String?
-  fonction String?
-  present  Boolean           @default(true)
-  pv       PVReunionChantier @relation(fields: [pvId], references: [id], onDelete: Cascade)
+  id             String            @id @default(cuid())
+  pvId           String
+  nom            String
+  societe        String?
+  fonction       String?
+  present        Boolean           @default(true)
+  // Signature individuelle
+  email          String?
+  shareToken     String?           @unique
+  tokenExpiry    DateTime?
+  signatureImage String?
+  dateSigne      DateTime?
+  pv             PVReunionChantier @relation(fields: [pvId], references: [id], onDelete: Cascade)
 }
 
 model PVReunionChantierPoint {

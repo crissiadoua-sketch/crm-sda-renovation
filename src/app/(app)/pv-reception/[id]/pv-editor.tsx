@@ -480,6 +480,15 @@ export function PvReceptionEditor({
             className="rounded-lg bg-brand-orange px-5 py-2 text-sm font-semibold text-white hover:opacity-90 transition disabled:opacity-50">
             {isPending ? "…" : saved ? "✓ Enregistré" : "Enregistrer"}
           </button>
+          {pvr.statut === "BROUILLON" && (
+            <button
+              type="button"
+              onClick={() => { if (confirm(`Supprimer le PV ${pvr.numero} ? Cette action est irréversible.`)) handleDelete(); }}
+              disabled={isPending}
+              className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition disabled:opacity-50">
+              🗑 Supprimer
+            </button>
+          )}
         </div>
       </div>
 

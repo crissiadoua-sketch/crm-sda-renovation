@@ -55,23 +55,11 @@ export function DevisForm({
           </select>
         </Field>
         <Field label="Statut" htmlFor="statut" error={errors.statut}>
-          {isSigne ? (
-            <>
-              <input type="hidden" name="statut" value={devis?.statut ?? "ACCEPTE"} />
-              <div className={`${inputClasses} flex items-center gap-2 cursor-not-allowed opacity-75 bg-slate-50`}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 shrink-0">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-                <span className="text-sm">{statutLabels[devis?.statut ?? "ACCEPTE"]}</span>
-              </div>
-            </>
-          ) : (
-            <select id="statut" name="statut" defaultValue={devis?.statut ?? "BROUILLON"} className={inputClasses}>
-              {Object.entries(statutLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          )}
+          <select id="statut" name="statut" defaultValue={devis?.statut ?? "BROUILLON"} className={inputClasses}>
+            {Object.entries(statutLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
         </Field>
       </div>
 

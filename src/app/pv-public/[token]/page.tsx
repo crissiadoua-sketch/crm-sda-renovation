@@ -269,17 +269,17 @@ export default async function PvPublicPage({
 
         {/* ── Section Signature ── */}
         <div className="mt-4 mb-6">
-          {/* PV non finalisé */}
-          {!pvr.resultat && (
+          {/* PV encore en brouillon */}
+          {pvr.statut === "BROUILLON" && (
             <div className="rounded-xl bg-amber-50 border border-amber-200 px-5 py-4 text-center">
               <p className="text-sm text-amber-700">
-                Ce PV n&apos;a pas encore été finalisé par SDA Rénovation. La signature sera disponible prochainement.
+                Ce PV est encore en cours de rédaction par SDA Rénovation. La signature sera disponible prochainement.
               </p>
             </div>
           )}
 
           {/* Les DEUX ont signé → téléchargement disponible */}
-          {pvr.resultat && bothSigned && (
+          {pvr.statut !== "BROUILLON" && bothSigned && (
             <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-6 text-center flex flex-col items-center gap-3">
               <p className="text-3xl">✅</p>
               <p className="text-emerald-700 font-bold text-lg">PV signé par les deux parties</p>
@@ -309,7 +309,7 @@ export default async function PvPublicPage({
           )}
 
           {/* Externe a signé, en attente de SDA */}
-          {pvr.resultat && externalSigned && !sdaSigned && (
+          {pvr.statut !== "BROUILLON" && externalSigned && !sdaSigned && (
             <div className="rounded-xl bg-blue-50 border border-blue-200 px-5 py-6 text-center flex flex-col items-center gap-3">
               <p className="text-3xl">⏳</p>
               <p className="text-blue-700 font-bold text-lg">Votre signature a été enregistrée</p>
@@ -331,7 +331,7 @@ export default async function PvPublicPage({
           )}
 
           {/* Personne n'a encore signé → pad de signature */}
-          {pvr.resultat && !externalSigned && (
+          {pvr.statut !== "BROUILLON" && !externalSigned && (
             <div className="flex flex-col gap-3">
               <h2 className="font-bold text-[#1E2F6E] text-lg">Votre signature est requise</h2>
               <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3">

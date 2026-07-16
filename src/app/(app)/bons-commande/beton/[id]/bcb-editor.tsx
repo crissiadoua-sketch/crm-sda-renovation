@@ -118,6 +118,18 @@ export function BonCommandeBetonEditor({
   const set = (field: string, value: string | boolean) =>
     setForm(f => ({ ...f, [field]: value }));
 
+  // ── Pré-remplissage depuis chantier ──────────────────────────────────────────
+  const handleChantierChange = (chantierId: string) => {
+    const ch = chantiers.find(c => c.id === chantierId);
+    if (!ch) { set("chantierId", chantierId); return; }
+    setForm(prev => ({
+      ...prev,
+      chantierId,
+      nomChantier:     prev.nomChantier     || ch.nom        || "",
+      adresseChantier: prev.adresseChantier || ch.adresse    || "",
+    }));
+  };
+
   // ── Livraisons ───────────────────────────────────────────────────────────────
   const addLivraison = () =>
     setLivraisons(l => [
@@ -251,7 +263,7 @@ export function BonCommandeBetonEditor({
                 </select>
               </Field>
               <Field label="Chantier lié (CRM)">
-                <select value={form.chantierId} onChange={e => set("chantierId", e.target.value)}
+                <select value={form.chantierId} onChange={e => handleChantierChange(e.target.value)}
                   className={input}>
                   <option value="">— aucun —</option>
                   {chantiers.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}

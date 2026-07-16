@@ -67,7 +67,7 @@ export function BonReservationPompeEditor({
 }: {
   brp: BRPData;
   fournisseurs: { id: string; nom: string }[];
-  chantiers:    { id: string; nom: string; adresse?: string | null }[];
+  chantiers:    { id: string; nom: string; adresse?: string | null; clientId?: string | null; client?: { telephone?: string | null } | null }[];
   clients:      { id: string; nom: string; raisonSociale?: string | null }[];
 }) {
   const [isPending, startTransition] = useTransition();
@@ -105,6 +105,20 @@ export function BonReservationPompeEditor({
 
   const set = (field: string, value: string | boolean) =>
     setForm(f => ({ ...f, [field]: value }));
+
+  // ── Pré-remplissage depuis chantier ──────────────────────────────────────────
+  const handleChantierChange = (chantierId: string) => {
+    const ch = chantiers.find(c => c.id === chantierId);
+    if (!ch) { set("chantierId", chantierId); return; }
+    setForm(prev => ({
+      ...prev,
+      chantierId,
+      nomChantier:      prev.nomChantier      || ch.nom                    || "",
+      adresseChantier:  prev.adresseChantier  || ch.adresse                || "",
+      clientId:         prev.clientId         || ch.clientId               || "",
+      contactTelephone: prev.contactTelephone || ch.client?.telephone      || "",
+    }));
+  };
 
   const handleSave = () => {
     startTransition(async () => {
@@ -213,7 +227,7 @@ export function BonReservationPompeEditor({
                 </select>
               </Field>
               <Field label="Chantier lié (CRM)">
-                <select value={form.chantierId} onChange={e => set("chantierId", e.target.value)}
+                <select value={form.chantierId} onChange={e => handleChantierChange(e.target.value)}
                   className={input}>
                   <option value="">— aucun —</option>
                   {chantiers.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}

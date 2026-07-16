@@ -18,8 +18,8 @@ export async function creerPVReunionChantier(formData: FormData) {
       typeReunion: (formData.get("typeReunion") as string) || "COORDINATION",
     },
   });
-  revalidatePath("/exploitation/pv-reunion-chantier");
-  redirect(`/exploitation/pv-reunion-chantier/${pv.id}`);
+  revalidatePath("/exploitation/pv-reunion");
+  redirect(`/exploitation/pv-reunion/${pv.id}`);
 }
 
 export type PVRCData = {
@@ -83,11 +83,11 @@ export async function sauvegarderPVReunionChantier(id: string, data: PVRCData) {
       })
     ),
   ]);
-  revalidatePath(`/exploitation/pv-reunion-chantier/${id}`);
+  revalidatePath(`/exploitation/pv-reunion/${id}`);
 }
 
 export async function supprimerPVReunionChantier(id: string) {
   await prisma.pVReunionChantier.delete({ where: { id } });
-  revalidatePath("/exploitation/pv-reunion-chantier");
-  redirect("/exploitation/pv-reunion-chantier");
+  revalidatePath("/exploitation/pv-reunion");
+  redirect("/exploitation/pv-reunion");
 }

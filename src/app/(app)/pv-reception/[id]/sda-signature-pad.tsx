@@ -1,20 +1,17 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { signerPvReception } from "@/lib/actions/pv-reception";
+import { signerPvReceptionSDA } from "@/lib/actions/pv-reception";
 
 interface Props {
-  token: string;
-  pvNumero: string;
   pvId: string;
-  role: "MO" | "PRESTATAIRE";
-  roleLabel: string;
+  pvNumero: string;
   defaultNom?: string;
 }
 
 type Mode = "draw" | "upload";
 
-export function SignaturePadPv({ token, pvNumero, pvId, role, roleLabel, defaultNom = "" }: Props) {
+export function SdaSignaturePad({ pvId, pvNumero, defaultNom = "" }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<Mode>("draw");
@@ -25,8 +22,11 @@ export function SignaturePadPv({ token, pvNumero, pvId, role, roleLabel, default
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
-  useEffect(() => { initCtx(); }, []);
+  useEffect(() => {
+    if (open) setTimeout(initCtx, 50);
+  }, [open]);
 
   function initCtx() {
     const ctx = canvasRef.current?.getContext("2d");
@@ -100,8 +100,6 @@ export function SignaturePadPv({ token, pvNumero, pvId, role, roleLabel, default
         const ctx = canvas?.getContext("2d");
         if (!canvas || !ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
         const margin = 10;
         const scale = Math.min((canvas.width - margin * 2) / img.width, (canvas.height - margin * 2) / img.height);
         ctx.drawImage(img, (canvas.width - img.width * scale) / 2, (canvas.height - img.height * scale) / 2, img.width * scale, img.height * scale);
@@ -122,11 +120,10 @@ export function SignaturePadPv({ token, pvNumero, pvId, role, roleLabel, default
     setPending(true);
     setError(null);
     try {
-      const result = await signerPvReception(token, role, nom.trim(), canvas.toDataURL("image/png"));
+      const result = await signerPvReceptionSDA(pvId, nom.trim(), canvas.toDataURL("image/png"));
       if (result.ok) {
         setSuccess(true);
-        // Recharger la page pour afficher l'état "en attente de SDA"
-        setTimeout(() => window.location.reload(), 2500);
+        setTimeout(() => window.location.reload(), 1500);
       } else {
         setError(result.error ?? "Erreur lors de la signature.");
       }
@@ -136,28 +133,39 @@ export function SignaturePadPv({ token, pvNumero, pvId, role, roleLabel, default
 
   if (success) {
     return (
-      <div className="rounded-2xl bg-blue-50 border border-blue-200 px-6 py-8 text-center">
-        <p className="text-4xl mb-3">✅</p>
-        <p className="text-blue-700 font-bold text-xl">Signature enregistrée !</p>
-        <p className="text-blue-600 text-sm mt-2 max-w-sm mx-auto">
-          Votre signature pour le PV <span className="font-mono font-semibold">{pvNumero}</span> a bien été reçue.
-          <br /><br />
-          <strong>SDA Rénovation doit maintenant apposer sa propre signature.</strong> Vous recevrez un email
-          dès que le PV sera disponible au téléchargement.
-        </p>
-        <p className="text-blue-400 text-xs mt-3">Chargement en cours…</p>
+      <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-4 text-center">
+        <p className="text-2xl mb-1">✅</p>
+        <p className="text-emerald-700 font-bold">PV signé ! Le document est maintenant disponible pour téléchargement.</p>
+        <p className="text-emerald-500 text-xs mt-1">Actualisation en cours…</p>
       </div>
     );
   }
 
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-2 rounded-xl bg-[#F7941E] text-white px-5 py-2.5 text-sm font-bold hover:bg-orange-500 transition shadow"
+      >
+        ✍️ Signer à notre tour
+      </button>
+    );
+  }
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="bg-[#1E2F6E]/5 px-5 py-3 border-b border-slate-100">
-        <p className="text-xs font-bold uppercase tracking-widest text-[#1E2F6E]">
-          Signature — {roleLabel}
-        </p>
+    <div className="rounded-xl border border-orange-200 bg-orange-50 overflow-hidden">
+      <div className="bg-[#F7941E] px-5 py-3 flex items-center justify-between">
+        <p className="text-white text-sm font-bold">✍️ Signature SDA Rénovation — {pvNumero}</p>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-white/70 hover:text-white text-lg leading-none"
+        >
+          ×
+        </button>
       </div>
-      <div className="px-5 py-5 flex flex-col gap-4">
+      <div className="px-5 py-4 flex flex-col gap-4">
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-1.5">
             Nom et prénom du signataire <span className="text-red-500">*</span>
@@ -166,18 +174,18 @@ export function SignaturePadPv({ token, pvNumero, pvId, role, roleLabel, default
             type="text"
             value={nom}
             onChange={(e) => setNom(e.target.value)}
-            placeholder="Ex : Jean Dupont"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#1E2F6E] focus:ring-2 focus:ring-[#1E2F6E]/10 outline-none transition"
+            placeholder="Ex : Jean Martin"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#F7941E] focus:ring-2 focus:ring-[#F7941E]/10 outline-none transition bg-white"
           />
         </div>
 
         <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-semibold">
           <button type="button" onClick={() => switchMode("draw")}
-            className={`flex-1 py-2 transition ${mode === "draw" ? "bg-[#1E2F6E] text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+            className={`flex-1 py-2 transition ${mode === "draw" ? "bg-[#F7941E] text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
             ✏️ Dessiner
           </button>
           <button type="button" onClick={() => switchMode("upload")}
-            className={`flex-1 py-2 border-l border-slate-200 transition ${mode === "upload" ? "bg-[#1E2F6E] text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+            className={`flex-1 py-2 border-l border-slate-200 transition ${mode === "upload" ? "bg-[#F7941E] text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
             📷 Importer
           </button>
         </div>
@@ -199,23 +207,20 @@ export function SignaturePadPv({ token, pvNumero, pvId, role, roleLabel, default
             onTouchStart={mode === "draw" ? startDraw : undefined}
             onTouchMove={mode === "draw" ? draw : undefined}
             onTouchEnd={mode === "draw" ? stopDraw : undefined}
-            className={`w-full rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 hover:border-[#1E2F6E]/30 transition touch-none ${mode === "draw" ? "cursor-crosshair" : "hidden"}`}
+            className={`w-full rounded-xl border-2 border-dashed border-orange-200 bg-white hover:border-[#F7941E]/50 transition touch-none ${mode === "draw" ? "cursor-crosshair" : "hidden"}`}
             style={{ height: 120 }}
           />
           {mode === "upload" && (
             uploadedPreview ? (
-              <div className="w-full rounded-xl border border-slate-200 bg-slate-50 overflow-hidden" style={{ height: 120 }}>
+              <div className="w-full rounded-xl border border-slate-200 bg-white overflow-hidden" style={{ height: 120 }}>
                 <img src={uploadedPreview} alt="Signature importée" className="w-full h-full object-contain p-2" />
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 hover:border-[#1E2F6E]/40 cursor-pointer transition" style={{ height: 120 }}>
+              <label className="flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-orange-200 bg-white hover:border-[#F7941E]/40 cursor-pointer transition" style={{ height: 120 }}>
                 <span className="text-[11px] text-slate-400 text-center px-4">Cliquez pour choisir une image (PNG, JPG, WebP)</span>
                 <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleFileChange} className="hidden" />
               </label>
             )
-          )}
-          {mode === "draw" && !hasSignature && (
-            <p className="text-[11px] text-slate-400 mt-1 text-center">Signez ici en maintenant le bouton ou en posant votre doigt</p>
           )}
         </div>
 
@@ -225,13 +230,12 @@ export function SignaturePadPv({ token, pvNumero, pvId, role, roleLabel, default
           type="button"
           onClick={handleSubmit}
           disabled={pending}
-          className="w-full rounded-xl bg-gradient-to-r from-[#1E2F6E] to-[#1B3F94] text-white font-bold py-3 text-sm hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed shadow-md"
+          className="w-full rounded-xl bg-[#F7941E] text-white font-bold py-3 text-sm hover:bg-orange-500 transition disabled:opacity-60 disabled:cursor-not-allowed shadow"
         >
-          {pending ? "Signature en cours…" : `✍️ Signer le PV — ${roleLabel}`}
+          {pending ? "Signature en cours…" : "✅ Valider et signer le PV"}
         </button>
-
         <p className="text-[10px] text-slate-400 text-center">
-          Signature électronique conforme à l&apos;article 1367 du Code civil.
+          En signant, le PV sera définitivement validé et le client sera notifié par email.
         </p>
       </div>
     </div>

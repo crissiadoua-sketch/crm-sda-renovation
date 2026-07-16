@@ -1351,7 +1351,7 @@ export async function envoyerPvReceptionParEmail(
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
-  const pvr = await prisma.pvReception.findUnique({
+  let pvr = await prisma.pvReception.findUnique({
     where: { id },
     include: { chantier: { select: { nom: true } } },
   });
@@ -1359,16 +1359,33 @@ export async function envoyerPvReceptionParEmail(
 
   if (!pvr) return { ok: false, error: "PV de réception introuvable." };
 
+  // Auto-générer le shareToken si absent (requis pour le lien de signature)
+  if (!pvr.shareToken) {
+    const { randomBytes } = await import("crypto");
+    const tok    = randomBytes(24).toString("hex");
+    const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    pvr = await prisma.pvReception.update({
+      where: { id },
+      data: { shareToken: tok, shareExpiry: expiry, statut: pvr.statut === "BROUILLON" ? "FINALISE" : pvr.statut },
+      include: { chantier: { select: { nom: true } } },
+    });
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath(`/pv-reception/${id}`);
+  }
+
+  const shareUrl = `${APP_URL}/pv-public/${pvr.shareToken}`;
+
   const resultatLabel: Record<string, string> = {
     ACCEPTE:          "Réception prononcée sans réserve",
     ACCEPTE_RESERVES: "Réception prononcée avec réserves",
     REFUSE:           "Réception refusée",
   };
 
-  const shareUrl = pvr.shareToken ? `${APP_URL}/pv-public/${pvr.shareToken}` : null;
-
   const corps = `<p style="margin:0 0 16px;font-size:15px;color:#1e293b">Madame, Monsieur,</p>
-    ${message ? `<p style="margin:0 0 20px;font-size:14px;color:#334155;line-height:1.6">${message.replace(/\n/g, "<br>")}</p>` : `<p style="margin:0 0 20px;font-size:14px;color:#334155">Veuillez trouver ci-joint notre procès-verbal de réception.</p>`}
+    ${message
+      ? `<p style="margin:0 0 20px;font-size:14px;color:#334155;line-height:1.6">${message.replace(/\n/g, "<br>")}</p>`
+      : `<p style="margin:0 0 20px;font-size:14px;color:#334155">Veuillez trouver ci-dessous le procès-verbal de réception de travaux. Nous vous invitons à le lire attentivement puis à <strong>apposer votre signature électronique</strong> pour le valider.</p>`
+    }
     ${boiteDoc(`
       <p style="margin:0 0 6px;font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Procès-Verbal de Réception</p>
       <p style="margin:0 0 14px;font-size:24px;font-weight:bold;color:#1E2F6E">${pvr.numero}</p>
@@ -1377,17 +1394,20 @@ export async function envoyerPvReceptionParEmail(
       ${pvr.dateReception ? `<p style="margin:0 0 4px;font-size:13px;color:#475569">Date de réception : <strong>${formatDate(pvr.dateReception)}</strong></p>` : ""}
       ${pvr.resultat ? `<p style="margin:0;font-size:13px;color:#475569">Résultat : <strong>${resultatLabel[pvr.resultat] ?? pvr.resultat}</strong></p>` : ""}
     `)}
-    ${shareUrl ? boutonCta(shareUrl, "Consulter le PV en ligne") : `${boutonCta(`${APP_URL}/apercu/pv-reception/${pvr.id}`, "Voir l'aperçu PDF")}`}
-    <p style="margin:0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
+    ${boutonCta(shareUrl, "✍️ Lire et signer le PV de réception")}
+    <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;text-align:center">
+      Une fois votre signature apposée, SDA Rénovation signera à son tour et vous recevrez le document final par email.
+    </p>
+    <p style="margin:20px 0 0;font-size:13px;color:#64748b">Pour toute question, contactez-nous à <a href="mailto:contact@sda-renovation.com" style="color:#6366f1">contact@sda-renovation.com</a>.</p>
     ${signature()}`;
 
   return sendAndLog({
     from: fromAddress(signataire),
-      replyTo: signataire?.email,
+    replyTo: signataire?.email,
     to,
-    subject: customSubject || `PV de réception ${pvr.numero}${pvr.objet ? ` — ${pvr.objet}` : ""} — SDA Rénovation`,
+    subject: customSubject || `✍️ PV de réception ${pvr.numero}${pvr.objet ? ` — ${pvr.objet}` : ""} — Votre signature est requise`,
     html: emailLayout(`Procès-Verbal de Réception N° ${pvr.numero}`, corps, signataire),
-    text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}PV de réception ${pvr.numero}${pvr.objet ? `\nObjet : ${pvr.objet}` : ""}${pvr.chantier ? `\nChantier : ${pvr.chantier.nom}` : ""}${pvr.dateReception ? `\nDate de réception : ${formatDate(pvr.dateReception)}` : ""}${pvr.resultat ? `\nRésultat : ${resultatLabel[pvr.resultat] ?? pvr.resultat}` : ""}${shareUrl ? `\n\nLien : ${shareUrl}` : ""}\n\nCordialement,\nSDA Rénovation`,
+    text: `Madame, Monsieur,\n\n${message ? message + "\n\n" : ""}Veuillez lire et signer le PV de réception ${pvr.numero}${pvr.chantier ? ` — Chantier : ${pvr.chantier.nom}` : ""}.\n\nLien de signature : ${shareUrl}\n\nCordialement,\nSDA Rénovation`,
     cc,
     bcc,
   }, { type: "pv-reception", documentId: id, documentRef: String(pvr.numero), sentBy: signataire?.name ?? "" });

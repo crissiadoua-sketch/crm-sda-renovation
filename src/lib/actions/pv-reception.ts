@@ -237,7 +237,7 @@ export async function finaliserPvReception(id: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Signature électronique (page publique — sans compte)
+// Signature électronique par la partie externe (page publique — sans compte)
 // ---------------------------------------------------------------------------
 
 export async function signerPvReception(
@@ -269,38 +269,140 @@ export async function signerPvReception(
         : { signaturePrestataire: signatureImage, dateSignaturePrestataire: dateSignature, repPrestataire: signataireNom || pvr.repPrestataire },
   });
 
-  // Notification à SDA
+  // Notification à SDA : "le client a signé, vous devez maintenant signer à votre tour"
   try {
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.com";
     const dateStr = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(dateSignature);
-    const roleLabel = role === "MO" ? "Maître d'ouvrage" : "Prestataire / Sous-traitant";
+    const roleLabel = role === "MO" ? "Maître d'ouvrage / Client" : "Prestataire / Sous-traitant";
     await envoyerEmail({
       from: "SDA Rénovation <contact@sda-renovation.com>",
       to: "contact@sda-renovation.com",
-      subject: `✅ PV de réception ${pvr.numero} signé — ${roleLabel}`,
+      subject: `✍️ PV ${pvr.numero} — Signature reçue, votre contre-signature est requise`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
           <div style="background:#1E2F6E;padding:20px 24px;border-radius:8px 8px 0 0">
-            <p style="margin:0;color:#fff;font-size:18px;font-weight:bold">✅ PV de réception signé</p>
+            <p style="margin:0;color:#fff;font-size:18px;font-weight:bold">✍️ Signature reçue — contre-signature requise</p>
             <p style="margin:4px 0 0;color:#93c5fd;font-size:13px">${pvr.numero}</p>
           </div>
           <div style="background:#fff;padding:24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
-            <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <p style="margin:0 0 16px;font-size:14px;color:#374151">
+              <strong>${signataireNom}</strong> (${roleLabel}) a signé le PV de réception.
+              Vous devez maintenant apposer votre signature dans le CRM pour finaliser le document.
+            </p>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">
               <tr><td style="padding:6px 0;color:#64748b;width:40%">Signataire</td><td style="padding:6px 0;font-weight:600;color:#1e293b">${signataireNom}</td></tr>
               <tr><td style="padding:6px 0;color:#64748b">Rôle</td><td style="padding:6px 0;color:#374151">${roleLabel}</td></tr>
               ${pvr.chantier ? `<tr><td style="padding:6px 0;color:#64748b">Chantier</td><td style="padding:6px 0;color:#374151">${pvr.chantier.nom}</td></tr>` : ""}
               <tr><td style="padding:6px 0;color:#64748b">Date</td><td style="padding:6px 0;color:#374151">${dateStr}</td></tr>
             </table>
-            <div style="margin-top:20px;text-align:center">
-              <a href="${APP_URL}/pv-reception/${pvr.id}" style="display:inline-block;background:#1E2F6E;color:#fff;text-decoration:none;padding:10px 28px;border-radius:6px;font-size:14px;font-weight:600">Voir dans le CRM</a>
+            <div style="text-align:center">
+              <a href="${APP_URL}/pv-reception/${pvr.id}" style="display:inline-block;background:#F7941E;color:#fff;text-decoration:none;padding:12px 32px;border-radius:6px;font-size:14px;font-weight:700">✍️ Signer à mon tour dans le CRM</a>
             </div>
           </div>
         </div>`,
-      text: `PV ${pvr.numero} signé par ${signataireNom} (${roleLabel}) le ${dateStr}.`,
+      text: `PV ${pvr.numero} signé par ${signataireNom} (${roleLabel}) le ${dateStr}. Veuillez apposer votre signature dans le CRM.`,
     });
   } catch { /* notification non bloquante */ }
 
   revalidatePath(`/pv-reception/${pvr.id}`);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Signature SDA (côté CRM — authenticated)
+// ---------------------------------------------------------------------------
+
+export async function signerPvReceptionSDA(
+  pvId: string,
+  signataireNom: string,
+  signatureImage: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const pvr = await prisma.pvReception.findUnique({
+    where: { id: pvId },
+    include: {
+      chantier:     { select: { nom: true } },
+      client:       { select: { nom: true, prenom: true, raisonSociale: true, email: true } },
+      sousTraitant: { select: { nom: true, email: true } },
+      fournisseur:  { select: { nom: true, email: true } },
+    },
+  });
+
+  if (!pvr) return { ok: false, error: "PV introuvable." };
+
+  const isTravauxClient = pvr.categorie === "TRAVAUX_CLIENT";
+
+  // Vérifier que la partie externe a déjà signé
+  const externalSigned = isTravauxClient ? !!pvr.dateSignatureMO : !!pvr.dateSignaturePrestataire;
+  if (!externalSigned) return { ok: false, error: "La partie externe doit signer en premier." };
+
+  // Vérifier que SDA n'a pas encore signé
+  const sdaAlreadySigned = isTravauxClient ? !!pvr.dateSignaturePrestataire : !!pvr.dateSignatureMO;
+  if (sdaAlreadySigned) return { ok: false, error: "SDA Rénovation a déjà signé ce PV." };
+
+  const dateSignature = new Date();
+
+  await prisma.pvReception.update({
+    where: { id: pvId },
+    data: {
+      statut: "SIGNE",
+      ...(isTravauxClient
+        ? { signaturePrestataire: signatureImage, dateSignaturePrestataire: dateSignature, repPrestataire: signataireNom }
+        : { signatureMO: signatureImage, dateSignatureMO: dateSignature, repMO: signataireNom }),
+    },
+  });
+
+  // Email de notification à la partie externe : "le PV est maintenant signé, vous pouvez télécharger"
+  try {
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.com";
+    const dateStr = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(dateSignature);
+
+    const destinataire = isTravauxClient
+      ? (pvr.emailRepMO || pvr.client?.email)
+      : (pvr.emailPrestataire || pvr.sousTraitant?.email || pvr.fournisseur?.email);
+
+    const nomExterne = isTravauxClient
+      ? (pvr.client?.raisonSociale || `${pvr.client?.prenom ?? ""} ${pvr.client?.nom ?? ""}`.trim() || "Client")
+      : (pvr.sousTraitant?.nom || pvr.fournisseur?.nom || "Prestataire");
+
+    const dlUrl = pvr.shareToken
+      ? `${APP_URL}/api/pv-reception/${pvr.id}/dl?token=${pvr.shareToken}`
+      : null;
+
+    if (destinataire) {
+      await envoyerEmail({
+        from: "SDA Rénovation <contact@sda-renovation.com>",
+        to: destinataire,
+        subject: `✅ PV de réception ${pvr.numero} — Document signé disponible`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+            <div style="background:#1E2F6E;padding:20px 24px;border-radius:8px 8px 0 0">
+              <p style="margin:0;color:#fff;font-size:18px;font-weight:bold">✅ PV de réception signé par les deux parties</p>
+              <p style="margin:4px 0 0;color:#93c5fd;font-size:13px">${pvr.numero}</p>
+            </div>
+            <div style="background:#fff;padding:24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+              <p style="margin:0 0 16px;font-size:14px;color:#374151">
+                Bonjour ${nomExterne},
+              </p>
+              <p style="margin:0 0 16px;font-size:14px;color:#374151">
+                Le PV de réception <strong>${pvr.numero}</strong> a maintenant été signé par les deux parties.
+                Vous pouvez télécharger le document final en cliquant sur le bouton ci-dessous.
+              </p>
+              <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">
+                ${pvr.chantier ? `<tr><td style="padding:6px 0;color:#64748b;width:40%">Chantier</td><td style="padding:6px 0;color:#374151">${pvr.chantier.nom}</td></tr>` : ""}
+                <tr><td style="padding:6px 0;color:#64748b">Date de signature</td><td style="padding:6px 0;color:#374151">${dateStr}</td></tr>
+                <tr><td style="padding:6px 0;color:#64748b">Signé par SDA</td><td style="padding:6px 0;color:#374151">${signataireNom}</td></tr>
+              </table>
+              ${dlUrl ? `<div style="text-align:center"><a href="${dlUrl}" style="display:inline-block;background:#1E2F6E;color:#fff;text-decoration:none;padding:12px 32px;border-radius:6px;font-size:14px;font-weight:700">📄 Télécharger le PV signé (PDF)</a></div>` : ""}
+            </div>
+            <p style="text-align:center;margin-top:16px;font-size:12px;color:#94a3b8">SDA Rénovation · ${process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.com"}</p>
+          </div>`,
+        text: `Le PV ${pvr.numero} a été signé par les deux parties le ${dateStr}. ${dlUrl ? `Télécharger : ${dlUrl}` : ""}`,
+      });
+    }
+  } catch { /* notification non bloquante */ }
+
+  revalidatePath("/pv-reception");
+  revalidatePath(`/pv-reception/${pvId}`);
   return { ok: true };
 }
 

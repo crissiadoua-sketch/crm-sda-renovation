@@ -200,17 +200,51 @@ export async function envoyerLienPvParEmail(
 ): Promise<{ ok: boolean; error?: string }> {
   if (!destinataire) return { ok: false, error: "Adresse email manquante." };
 
-  const pvr = await prisma.pvReception.findUnique({ where: { id } });
+  let pvr = await prisma.pvReception.findUnique({ where: { id } });
   if (!pvr) return { ok: false, error: "PV de Réception introuvable." };
-  if (!pvr.shareToken) return { ok: false, error: "Générez d'abord le lien de partage." };
 
-  const lien = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/pv-public/${pvr.shareToken}`;
+  // Auto-générer le token si absent
+  if (!pvr.shareToken) {
+    const token  = randomBytes(24).toString("hex");
+    const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    pvr = await prisma.pvReception.update({
+      where: { id },
+      data: {
+        shareToken: token,
+        shareExpiry: expiry,
+        statut: pvr.statut === "BROUILLON" ? "FINALISE" : pvr.statut,
+      },
+    });
+    revalidatePath(`/pv-reception/${id}`);
+  }
+
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const lien = `${APP_URL}/pv-public/${pvr.shareToken}`;
 
   return envoyerEmail({
+    from: "SDA Rénovation <contact@sda-renovation.com>",
     to: destinataire,
-    subject: `PV de Réception ${pvr.numero}`,
-    text: `Bonjour,\n\nVeuillez trouver ci-dessous le lien vers le PV de Réception ${pvr.numero} :\n\n${lien}\n\nCordialement,\nSDA Rénovation`,
-    html: `<p>Bonjour,</p><p>Veuillez trouver ci-dessous le lien vers le PV de Réception <strong>${pvr.numero}</strong> :</p><p><a href="${lien}">${lien}</a></p><p>Cordialement,<br/>SDA Rénovation</p>`,
+    subject: `✍️ PV de réception ${pvr.numero}${pvr.objet ? ` — ${pvr.objet}` : ""} — Votre signature est requise`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#1E2F6E;padding:20px 24px;border-radius:8px 8px 0 0">
+          <p style="margin:0;color:#fff;font-size:18px;font-weight:bold">PV de Réception ${pvr.numero}</p>
+          ${pvr.objet ? `<p style="margin:4px 0 0;color:#93c5fd;font-size:13px">${pvr.objet}</p>` : ""}
+        </div>
+        <div style="background:#fff;padding:24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+          <p style="margin:0 0 16px;font-size:14px;color:#374151">
+            Bonjour,<br/><br/>
+            Veuillez lire le procès-verbal de réception ci-dessous et apposer votre signature électronique pour le valider.
+          </p>
+          <div style="text-align:center;margin:24px 0">
+            <a href="${lien}" style="display:inline-block;background:#1E2F6E;color:#fff;text-decoration:none;padding:12px 32px;border-radius:6px;font-size:14px;font-weight:700">✍️ Lire et signer le PV de réception</a>
+          </div>
+          <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center">
+            Une fois votre signature apposée, SDA Rénovation signera à son tour et vous recevrez le document final.
+          </p>
+        </div>
+      </div>`,
+    text: `Bonjour,\n\nVeuillez lire et signer le PV de réception ${pvr.numero}.\n\nLien de signature : ${lien}\n\nCordialement,\nSDA Rénovation`,
   });
 }
 

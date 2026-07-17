@@ -267,6 +267,29 @@ export default async function PvPublicPage({
           </div>
         )}
 
+        {/* Mentions légales */}
+        <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600 leading-relaxed">
+          <p className="font-bold text-slate-700 mb-1.5">Valeur juridique et mentions obligatoires</p>
+          {isTravauxClient || isTravauxST ? (
+            <p>
+              Le présent Procès-Verbal de Réception de Travaux est établi conformément aux dispositions
+              des articles 1792 et suivants du Code Civil. La réception des travaux constitue l'acte par lequel
+              le maître d'ouvrage déclare accepter l'ouvrage avec ou sans réserves. Elle déclenche le point de
+              départ des garanties légales (parfait achèvement, biennale et décennale) ainsi que le transfert
+              des risques au maître d'ouvrage. Les réserves éventuelles doivent être levées dans les délais
+              contractuels impartis. Passé ce délai, le maître d'ouvrage pourra faire exécuter les travaux
+              de reprise aux frais et risques de l'entreprise défaillante.
+            </p>
+          ) : (
+            <p>
+              Le présent Procès-Verbal de Réception constitue l'acte constatant l'achèvement de la prestation
+              et son acceptation par le maître d'ouvrage, sous réserve des réserves éventuellement émises.
+              Il emporte transfert de la garde et déclenche les délais de garantie contractuels.
+              Le prestataire s'engage à lever les réserves dans les délais indiqués.
+            </p>
+          )}
+        </div>
+
         {/* ── Section Signature ── */}
         <div className="mt-4 mb-6">
           {/* PV encore en brouillon */}

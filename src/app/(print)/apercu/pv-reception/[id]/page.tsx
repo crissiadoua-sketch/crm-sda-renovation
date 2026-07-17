@@ -320,8 +320,13 @@ export default async function ApercuPvReceptionPage({
                                 Responsable : <span className="font-medium">{r.responsable}</span>
                               </p>
                             )}
+                            {r.dateLevee && (
+                              <p className="text-[10px] text-green-600">
+                                Levée le : <span className="font-medium">{formatDate(r.dateLevee)}</span>
+                              </p>
+                            )}
                             {r.commentaireLevee && (
-                              <p className="text-[10px] text-green-600 italic">Levée : {r.commentaireLevee}</p>
+                              <p className="text-[10px] text-green-600 italic">Note : {r.commentaireLevee}</p>
                             )}
                           </div>
                         </div>

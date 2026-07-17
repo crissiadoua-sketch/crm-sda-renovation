@@ -93,6 +93,7 @@ export async function sauvegarderPvReception(
       responsable?: string;
       statut:       string;
       commentaireLevee?: string;
+      dateLevee?:   string;
     }[];
   }
 ): Promise<void> {
@@ -192,6 +193,7 @@ export async function sauvegarderPvReception(
           responsable:   r.responsable || null,
           statut:        r.statut,
           commentaireLevee: r.commentaireLevee || null,
+          dateLevee:     r.dateLevee ? new Date(r.dateLevee) : null,
         },
       })
     ),

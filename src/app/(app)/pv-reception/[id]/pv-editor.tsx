@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   sauvegarderPvReception,
   supprimerPvReception,
+  envoyerLienPvParEmail,
 } from "@/lib/actions/pv-reception";
 import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { EnvoyerEmailModal } from "@/components/ui/envoyer-email-modal";
@@ -26,6 +27,7 @@ type Reserve = {
   responsable:       string;
   statut:            string;
   commentaireLevee:  string;
+  dateLevee:         string;
 };
 
 type PVR = {
@@ -53,7 +55,7 @@ type PVR = {
   chantier: { id: string; nom: string; adresse?: string | null; reference?: string | null; clientId?: string | null } | null;
   client: { id: string; nom: string; prenom?: string | null; raisonSociale?: string | null; adresse?: string | null; codePostal?: string | null; ville?: string | null; siret?: string | null } | null;
   lignes: { designation: string; reference: string | null; quantite: number | null; unite: string | null; conformite: string; observations: string | null }[];
-  reserves: { description: string; delaiLevee: string | null; responsable: string | null; statut: string; commentaireLevee: string | null }[];
+  reserves: { description: string; delaiLevee: string | null; responsable: string | null; statut: string; commentaireLevee: string | null; dateLevee: string | null }[];
 };
 
 const TYPES = [
@@ -122,6 +124,10 @@ export function PvReceptionEditor({
   const [saved, setSaved]               = useState(false);
   const [activeTab, setActiveTab]       = useState<"identite" | "prestations" | "controle" | "reserves" | "garanties" | "resultat">("identite");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showLienModal, setShowLienModal] = useState(false);
+  const [lienEmail,     setLienEmail]     = useState("");
+  const [lienSending,   setLienSending]   = useState(false);
+  const [lienResult,    setLienResult]    = useState<{ ok: boolean; error?: string } | null>(null);
 
   const categorie = pvr.categorie;
   const labels = getLabels(categorie);
@@ -190,6 +196,7 @@ export function PvReceptionEditor({
       responsable:      r.responsable ?? "",
       statut:           r.statut,
       commentaireLevee: r.commentaireLevee ?? "",
+      dateLevee:        r.dateLevee ?? "",
     }))
   );
 
@@ -336,7 +343,7 @@ export function PvReceptionEditor({
     setLignes(l => l.map((item, idx) => idx === i ? { ...item, [f]: v } : item));
 
   // ── Réserves helpers ──────────────────────────────────────────────────────
-  const addReserve = () => setReserves(r => [...r, { description: "", delaiLevee: "", responsable: "", statut: "OUVERTE", commentaireLevee: "" }]);
+  const addReserve = () => setReserves(r => [...r, { description: "", delaiLevee: "", responsable: "", statut: "OUVERTE", commentaireLevee: "", dateLevee: "" }]);
   const removeReserve = (i: number) => setReserves(r => r.filter((_, idx) => idx !== i));
   const updateReserve = (i: number, f: keyof Reserve, v: string) =>
     setReserves(r => r.map((item, idx) => idx === i ? { ...item, [f]: v } : item));
@@ -395,6 +402,7 @@ export function PvReceptionEditor({
       responsable:      r.responsable || undefined,
       statut:           r.statut,
       commentaireLevee: r.commentaireLevee || undefined,
+      dateLevee:        r.dateLevee || undefined,
     })),
   });
 
@@ -472,6 +480,17 @@ export function PvReceptionEditor({
               defaultSubject={`PV de réception ${pvr.numero} — SDA Rénovation`}
             />
           )}
+          <button
+            type="button"
+            onClick={() => {
+              const defaultEmail = categorie === "TRAVAUX_CLIENT" ? form.emailRepMO : form.emailPrestataire;
+              setLienEmail(defaultEmail || "");
+              setLienResult(null);
+              setShowLienModal(true);
+            }}
+            className="rounded-lg border border-[#1E2F6E] px-4 py-2 text-sm font-medium text-[#1E2F6E] hover:bg-[#1E2F6E]/5 transition">
+            ✉️ Lien signature
+          </button>
           <a href={`/api/pv-reception/${pvr.id}/word`}
             className="rounded-lg border border-[#29ABE2] px-4 py-2 text-sm font-medium text-[#29ABE2] hover:bg-blue-50 transition">
             Word
@@ -491,6 +510,56 @@ export function PvReceptionEditor({
           )}
         </div>
       </div>
+
+      {/* ── Modal lien de signature ─────────────────────────────────────────── */}
+      {showLienModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-6">
+            <h3 className="font-bold text-[#1E2F6E] text-lg mb-1">Envoyer le lien de signature</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              Le destinataire recevra un email avec un lien sécurisé pour lire et signer le PV.
+              {pvr.statut === "BROUILLON" && (
+                <span className="block mt-1 text-amber-600 font-medium">⚠️ Le statut passera automatiquement en Finalisé.</span>
+              )}
+            </p>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+              Email du destinataire <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={lienEmail}
+              onChange={e => setLienEmail(e.target.value)}
+              placeholder="email@destinataire.com"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm mb-3 focus:border-[#1E2F6E] focus:ring-2 focus:ring-[#1E2F6E]/10 outline-none"
+            />
+            {lienResult && (
+              <div className={`rounded-lg px-3 py-2 text-sm mb-3 ${lienResult.ok ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-600"}`}>
+                {lienResult.ok ? "✅ Lien de signature envoyé !" : `❌ ${lienResult.error}`}
+              </div>
+            )}
+            <div className="flex gap-2 justify-end">
+              <button type="button" onClick={() => setShowLienModal(false)}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                {lienResult?.ok ? "Fermer" : "Annuler"}
+              </button>
+              {!lienResult?.ok && (
+                <button
+                  type="button"
+                  disabled={lienSending || !lienEmail.trim()}
+                  onClick={async () => {
+                    setLienSending(true);
+                    const res = await envoyerLienPvParEmail(pvr.id, lienEmail.trim());
+                    setLienResult(res);
+                    setLienSending(false);
+                  }}
+                  className="rounded-lg bg-[#1E2F6E] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+                  {lienSending ? "Envoi…" : "📨 Envoyer le lien"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Onglets ───────────────────────────────────────────────────────────── */}
       <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
@@ -630,11 +699,17 @@ export function PvReceptionEditor({
               )}
 
               <div className="grid grid-cols-2 gap-3 mt-1">
-                <Field label="N° Devis / Contrat">
+                <Field label="N° Devis">
                   <input value={form.refDevis} onChange={e => set("refDevis", e.target.value)} className={inp} placeholder="DEV-2025-001" />
                 </Field>
                 <Field label="N° Bon de commande">
                   <input value={form.refCommande} onChange={e => set("refCommande", e.target.value)} className={inp} placeholder="BC-2025-001" />
+                </Field>
+                <Field label="N° Contrat">
+                  <input value={form.refContrat} onChange={e => set("refContrat", e.target.value)} className={inp} placeholder="CST-2025-001" />
+                </Field>
+                <Field label="N° Bon de livraison">
+                  <input value={form.refBonLivraison} onChange={e => set("refBonLivraison", e.target.value)} className={inp} placeholder="BL-2025-001" />
                 </Field>
               </div>
             </div>
@@ -874,10 +949,15 @@ export function PvReceptionEditor({
                     </Field>
                     {r.statut === "LEVEE" && (
                       <div className="sm:col-span-2">
-                        <Field label="Commentaire de levée">
-                          <input value={r.commentaireLevee} onChange={e => updateReserve(i, "commentaireLevee", e.target.value)}
-                            className={inp} placeholder="Comment la réserve a-t-elle été levée ?" />
-                        </Field>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Field label="Date de levée">
+                            <input type="date" value={r.dateLevee} onChange={e => updateReserve(i, "dateLevee", e.target.value)} className={inp} />
+                          </Field>
+                          <Field label="Commentaire de levée">
+                            <input value={r.commentaireLevee} onChange={e => updateReserve(i, "commentaireLevee", e.target.value)}
+                              className={inp} placeholder="Comment la réserve a-t-elle été levée ?" />
+                          </Field>
+                        </div>
                       </div>
                     )}
                   </div>

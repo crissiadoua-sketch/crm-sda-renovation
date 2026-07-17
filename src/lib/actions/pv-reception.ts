@@ -96,6 +96,31 @@ export async function sauvegarderPvReception(
     }[];
   }
 ): Promise<void> {
+  // Préserver conformite/observations des lignes si la partie externe a déjà signé.
+  // La sauvegarde CRM utilise deleteMany+create (pas d'upsert), ce qui écraserait
+  // les données remplies par le signataire externe via la page publique.
+  const pvCheck = await prisma.pvReception.findUnique({
+    where: { id },
+    select: {
+      categorie:                true,
+      dateSignatureMO:          true,
+      dateSignaturePrestataire: true,
+      lignes: { select: { ordre: true, conformite: true, observations: true } },
+    },
+  });
+
+  const externalSigned = pvCheck?.categorie === "TRAVAUX_CLIENT"
+    ? !!pvCheck?.dateSignatureMO
+    : !!pvCheck?.dateSignaturePrestataire;
+
+  // Map ordre → {conformite, observations} issues du signataire externe
+  const signedConformite = new Map<number, { conformite: string; observations: string | null }>();
+  if (externalSigned && pvCheck?.lignes) {
+    for (const l of pvCheck.lignes) {
+      signedConformite.set(l.ordre, { conformite: l.conformite, observations: l.observations });
+    }
+  }
+
   await prisma.$transaction([
     prisma.pvReception.update({
       where: { id },
@@ -142,8 +167,9 @@ export async function sauvegarderPvReception(
     }),
     prisma.pvReceptionLigne.deleteMany({ where: { pvReceptionId: id } }),
     prisma.pvReceptionReserve.deleteMany({ where: { pvReceptionId: id } }),
-    ...data.lignes.map((l, i) =>
-      prisma.pvReceptionLigne.create({
+    ...data.lignes.map((l, i) => {
+      const signed = signedConformite.get(i);
+      return prisma.pvReceptionLigne.create({
         data: {
           pvReceptionId: id,
           ordre:         i,
@@ -151,11 +177,11 @@ export async function sauvegarderPvReception(
           reference:     l.reference || null,
           quantite:      l.quantite ?? null,
           unite:         l.unite || null,
-          conformite:    l.conformite,
-          observations:  l.observations || null,
+          conformite:    signed ? signed.conformite  : l.conformite,
+          observations:  signed ? signed.observations : l.observations || null,
         },
-      })
-    ),
+      });
+    }),
     ...data.reserves.map((r, i) =>
       prisma.pvReceptionReserve.create({
         data: {

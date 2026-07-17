@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, Eraser, List, ListOrdered, Indent, Outdent } from "lucide-react";
 
-const BULLET_STYLES = [
+export const BULLET_STYLES = [
   { label: "• Puce", value: "disc" },
   { label: "○ Cercle", value: "circle" },
   { label: "▪ Carré", value: "square" },
 ];
-const NUMBERING_STYLES = [
+export const NUMBERING_STYLES = [
   { label: "1, 2, 3…", value: "decimal" },
   { label: "01, 02, 03…", value: "decimal-leading-zero" },
   { label: "a, b, c…", value: "lower-alpha" },
@@ -17,8 +17,8 @@ const NUMBERING_STYLES = [
   { label: "I, II, III…", value: "upper-roman" },
 ];
 
-const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
-const FONT_FAMILIES = [
+export const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
+export const FONT_FAMILIES = [
   { label: "Arial", value: "Arial, Helvetica, sans-serif" },
   { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
   { label: "Georgia", value: "Georgia, serif" },
@@ -26,7 +26,7 @@ const FONT_FAMILIES = [
   { label: "Trebuchet MS", value: "'Trebuchet MS', sans-serif" },
   { label: "Courier New", value: "'Courier New', Courier, monospace" },
 ];
-const PRESET_COLORS = ["#1e293b", "#1B3F94", "#F7941E", "#dc2626", "#16a34a", "#7c3aed", "#0f766e", "#78716c"];
+export const PRESET_COLORS = ["#1e293b", "#1B3F94", "#F7941E", "#dc2626", "#16a34a", "#7c3aed", "#0f766e", "#78716c"];
 
 // Éditeur de texte enrichi — permet d'appliquer gras/italique/souligné/taille/
 // couleur/alignement sur une SÉLECTION à l'intérieur du texte (pas tout le
@@ -39,12 +39,14 @@ export function RichTextEditor({
   rows = 3,
   placeholder,
   className,
+  styleBase,
 }: {
   value: string;
   onChange: (html: string) => void;
   rows?: number;
   placeholder?: string;
   className?: string;
+  styleBase?: { fontFamily?: string; fontSize?: number; color?: string };
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastValue = useRef<string | null>(null);
@@ -271,7 +273,12 @@ export function RichTextEditor({
         onBlur={emit}
         data-placeholder={placeholder}
         className="rich-text-content whitespace-pre-wrap px-3 py-2 text-sm leading-snug focus:outline-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]"
-        style={{ minHeight: `${rows * 1.4}rem` }}
+        style={{
+          minHeight: `${rows * 1.4}rem`,
+          fontFamily: styleBase?.fontFamily || undefined,
+          fontSize: styleBase?.fontSize ? `${styleBase.fontSize}px` : undefined,
+          color: styleBase?.color || undefined,
+        }}
       />
     </div>
   );

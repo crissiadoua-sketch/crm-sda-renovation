@@ -1,3 +1,4 @@
+import type React from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY, COMPANY_LEGAL } from "@/lib/company";
@@ -44,6 +45,17 @@ export default async function ApercuDevisPage({
 
   const lignes = devis.lignes;
   const chapitres = lignes.filter(l => l.type === "CHAPITRE");
+
+  function lineStyle(l: (typeof lignes)[0]): React.CSSProperties {
+    try {
+      const s = JSON.parse(l.styleTexte ?? "{}") as { fontFamily?: string; fontSize?: number; color?: string };
+      return {
+        fontFamily: s.fontFamily || undefined,
+        fontSize: s.fontSize ? `${s.fontSize}px` : undefined,
+        color: s.color || undefined,
+      };
+    } catch { return {}; }
+  }
   const hasTVAReduite = lignes.some(l => l.tauxTVA && l.tauxTVA < 10);
   // descriptif = sans P.U. ni total ligne, mais avec sous-totaux et récap HT/TVA/TTC
   const nbCols = (sansPrix || descriptif) ? 4 : 6;
@@ -204,7 +216,7 @@ export default async function ApercuDevisPage({
                             ? "py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#F7941E]/50"
                             : "py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200"
                         }`}>
-                          <RichText html={ligne.designation} />
+                          <RichText html={ligne.designation} style={lineStyle(ligne)} />
                         </td>
                         <td className={`px-3 text-right font-bold text-[#1E2F6E] ${
                           ligne.type === "CHAPITRE" ? "py-2 border-t-2 border-[#F7941E]/50" : "py-1.5 text-xs border-t border-slate-200"
@@ -258,7 +270,7 @@ export default async function ApercuDevisPage({
                         {subtotalRows}
                         <tr className="bg-[#F7941E]/8">
                           <td colSpan={nbCols} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#F7941E]/50 whitespace-pre-wrap">
-                            <RichText html={ligne.designation} />
+                            <RichText html={ligne.designation} style={lineStyle(ligne)} />
                           </td>
                         </tr>
                         {clauses.length > 0 && (
@@ -284,7 +296,7 @@ export default async function ApercuDevisPage({
                         <tr className="bg-red-50/60">
                           <td colSpan={nbCols} className="px-3 py-2 pl-6 border-t border-red-100">
                             <p className="text-[9px] font-bold uppercase tracking-widest text-red-600 mb-0.5">Clause / réserve</p>
-                            <p className="text-xs italic text-red-700 whitespace-pre-wrap"><RichText html={ligne.designation} /></p>
+                            <p className="text-xs italic text-red-700 whitespace-pre-wrap"><RichText html={ligne.designation} style={lineStyle(ligne)} /></p>
                           </td>
                         </tr>
                       </tbody>
@@ -296,7 +308,7 @@ export default async function ApercuDevisPage({
                         {subtotalRows}
                         <tr className="bg-slate-50">
                           <td colSpan={nbCols} className="px-3 py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200 whitespace-pre-wrap">
-                            <RichText html={ligne.designation} />
+                            <RichText html={ligne.designation} style={lineStyle(ligne)} />
                           </td>
                         </tr>
                         {clauses.length > 0 && (
@@ -321,7 +333,7 @@ export default async function ApercuDevisPage({
                     <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <tr className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}>
                         <td className="px-3 py-1.5 text-xs text-slate-400 pl-8">{ligne.codeArticle ?? "—"}</td>
-                        <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap"><RichText html={ligne.designation} /></td>
+                        <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap"><RichText html={ligne.designation} style={lineStyle(ligne)} /></td>
                         <td className="px-3 py-1.5 text-xs text-center text-slate-500">{ligne.unite ?? "—"}</td>
                         <td className="px-3 py-1.5 text-xs text-right text-slate-700">{ligne.quantite?.toFixed(2) ?? "—"}</td>
                         {!sansPrix && !descriptif && (

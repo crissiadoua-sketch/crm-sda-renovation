@@ -5,7 +5,7 @@ import {
   Plus, Trash2, ChevronUp, ChevronDown, BookOpen, Save, Search, X, Eye, EyeOff,
 } from "lucide-react";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { RichTextEditor, FONT_FAMILIES, FONT_SIZES, PRESET_COLORS } from "@/components/ui/rich-text-editor";
 import { formatEuros } from "@/lib/format";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS, type CorpsEtatCode } from "@/lib/corps-etat";
 import { saveOuvrageFromDevis } from "@/lib/actions/ouvrages";
@@ -149,6 +149,22 @@ function computeNumbering(rows: LigneRow[]) {
 const typeLabels: Record<LigneType, string> = {
   CHAPITRE: "Titre", SOUS_CHAPITRE: "Sous-titre", LIGNE: "Ligne", CLAUSE_RESERVE: "Clause et réserve",
 };
+
+interface DocStyle { fontFamily?: string; fontSize?: number; color?: string }
+type DocStyles = Partial<Record<LigneType, DocStyle>>;
+
+function parseStyleTexte(json: string): DocStyle {
+  try { const p = JSON.parse(json); return (typeof p === "object" && p !== null) ? p as DocStyle : {}; } catch { return {}; }
+}
+
+function mergePatch(base: DocStyle, patch: Partial<DocStyle>): DocStyle {
+  const result = { ...base };
+  for (const [k, v] of Object.entries(patch) as [keyof DocStyle, string | number | undefined][]) {
+    if (v === undefined || v === "" as unknown) delete result[k];
+    else (result as Record<string, unknown>)[k] = v;
+  }
+  return result;
+}
 
 // ─── Picker BPU ──────────────────────────────────────────────────────────────
 
@@ -386,6 +402,23 @@ export function DevisLignesEditor({
     try { return localStorage.getItem("devis-showDS") === "1"; } catch { return false; }
   });
 
+  const [docStyles, setDocStyles] = useState<DocStyles>(() => {
+    const result: DocStyles = {};
+    for (const type of ["CHAPITRE", "SOUS_CHAPITRE", "LIGNE", "CLAUSE_RESERVE"] as LigneType[]) {
+      const first = lignes.find((l) => l.type === type);
+      if (first) result[type] = parseStyleTexte(first.styleTexte ?? "{}");
+    }
+    return result;
+  });
+
+  function applyDocStyle(type: LigneType, patch: Partial<DocStyle>) {
+    const newStyle = mergePatch(docStyles[type] ?? {}, patch);
+    setDocStyles((cur) => ({ ...cur, [type]: newStyle }));
+    setRows((cur) =>
+      cur.map((r) => r.type !== type ? r : { ...r, styleTexte: JSON.stringify(newStyle) }),
+    );
+  }
+
   function toggleClauses(key: string) {
     setClausesOpen((prev) => {
       const next = new Set(prev);
@@ -515,9 +548,65 @@ export function DevisLignesEditor({
       <form action={formAction} className="flex flex-col gap-4">
         <input type="hidden" name="lignes" value={payload} />
 
-        <p className="text-xs text-slate-400">
-          Chaque désignation a son propre éditeur : sélectionnez un mot ou une phrase à l&apos;intérieur du texte pour lui appliquer gras / italique / taille / couleur, indépendamment du reste de la ligne.
-        </p>
+        {/* ── Styles globaux par type de ligne ── */}
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            Styles du document — s&apos;applique par type de ligne (remplaçable ligne par ligne via sélection)
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {(
+              [
+                ["CHAPITRE",      "Titre niveau 1",    "text-brand-navy font-semibold"],
+                ["SOUS_CHAPITRE", "Sous-titre niveau 2","text-slate-600 font-medium"],
+                ["LIGNE",         "Ligne de détail",   "text-slate-500"],
+                ["CLAUSE_RESERVE","Clause et réserve", "text-red-600 font-medium"],
+              ] as [LigneType, string, string][]
+            ).map(([type, label, labelCls]) => {
+              const s = docStyles[type] ?? {};
+              return (
+                <div key={type} className="flex flex-wrap items-center gap-2">
+                  <span className={`w-40 shrink-0 text-xs ${labelCls}`}>{label}</span>
+                  <select
+                    value={s.fontFamily ?? ""}
+                    onChange={(e) => applyDocStyle(type, { fontFamily: e.target.value || undefined })}
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600 focus:outline-none"
+                  >
+                    <option value="">Police…</option>
+                    {FONT_FAMILIES.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
+                  </select>
+                  <select
+                    value={s.fontSize ?? ""}
+                    onChange={(e) => applyDocStyle(type, { fontSize: e.target.value ? Number(e.target.value) : undefined })}
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600 focus:outline-none"
+                  >
+                    <option value="">Taille…</option>
+                    {FONT_SIZES.map((sz) => <option key={sz} value={sz}>{sz}pt</option>)}
+                  </select>
+                  <div className="flex items-center gap-0.5">
+                    {PRESET_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        title={c}
+                        onClick={() => applyDocStyle(type, { color: c })}
+                        style={{ background: c }}
+                        className={`h-4 w-4 rounded-sm transition hover:scale-110 ${s.color === c ? "ring-2 ring-offset-1 ring-slate-400" : ""}`}
+                      />
+                    ))}
+                    {s.color && (
+                      <button
+                        type="button"
+                        title="Couleur par défaut"
+                        onClick={() => applyDocStyle(type, { color: undefined })}
+                        className="ml-0.5 h-4 w-4 rounded-sm border border-slate-300 bg-white text-[9px] leading-none text-slate-400 hover:bg-slate-100"
+                      >✕</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="min-w-full divide-y divide-slate-100 text-sm">
@@ -610,6 +699,7 @@ export function DevisLignesEditor({
                                   : "Désignation / descriptif de l'ouvrage"
                           }
                           className={row.type === "CLAUSE_RESERVE" ? "border-red-200" : ""}
+                          styleBase={docStyles[row.type]}
                         />
                       </div>
                     </td>

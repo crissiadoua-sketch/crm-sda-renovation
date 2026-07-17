@@ -19,6 +19,7 @@ export const NUMBERING_STYLES = [
 
 export const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
 export const FONT_FAMILIES = [
+  { label: "Calibri", value: "Calibri, Candara, 'Segoe UI', sans-serif" },
   { label: "Arial", value: "Arial, Helvetica, sans-serif" },
   { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
   { label: "Georgia", value: "Georgia, serif" },

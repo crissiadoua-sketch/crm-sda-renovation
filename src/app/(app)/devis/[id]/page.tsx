@@ -366,7 +366,7 @@ export default async function DevisDetailPage({
         devisId={devis.id}
         devisNumero={devis.numero}
         signatureToken={devis.signatureToken ?? null}
-        signature={devis.signature ? { nomSignataire: devis.signature.nomSignataire, dateSignature: devis.signature.dateSignature.toISOString() } : null}
+        signature={devis.signature && devis.statut !== "BROUILLON" ? { nomSignataire: devis.signature.nomSignataire, dateSignature: devis.signature.dateSignature.toISOString() } : null}
         genererLien={genererLienSignature.bind(null, devis.id)}
       />
 

@@ -42,4 +42,7 @@ body {
 }
 .rich-text-content li {
   display: list-item;
+  /* whitespace-pre-wrap du contentEditable parent s'hérite et casse
+     l'alignement des lignes qui wrappent dans un <li>. On le réinitialise. */
+  white-space: normal;
 }

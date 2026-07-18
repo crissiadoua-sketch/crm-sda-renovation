@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp, Eraser, List, ListOrdered, Indent, Outdent } from "lucide-react";
 
 export const BULLET_STYLES = [
@@ -47,7 +47,7 @@ export function RichTextEditor({
   rows?: number;
   placeholder?: string;
   className?: string;
-  styleBase?: { fontFamily?: string; fontSize?: number; color?: string };
+  styleBase?: { fontFamily?: string; fontSize?: number; color?: string; bulletStyle?: string; numberStyle?: string };
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastValue = useRef<string | null>(null);
@@ -279,7 +279,9 @@ export function RichTextEditor({
           fontFamily: styleBase?.fontFamily || undefined,
           fontSize: styleBase?.fontSize ? `${styleBase.fontSize}px` : undefined,
           color: styleBase?.color || undefined,
-        }}
+          ...(styleBase?.bulletStyle ? { "--list-bullet-style": styleBase.bulletStyle } : {}),
+          ...(styleBase?.numberStyle ? { "--list-number-style": styleBase.numberStyle } : {}),
+        } as React.CSSProperties}
       />
     </div>
   );

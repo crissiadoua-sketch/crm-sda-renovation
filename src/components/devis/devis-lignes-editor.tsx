@@ -5,7 +5,7 @@ import {
   Plus, Trash2, ChevronUp, ChevronDown, BookOpen, Save, Search, X, Eye, EyeOff,
 } from "lucide-react";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { RichTextEditor, FONT_FAMILIES, FONT_SIZES, PRESET_COLORS } from "@/components/ui/rich-text-editor";
+import { RichTextEditor, FONT_FAMILIES, FONT_SIZES, PRESET_COLORS, BULLET_STYLES, NUMBERING_STYLES } from "@/components/ui/rich-text-editor";
 import { formatEuros } from "@/lib/format";
 import { CORPS_ETAT_CODES, CORPS_ETAT_LABELS, type CorpsEtatCode } from "@/lib/corps-etat";
 import { saveOuvrageFromDevis } from "@/lib/actions/ouvrages";
@@ -154,7 +154,7 @@ const typeLabels: Record<LigneType, string> = {
 
 const isPricedLine = (t: LigneType) => t === "LIGNE" || t === "PRESTATION_COMPLEMENTAIRE";
 
-interface DocStyle { fontFamily?: string; fontSize?: number; color?: string }
+interface DocStyle { fontFamily?: string; fontSize?: number; color?: string; bulletStyle?: string; numberStyle?: string }
 type DocStyles = Partial<Record<LigneType, DocStyle>>;
 
 function parseStyleTexte(json: string): DocStyle {
@@ -610,6 +610,22 @@ export function DevisLignesEditor({
                       >✕</button>
                     )}
                   </div>
+                  <select
+                    value={s.bulletStyle ?? ""}
+                    onChange={(e) => applyDocStyle(type, { bulletStyle: e.target.value || undefined })}
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600 focus:outline-none"
+                  >
+                    <option value="">Puces…</option>
+                    {BULLET_STYLES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                  </select>
+                  <select
+                    value={s.numberStyle ?? ""}
+                    onChange={(e) => applyDocStyle(type, { numberStyle: e.target.value || undefined })}
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600 focus:outline-none"
+                  >
+                    <option value="">Numéros…</option>
+                    {NUMBERING_STYLES.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
+                  </select>
                 </div>
               );
             })}

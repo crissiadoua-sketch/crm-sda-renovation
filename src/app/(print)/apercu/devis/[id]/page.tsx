@@ -48,12 +48,14 @@ export default async function ApercuDevisPage({
 
   function lineStyle(l: (typeof lignes)[0]): React.CSSProperties {
     try {
-      const s = JSON.parse(l.styleTexte ?? "{}") as { fontFamily?: string; fontSize?: number; color?: string };
+      const s = JSON.parse(l.styleTexte ?? "{}") as { fontFamily?: string; fontSize?: number; color?: string; bulletStyle?: string; numberStyle?: string };
       return {
         fontFamily: s.fontFamily || undefined,
         fontSize: s.fontSize ? `${s.fontSize}px` : undefined,
         color: s.color || undefined,
-      };
+        ...(s.bulletStyle ? { "--list-bullet-style": s.bulletStyle } : {}),
+        ...(s.numberStyle ? { "--list-number-style": s.numberStyle } : {}),
+      } as React.CSSProperties;
     } catch { return {}; }
   }
   const hasTVAReduite = lignes.some(l => l.tauxTVA && l.tauxTVA < 10);

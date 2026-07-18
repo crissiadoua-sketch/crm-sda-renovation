@@ -475,25 +475,11 @@ export default async function ApercuDevisPage({
             );
           })()}
 
-          {/* Conditions particulières de vente */}
+          {/* Mentions libres */}
           {!synthese && devis.mentionsLibres && (
             <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold text-slate-500 mb-1">Conditions particulières de vente</p>
-              {(() => {
-                try {
-                  const s = JSON.parse((devis as typeof devis & { mentionsLibresStyle?: string | null }).mentionsLibresStyle ?? "{}") as { fontFamily?: string; fontSize?: number; color?: string; bulletStyle?: string; numberStyle?: string };
-                  const style: React.CSSProperties = {
-                    fontFamily: s.fontFamily || undefined,
-                    fontSize: s.fontSize ? `${s.fontSize}px` : undefined,
-                    color: s.color || undefined,
-                    ...(s.bulletStyle ? { "--list-bullet-style": s.bulletStyle } : {}),
-                    ...(s.numberStyle ? { "--list-number-style": s.numberStyle } : {}),
-                  } as React.CSSProperties;
-                  return <RichText html={devis.mentionsLibres} style={style} />;
-                } catch {
-                  return <RichText html={devis.mentionsLibres} />;
-                }
-              })()}
+              <p className="text-xs font-semibold text-slate-500 mb-1">Mentions</p>
+              <p className="text-xs text-slate-700 whitespace-pre-wrap">{devis.mentionsLibres}</p>
             </div>
           )}
 

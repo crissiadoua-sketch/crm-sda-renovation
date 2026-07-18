@@ -389,14 +389,10 @@ export function DevisLignesEditor({
   lignes,
   action,
   ouvrages = [],
-  initialMentions = null,
-  initialMentionsStyle = null,
 }: {
   lignes: DevisLigne[];
   action: Action;
   ouvrages?: OuvrageRow[];
-  initialMentions?: string | null;
-  initialMentionsStyle?: string | null;
 }) {
   const [state, formAction] = useActionState(action, undefined);
   const [rows, setRows] = useState<LigneRow[]>(() =>
@@ -418,13 +414,6 @@ export function DevisLignesEditor({
     }
     return result;
   });
-
-  const [mentionsHtml, setMentionsHtml] = useState<string>(initialMentions ?? "");
-  const [mentionsStyle, setMentionsStyle] = useState<DocStyle>(() => parseStyleTexte(initialMentionsStyle ?? "{}"));
-
-  function applyMentionsStyle(patch: Partial<DocStyle>) {
-    setMentionsStyle((cur) => mergePatch(cur, patch));
-  }
 
   function applyDocStyle(type: LigneType, patch: Partial<DocStyle>) {
     const newStyle = mergePatch(docStyles[type] ?? {}, patch);
@@ -584,7 +573,7 @@ export function DevisLignesEditor({
               const s = docStyles[type] ?? {};
               return (
                 <div key={type} className="flex flex-wrap items-center gap-2">
-                  <span className={`w-44 shrink-0 text-xs ${labelCls}`}>{label}</span>
+                  <span className={`w-40 shrink-0 text-xs ${labelCls}`}>{label}</span>
                   <select
                     value={s.fontFamily ?? ""}
                     onChange={(e) => applyDocStyle(type, { fontFamily: e.target.value || undefined })}
@@ -640,67 +629,6 @@ export function DevisLignesEditor({
                 </div>
               );
             })}
-            {/* Ligne "Conditions particulières de vente" — champ texte libre du devis */}
-            {(() => {
-              const s = mentionsStyle;
-              return (
-                <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 pt-1.5 mt-0.5">
-                  <span className="w-44 shrink-0 text-xs text-slate-500 font-medium italic">Conditions particulières</span>
-                  <select
-                    value={s.fontFamily ?? ""}
-                    onChange={(e) => applyMentionsStyle({ fontFamily: e.target.value || undefined })}
-                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600 focus:outline-none"
-                  >
-                    <option value="">Police…</option>
-                    {FONT_FAMILIES.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
-                  </select>
-                  <select
-                    value={s.fontSize ?? ""}
-                    onChange={(e) => applyMentionsStyle({ fontSize: e.target.value ? Number(e.target.value) : undefined })}
-                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600 focus:outline-none"
-                  >
-                    <option value="">Taille…</option>
-                    {FONT_SIZES.map((sz) => <option key={sz} value={sz}>{sz}pt</option>)}
-                  </select>
-                  <div className="flex items-center gap-0.5">
-                    {PRESET_COLORS.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        title={c}
-                        onClick={() => applyMentionsStyle({ color: c })}
-                        style={{ background: c }}
-                        className={`h-4 w-4 rounded-sm transition hover:scale-110 ${s.color === c ? "ring-2 ring-offset-1 ring-slate-400" : ""}`}
-                      />
-                    ))}
-                    {s.color && (
-                      <button
-                        type="button"
-                        title="Couleur par défaut"
-                        onClick={() => applyMentionsStyle({ color: undefined })}
-                        className="ml-0.5 h-4 w-4 rounded-sm border border-slate-300 bg-white text-[9px] leading-none text-slate-400 hover:bg-slate-100"
-                      >✕</button>
-                    )}
-                  </div>
-                  <select
-                    value={s.bulletStyle ?? ""}
-                    onChange={(e) => applyMentionsStyle({ bulletStyle: e.target.value || undefined })}
-                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600 focus:outline-none"
-                  >
-                    <option value="">Puces…</option>
-                    {BULLET_STYLES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
-                  </select>
-                  <select
-                    value={s.numberStyle ?? ""}
-                    onChange={(e) => applyMentionsStyle({ numberStyle: e.target.value || undefined })}
-                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600 focus:outline-none"
-                  >
-                    <option value="">Numéros…</option>
-                    {NUMBERING_STYLES.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
-                  </select>
-                </div>
-              );
-            })()}
           </div>
         </div>
 
@@ -1139,23 +1067,6 @@ export function DevisLignesEditor({
             </div>
           </div>
         )}
-
-        {/* Conditions particulières de vente */}
-        <input type="hidden" name="mentionsLibres" value={mentionsHtml} />
-        <input type="hidden" name="mentionsLibresStyle" value={JSON.stringify(mentionsStyle)} />
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="mb-2 text-sm font-medium text-slate-700">
-            Conditions particulières de vente{" "}
-            <span className="text-xs font-normal text-slate-400">(visibles dans le PDF)</span>
-          </p>
-          <RichTextEditor
-            value={mentionsHtml}
-            onChange={setMentionsHtml}
-            rows={4}
-            placeholder="Ex : Délai d'exécution : 3 semaines après accord du devis. Garantie décennale incluse. Paiement : 30% acompte à la commande…"
-            styleBase={mentionsStyle}
-          />
-        </div>
 
         {state?.error && <p className="text-sm text-brand-orange-dark">{state.error}</p>}
 

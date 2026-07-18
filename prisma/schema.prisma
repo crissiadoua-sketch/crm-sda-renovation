@@ -287,7 +287,6 @@ model Devis {
   totalTTC             Float                        @default(0)
   signatureToken       String?                      @unique
   mentionsLibres       String?
-  mentionsLibresStyle  String?
   notesInternes        String?
   modeleCouverture     String                       @default("RENOVATION")
   nomProjet            String?

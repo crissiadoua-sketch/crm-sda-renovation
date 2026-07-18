@@ -830,6 +830,18 @@ export function DevisLignesEditor({
                             {row.sousTotalMasque ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}
+                        {row.type === "PRESTATION_COMPLEMENTAIRE" && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); update(row.key, { sousTotalMasque: !row.sousTotalMasque }); }}
+                            title={row.sousTotalMasque ? "Afficher cette option dans le PDF" : "Masquer cette option dans le PDF"}
+                            className={`rounded p-1 transition ${
+                              row.sousTotalMasque ? "text-slate-300 hover:bg-slate-100" : "text-teal-500 hover:bg-teal-50"
+                            }`}
+                          >
+                            {row.sousTotalMasque ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
                         {/* Bouton Clauses et Réserves */}
                         <button
                           type="button"

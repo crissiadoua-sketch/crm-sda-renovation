@@ -419,7 +419,7 @@ export default async function ApercuDevisPage({
 
           {/* Options / Prestations complémentaires */}
           {(() => {
-            const options = lignes.filter(l => l.type === "PRESTATION_COMPLEMENTAIRE");
+            const options = lignes.filter(l => l.type === "PRESTATION_COMPLEMENTAIRE" && !l.sousTotalMasque);
             if (options.length === 0) return null;
             const totalOpt = options.reduce((s, l) => s + (l.totalHT ?? 0), 0);
             return (

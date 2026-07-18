@@ -825,7 +825,7 @@ INSTRUCTIONS DE RÉDACTION :
 5. Termine par "Nous restons à votre disposition pour tout échange complémentaire." et une formule de politesse.
 6. Langue : français uniquement. Ton : expert, bienveillant, professionnel, concis.
 7. Format : texte brut uniquement (PAS de markdown, PAS d'astérisques, PAS de tirets de liste), des sections bien séparées par des sauts de ligne.
-8. Ne mentionne pas les numéros de devis dans le corps — utilise uniquement le nom des offres (ex. "Offre Économique", "Offre Premium").`;
+8. Ne mentionne pas les numéros de devis dans le corps — utilise uniquement le nom des offres (ex. "Offre Essentielle", "Offre Premium").`;
 
   try {
     const { default: Anthropic } = await import("@anthropic-ai/sdk");

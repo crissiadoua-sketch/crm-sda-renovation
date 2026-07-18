@@ -33,7 +33,7 @@ export default async function ComparerVariantesPage({
 
   function typeLabel(objet: string | null): { label: string; color: string } {
     const o = norm(objet);
-    if (o.includes("ECONOMIQUE")) return { label: "Économique", color: "bg-emerald-100 text-emerald-700" };
+    if (o.includes("ECONOMIQUE") || o.includes("ESSENTIELLE")) return { label: "Essentielle", color: "bg-emerald-100 text-emerald-700" };
     if (o.includes("OPTIMISEE") || o.includes("OPTIMISE")) return { label: "Optimisée", color: "bg-blue-100 text-blue-700" };
     if (o.includes("COMPLETE")) return { label: "Complète", color: "bg-violet-100 text-violet-700" };
     if (o.includes("PREMIUM")) return { label: "Premium ✦", color: "bg-amber-100 text-amber-700" };

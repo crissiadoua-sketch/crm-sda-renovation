@@ -169,7 +169,7 @@ function mergePatch(base: DocStyle, patch: Partial<DocStyle>): DocStyle {
 // ─── Picker BPU ──────────────────────────────────────────────────────────────
 
 const BPU_OFFRES = [
-  { key: "eco"  as const, label: "Éco",    short: "Éco",     color: "bg-emerald-600 hover:bg-emerald-700" },
+  { key: "eco"  as const, label: "Essentielle", short: "Ess",  color: "bg-emerald-600 hover:bg-emerald-700" },
   { key: "opt"  as const, label: "Optimisée", short: "Opt",  color: "bg-blue-600 hover:bg-blue-700"     },
   { key: "prem" as const, label: "Premium", short: "Prem",   color: "bg-violet-600 hover:bg-violet-700" },
 ] as const;

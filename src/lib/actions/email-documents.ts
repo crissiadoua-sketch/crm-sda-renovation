@@ -376,7 +376,7 @@ export async function envoyerVariantesGroupeesParEmail(
 
   function badgeStyle(objet: string | null): { label: string; bg: string; color: string } {
     const o = (objet ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
-    if (o.includes("ECONOMIQUE")) return { label: "Économique", bg: "#dcfce7", color: "#166534" };
+    if (o.includes("ECONOMIQUE") || o.includes("ESSENTIELLE")) return { label: "Essentielle", bg: "#dcfce7", color: "#166534" };
     if (o.includes("OPTIMISEE") || o.includes("OPTIMISE")) return { label: "Optimisée", bg: "#dbeafe", color: "#1e40af" };
     if (o.includes("COMPLETE")) return { label: "Complète", bg: "#ede9fe", color: "#5b21b6" };
     if (o.includes("PREMIUM")) return { label: "Premium ✦", bg: "#fef3c7", color: "#92400e" };

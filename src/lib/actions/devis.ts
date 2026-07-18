@@ -8,6 +8,7 @@ import { prochainNumeroDocument } from "@/lib/codification";
 import { randomBytes } from "crypto";
 import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
 import { envoyerEmail } from "@/lib/email";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.com";
 
@@ -303,6 +304,9 @@ export async function updateDevisLignes(
   totalDS = Math.round(totalDS * 100) / 100;
   const totalTTC = Math.round((totalHT + totalTVA) * 100) / 100;
 
+  const mentionsLibresRaw = formData.get("mentionsLibres");
+  const mentionsLibresStyle = formData.get("mentionsLibresStyle");
+
   await prisma.$transaction([
     prisma.devisLigne.deleteMany({ where: { devisId: id } }),
     prisma.devis.update({
@@ -314,6 +318,12 @@ export async function updateDevisLignes(
         totalDS,
         version: { increment: 1 },
         lignes: { create: lignesData },
+        ...(typeof mentionsLibresRaw === "string"
+          ? { mentionsLibres: sanitizeRichText(mentionsLibresRaw) || null }
+          : {}),
+        ...(typeof mentionsLibresStyle === "string"
+          ? { mentionsLibresStyle: mentionsLibresStyle || null }
+          : {}),
       },
     }),
   ]);

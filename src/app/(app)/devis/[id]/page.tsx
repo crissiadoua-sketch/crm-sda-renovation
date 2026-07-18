@@ -359,6 +359,8 @@ export default async function DevisDetailPage({
           lignes={devis.lignes}
           action={updateDevisLignes.bind(null, devis.id)}
           ouvrages={ouvrages}
+          initialMentions={devis.mentionsLibres}
+          initialMentionsStyle={devis.mentionsLibresStyle ?? null}
         />
       </div>
 
@@ -371,26 +373,9 @@ export default async function DevisDetailPage({
       />
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="mb-4 text-base font-semibold text-brand-navy">
-          Mentions complémentaires &amp; Notes
-        </h3>
+        <h3 className="mb-4 text-base font-semibold text-brand-navy">Notes internes</h3>
         <form action={updateMentionsDevis.bind(null, id)}>
           <div className="flex flex-col gap-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                Mentions libres{" "}
-                <span className="text-xs font-normal text-slate-400">
-                  (visibles dans le PDF — conditions particulières, garanties, délais…)
-                </span>
-              </label>
-              <textarea
-                name="mentionsLibres"
-                rows={4}
-                defaultValue={devis.mentionsLibres ?? ""}
-                placeholder="Ex: Délai d'exécution : 3 semaines après accord du devis. Garantie décennale incluse. Paiement : 30% acompte à la commande…"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30"
-              />
-            </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
                 Notes internes{" "}
@@ -411,7 +396,7 @@ export default async function DevisDetailPage({
                 type="submit"
                 className="rounded-lg bg-brand-navy px-5 py-2 text-sm font-semibold text-white hover:bg-brand-blue-dark transition"
               >
-                Enregistrer les mentions
+                Enregistrer
               </button>
             </div>
           </div>

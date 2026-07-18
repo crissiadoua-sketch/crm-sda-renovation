@@ -220,7 +220,7 @@ export async function clientSelectionneVariante(token: string, devisId: string):
 // ---------------------------------------------------------------------------
 
 const ligneInputSchema = z.object({
-  type: z.enum(["CHAPITRE", "SOUS_CHAPITRE", "LIGNE", "CLAUSE_RESERVE"]),
+  type: z.enum(["CHAPITRE", "SOUS_CHAPITRE", "LIGNE", "CLAUSE_RESERVE", "PRESTATION_COMPLEMENTAIRE"]),
   codeArticle: z.string().nullable().optional(),
   designation: z.string(),
   unite: z.string().nullable().optional(),

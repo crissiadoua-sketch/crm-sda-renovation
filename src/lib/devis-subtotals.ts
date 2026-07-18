@@ -1,4 +1,4 @@
-type LigneType = "CHAPITRE" | "SOUS_CHAPITRE" | "LIGNE" | "CLAUSE_RESERVE";
+type LigneType = "CHAPITRE" | "SOUS_CHAPITRE" | "LIGNE" | "CLAUSE_RESERVE" | "PRESTATION_COMPLEMENTAIRE";
 
 // Sous-total de chaque chapitre/sous-chapitre = somme des LIGNE qui lui sont
 // rattachées (directement ou via un sous-chapitre enfant).
@@ -15,7 +15,7 @@ export function computeSousTotaux<T extends { type: string }>(
     } else if (row.type === "SOUS_CHAPITRE") {
       while (stack.length > 0 && rows[stack[stack.length - 1]].type === "SOUS_CHAPITRE") stack.pop();
       stack.push(i);
-    } else {
+    } else if (row.type !== "PRESTATION_COMPLEMENTAIRE") {
       const total = getTotal(row);
       for (const idx of stack) subtotals[idx] += total;
     }

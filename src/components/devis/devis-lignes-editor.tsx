@@ -13,7 +13,7 @@ import type { DevisLignesState } from "@/lib/actions/devis";
 import type { DevisLigne } from "@/generated/prisma/client";
 import { computeSousTotaux } from "@/lib/devis-subtotals";
 
-type LigneType = "CHAPITRE" | "SOUS_CHAPITRE" | "LIGNE" | "CLAUSE_RESERVE";
+type LigneType = "CHAPITRE" | "SOUS_CHAPITRE" | "LIGNE" | "CLAUSE_RESERVE" | "PRESTATION_COMPLEMENTAIRE";
 
 type LigneRow = {
   key: string;
@@ -136,11 +136,12 @@ function computeSubtotals(rows: LigneRow[]) {
 }
 
 function computeNumbering(rows: LigneRow[]) {
-  let chapitre = 0, sousChapitre = 0, ligne = 0;
+  let chapitre = 0, sousChapitre = 0, ligne = 0, option = 0;
   return rows.map((row) => {
     if (row.type === "CHAPITRE") { chapitre++; sousChapitre = 0; ligne = 0; return `${chapitre}`; }
     if (row.type === "SOUS_CHAPITRE") { sousChapitre++; ligne = 0; return `${chapitre || 1}.${sousChapitre}`; }
     if (row.type === "CLAUSE_RESERVE") return "";
+    if (row.type === "PRESTATION_COMPLEMENTAIRE") { option++; return `Opt.${option}`; }
     ligne++;
     return sousChapitre > 0 ? `${chapitre || 1}.${sousChapitre}.${ligne}` : `${chapitre || 1}.${ligne}`;
   });
@@ -148,7 +149,10 @@ function computeNumbering(rows: LigneRow[]) {
 
 const typeLabels: Record<LigneType, string> = {
   CHAPITRE: "Titre", SOUS_CHAPITRE: "Sous-titre", LIGNE: "Ligne", CLAUSE_RESERVE: "Clause et réserve",
+  PRESTATION_COMPLEMENTAIRE: "Prestation complémentaire",
 };
+
+const isPricedLine = (t: LigneType) => t === "LIGNE" || t === "PRESTATION_COMPLEMENTAIRE";
 
 interface DocStyle { fontFamily?: string; fontSize?: number; color?: string }
 type DocStyles = Partial<Record<LigneType, DocStyle>>;
@@ -488,6 +492,7 @@ export function DevisLignesEditor({
 
   let totalHT = 0;
   let totalDS = 0;
+  let totalOptions = 0;
   const tvaParTaux = new Map<string, { base: number; tva: number }>();
   rows.forEach((row) => {
     if (row.type === "LIGNE") {
@@ -501,6 +506,8 @@ export function DevisLignesEditor({
         tvaParTaux.set(taux, entry);
       }
       totalDS += lineDS(row);
+    } else if (row.type === "PRESTATION_COMPLEMENTAIRE") {
+      totalOptions += lineTotal(row);
     }
   });
   totalHT = Math.round(totalHT * 100) / 100;
@@ -515,12 +522,12 @@ export function DevisLignesEditor({
       type: row.type,
       codeArticle: row.type === "LIGNE" && row.codeArticle ? row.codeArticle : null,
       designation: row.designation,
-      unite: row.type === "LIGNE" && row.unite ? row.unite : null,
-      quantite: row.type === "LIGNE" && row.quantite !== "" ? Number(row.quantite) : null,
-      prixUnitaireHT: row.type === "LIGNE" && row.prixUnitaireHT !== "" ? Number(row.prixUnitaireHT) : null,
-      coutUnitaireDS: row.type === "LIGNE" && row.coutUnitaireDS !== "" ? Number(row.coutUnitaireDS) : null,
-      remise: row.type === "LIGNE" && row.remise !== "" ? Number(row.remise) : null,
-      tauxTVA: row.type === "LIGNE" && row.tauxTVA !== "" ? Number(row.tauxTVA) : null,
+      unite: isPricedLine(row.type) && row.unite ? row.unite : null,
+      quantite: isPricedLine(row.type) && row.quantite !== "" ? Number(row.quantite) : null,
+      prixUnitaireHT: isPricedLine(row.type) && row.prixUnitaireHT !== "" ? Number(row.prixUnitaireHT) : null,
+      coutUnitaireDS: isPricedLine(row.type) && row.coutUnitaireDS !== "" ? Number(row.coutUnitaireDS) : null,
+      remise: isPricedLine(row.type) && row.remise !== "" ? Number(row.remise) : null,
+      tauxTVA: isPricedLine(row.type) && row.tauxTVA !== "" ? Number(row.tauxTVA) : null,
       styleTexte: row.styleTexte,
       clausesReserves: parseClauses(row.clausesReserves).length > 0 ? row.clausesReserves : null,
       sousTotalMasque: row.sousTotalMasque,
@@ -560,6 +567,7 @@ export function DevisLignesEditor({
                 ["SOUS_CHAPITRE", "Sous-titre niveau 2","text-slate-600 font-medium"],
                 ["LIGNE",         "Ligne de détail",   "text-slate-500"],
                 ["CLAUSE_RESERVE","Clause et réserve", "text-red-600 font-medium"],
+                ["PRESTATION_COMPLEMENTAIRE", "Prestation complémentaire", "text-teal-600 font-medium"],
               ] as [LigneType, string, string][]
             ).map(([type, label, labelCls]) => {
               const s = docStyles[type] ?? {};
@@ -654,6 +662,7 @@ export function DevisLignesEditor({
                       row.type === "CHAPITRE" ? "bg-brand-navy/5 font-semibold text-brand-navy" : "",
                       row.type === "SOUS_CHAPITRE" ? "bg-slate-50 font-medium text-slate-700" : "",
                       row.type === "CLAUSE_RESERVE" ? "bg-red-50/60 font-medium text-red-700" : "",
+                      row.type === "PRESTATION_COMPLEMENTAIRE" ? "bg-teal-50/60 font-medium text-teal-700" : "",
                       isSelected ? "ring-2 ring-inset ring-brand-blue/40" : "hover:bg-blue-50/30",
                     ].filter(Boolean).join(" ")}
                   >
@@ -696,14 +705,20 @@ export function DevisLignesEditor({
                                 ? "Intitulé du sous-titre"
                                 : row.type === "CLAUSE_RESERVE"
                                   ? "Saisir la clause ou réserve…"
-                                  : "Désignation / descriptif de l'ouvrage"
+                                  : row.type === "PRESTATION_COMPLEMENTAIRE"
+                                    ? "Désignation de la prestation complémentaire (en option)…"
+                                    : "Désignation / descriptif de l'ouvrage"
                           }
-                          className={row.type === "CLAUSE_RESERVE" ? "border-red-200" : ""}
+                          className={
+                            row.type === "CLAUSE_RESERVE" ? "border-red-200"
+                            : row.type === "PRESTATION_COMPLEMENTAIRE" ? "border-teal-200"
+                            : ""
+                          }
                           styleBase={docStyles[row.type]}
                         />
                       </div>
                     </td>
-                    {row.type === "LIGNE" ? (
+                    {isPricedLine(row.type) ? (
                       <>
                         <td className="px-3 py-2 align-top">
                           <input
@@ -769,8 +784,13 @@ export function DevisLignesEditor({
                             className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                           />
                         </td>
-                        <td className="px-3 py-2 text-right align-top font-medium text-slate-700">
-                          {formatEuros(lineTotal(row))}
+                        <td className="px-3 py-2 text-right align-top font-medium">
+                          <span className={row.type === "PRESTATION_COMPLEMENTAIRE" ? "text-teal-700" : "text-slate-700"}>
+                            {formatEuros(lineTotal(row))}
+                          </span>
+                          {row.type === "PRESTATION_COMPLEMENTAIRE" && (
+                            <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-teal-500">en option</div>
+                          )}
                         </td>
                       </>
                     ) : row.type === "CLAUSE_RESERVE" ? (
@@ -948,6 +968,13 @@ export function DevisLignesEditor({
           >
             <Plus className="h-3.5 w-3.5" /> Clause et réserve
           </button>
+          <button
+            type="button"
+            onClick={() => addRow("PRESTATION_COMPLEMENTAIRE")}
+            className="inline-flex items-center gap-1 rounded-lg border border-teal-300 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100"
+          >
+            <Plus className="h-3.5 w-3.5" /> Prestation complémentaire
+          </button>
           {ouvrages.length > 0 && (
             <button
               type="button"
@@ -1000,6 +1027,18 @@ export function DevisLignesEditor({
             </div>
           )}
         </div>
+
+        {totalOptions > 0 && (
+          <div className="flex flex-col items-end gap-1 rounded-xl border border-teal-200 bg-teal-50/50 p-4">
+            <p className="w-full max-w-xs text-[10px] font-semibold uppercase tracking-wide text-teal-500 mb-1">
+              Options / Prestations complémentaires — non incluses dans le total
+            </p>
+            <div className="flex w-full max-w-xs justify-between text-sm text-teal-700">
+              <span>Total options HT</span>
+              <span className="font-bold">{formatEuros(totalOptions)}</span>
+            </div>
+          </div>
+        )}
 
         {state?.error && <p className="text-sm text-brand-orange-dark">{state.error}</p>}
 

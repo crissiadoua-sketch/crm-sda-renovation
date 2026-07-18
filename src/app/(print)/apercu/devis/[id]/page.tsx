@@ -417,6 +417,62 @@ export default async function ApercuDevisPage({
             </div>
           )}
 
+          {/* Options / Prestations complémentaires */}
+          {(() => {
+            const options = lignes.filter(l => l.type === "PRESTATION_COMPLEMENTAIRE");
+            if (options.length === 0) return null;
+            const totalOpt = options.reduce((s, l) => s + (l.totalHT ?? 0), 0);
+            return (
+              <div className="mb-6">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="h-px flex-1 bg-teal-200" />
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-teal-600">Options / Prestations complémentaires</span>
+                  <div className="h-px flex-1 bg-teal-200" />
+                </div>
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-teal-600 text-white">
+                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold w-12">Réf.</th>
+                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold">Désignation</th>
+                      <th className="px-3 py-1.5 text-center text-[10px] font-semibold w-14">Unité</th>
+                      <th className="px-3 py-1.5 text-right text-[10px] font-semibold w-16">Qté</th>
+                      {!sansPrix && (
+                        <>
+                          <th className="px-3 py-1.5 text-right text-[10px] font-semibold w-24">P.U. HT</th>
+                          <th className="px-3 py-1.5 text-right text-[10px] font-semibold w-24">Total HT</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {options.map((opt, oi) => (
+                      <tr key={opt.id} className={oi % 2 === 0 ? "bg-teal-50/40" : "bg-white"}>
+                        <td className="px-3 py-1.5 text-[10px] text-teal-500 font-mono">Opt.{oi + 1}</td>
+                        <td className="px-3 py-1.5 text-xs text-teal-800"><RichText html={opt.designation} style={lineStyle(opt)} /></td>
+                        <td className="px-3 py-1.5 text-xs text-center text-slate-500">{opt.unite ?? "—"}</td>
+                        <td className="px-3 py-1.5 text-xs text-right text-slate-700">{opt.quantite?.toFixed(2) ?? "—"}</td>
+                        {!sansPrix && (
+                          <>
+                            <td className="px-3 py-1.5 text-xs text-right text-slate-700">{opt.prixUnitaireHT != null ? formatEuros(opt.prixUnitaireHT) : "—"}</td>
+                            <td className="px-3 py-1.5 text-xs text-right font-medium text-teal-700">{opt.totalHT != null ? formatEuros(opt.totalHT) : "—"}</td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!sansPrix && (
+                  <div className="flex justify-end mt-2">
+                    <div className="flex items-center gap-4 rounded-lg border border-teal-200 bg-teal-50 px-4 py-2 text-sm text-teal-700">
+                      <span className="text-xs">Total options HT (non inclus dans le devis)</span>
+                      <span className="font-bold">{formatEuros(totalOpt)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Mentions libres */}
           {!synthese && devis.mentionsLibres && (
             <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">

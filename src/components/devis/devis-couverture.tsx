@@ -69,7 +69,15 @@ export function DevisCouverture({ devis }: { devis: {
     setPhotoError(null);
     setPhotoPreview(URL.createObjectURL(file));
     setUploadingPhoto(true);
-    const result = await uploadDevisPhoto(devis.id, file);
+    let result: { url: string } | { error: string };
+    try {
+      result = await uploadDevisPhoto(devis.id, file);
+    } catch {
+      setUploadingPhoto(false);
+      setPhotoError("Erreur inattendue lors de l'envoi. Réessayez.");
+      setPhotoPreview(photoProjetUrl ? urlFichier(photoProjetUrl) : null);
+      return;
+    }
     setUploadingPhoto(false);
     if ("error" in result) {
       setPhotoError(result.error);

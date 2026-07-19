@@ -375,10 +375,16 @@ export async function uploadDevisPhoto(id: string, file: File): Promise<{ url: s
   const existing = await prisma.devis.findUnique({ where: { id }, select: { photoProjetUrl: true } });
   await supprimerFichierStocke(existing?.photoProjetUrl);
 
-  const { url } = await stockerFichier(file, "devis-photos");
+  let url: string;
+  try {
+    ({ url } = await stockerFichier(file, "devis-photos"));
+  } catch {
+    return { error: "Échec de l'envoi du fichier. Vérifiez la configuration du stockage." };
+  }
   await prisma.devis.update({ where: { id }, data: { photoProjetUrl: url } });
 
   revalidatePath(`/devis/${id}`);
+  revalidatePath(`/apercu/devis/${id}`);
   return { url };
 }
 

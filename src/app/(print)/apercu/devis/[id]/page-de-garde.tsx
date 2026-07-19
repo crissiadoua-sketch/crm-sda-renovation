@@ -79,7 +79,7 @@ export function PageDeGarde({ devis }: { devis: {
           </div>
 
           {/* Zone photo */}
-          <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 to-[#29ABE2]/10 h-[28rem] flex items-center justify-center border border-[#1E2F6E]/10">
+          <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 to-[#29ABE2]/10 h-[28rem] print:h-[120mm] flex items-center justify-center border border-[#1E2F6E]/10">
             {devis.photoProjetUrl ? (
               <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
             ) : (
@@ -167,7 +167,7 @@ export function PageDeGarde({ devis }: { devis: {
           </div>
 
           {/* Zone photo */}
-          <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 via-[#29ABE2]/5 to-slate-50 h-[32rem] flex items-center justify-center border border-[#1E2F6E]/10">
+          <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 via-[#29ABE2]/5 to-slate-50 h-[32rem] print:h-[150mm] flex items-center justify-center border border-[#1E2F6E]/10">
             {devis.photoProjetUrl ? (
               <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
             ) : (
@@ -241,7 +241,7 @@ export function PageDeGarde({ devis }: { devis: {
           </div>
 
           {/* Zone photo agrandie, plein format */}
-          <div className="relative rounded-xl overflow-hidden bg-white/10 h-[32rem] flex items-center justify-center mb-6 border border-white/20">
+          <div className="relative rounded-xl overflow-hidden bg-white/10 h-[32rem] print:h-[150mm] flex items-center justify-center mb-6 border border-white/20">
             {devis.photoProjetUrl ? (
               <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
             ) : (
@@ -331,7 +331,7 @@ export function PageDeGarde({ devis }: { devis: {
         </div>
 
         {/* Zone photo */}
-        <div className="relative mb-8 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 to-[#29ABE2]/10 h-[28rem] flex items-center justify-center border border-[#1E2F6E]/10">
+        <div className="relative mb-8 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 to-[#29ABE2]/10 h-[28rem] print:h-[120mm] flex items-center justify-center border border-[#1E2F6E]/10">
           {devis.photoProjetUrl ? (
             <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
           ) : (

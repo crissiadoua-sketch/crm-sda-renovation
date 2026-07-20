@@ -438,7 +438,7 @@ export default async function ApercuDevisPage({
                       <th className="px-3 py-1.5 text-left text-[10px] font-semibold">Désignation</th>
                       <th className="px-3 py-1.5 text-center text-[10px] font-semibold w-14">Unité</th>
                       <th className="px-3 py-1.5 text-right text-[10px] font-semibold w-16">Qté</th>
-                      {!sansPrix && (
+                      {!sansPrix && !descriptif && (
                         <>
                           <th className="px-3 py-1.5 text-right text-[10px] font-semibold w-24">P.U. HT</th>
                           <th className="px-3 py-1.5 text-right text-[10px] font-semibold w-24">Total HT</th>
@@ -453,7 +453,7 @@ export default async function ApercuDevisPage({
                         <td className="px-3 py-1.5 text-xs text-teal-800"><RichText html={opt.designation} style={lineStyle(opt)} /></td>
                         <td className="px-3 py-1.5 text-xs text-center text-slate-500">{opt.unite ?? "—"}</td>
                         <td className="px-3 py-1.5 text-xs text-right text-slate-700">{opt.quantite?.toFixed(2) ?? "—"}</td>
-                        {!sansPrix && (
+                        {!sansPrix && !descriptif && (
                           <>
                             <td className="px-3 py-1.5 text-xs text-right text-slate-700">{opt.prixUnitaireHT != null ? formatEuros(opt.prixUnitaireHT) : "—"}</td>
                             <td className="px-3 py-1.5 text-xs text-right font-medium text-teal-700">{opt.totalHT != null ? formatEuros(opt.totalHT) : "—"}</td>
@@ -463,7 +463,7 @@ export default async function ApercuDevisPage({
                     ))}
                   </tbody>
                 </table>
-                {!sansPrix && (
+                {!sansPrix && !descriptif && (
                   <div className="flex justify-end mt-2">
                     <div className="flex items-center gap-4 rounded-lg border border-teal-200 bg-teal-50 px-4 py-2 text-sm text-teal-700">
                       <span className="text-xs">Total options HT (non inclus dans le devis)</span>

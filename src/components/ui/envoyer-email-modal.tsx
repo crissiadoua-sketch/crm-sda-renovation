@@ -21,6 +21,7 @@ interface EnvoyerEmailModalProps {
   defaultVue?: string;
   defaultSubject?: string;
   defaultMessage?: string;
+  hiddenFields?: Record<string, string>;
 }
 
 export function EnvoyerEmailModal({
@@ -32,6 +33,7 @@ export function EnvoyerEmailModal({
   defaultVue,
   defaultSubject = "",
   defaultMessage = "",
+  hiddenFields,
 }: EnvoyerEmailModalProps) {
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -110,6 +112,9 @@ export function EnvoyerEmailModal({
             {/* Formulaire */}
             {!state?.ok && (
               <form action={formAction} className="flex flex-col overflow-hidden flex-1">
+              {hiddenFields && Object.entries(hiddenFields).map(([k, v]) => (
+                <input key={k} type="hidden" name={k} value={v} />
+              ))}
               <div className="flex flex-col gap-4 px-5 py-4 overflow-y-auto flex-1">
 
                 {/* Erreur */}

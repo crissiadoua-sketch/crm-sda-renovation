@@ -198,13 +198,17 @@ export function ComparaisonActions({
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
         <p className="text-sm font-semibold text-emerald-800 mb-1">✉ Envoyer les variantes au client</p>
         <p className="text-xs text-slate-500 mb-3">
-          Le client reçoit un email avec toutes les offres. Il clique sur celle qui lui convient, la consulte et la signe électroniquement — elle passe automatiquement en statut Accepté.
+          {selected.size < variantes.length
+            ? `Le client reçoit un email avec les ${selected.size} offre${selected.size > 1 ? "s" : ""} sélectionnée${selected.size > 1 ? "s" : ""} (cochez les cases ci-dessous pour modifier la sélection).`
+            : "Le client reçoit un email avec toutes les offres."}{" "}
+          Il clique sur celle qui lui convient, la consulte et la signe électroniquement — elle passe automatiquement en statut Accepté.
         </p>
         <EnvoyerEmailModal
           action={envoyerVariantesAction}
           defaultTo={clientEmail}
-          documentLabel={`les ${variantes.length} offre${variantes.length > 1 ? "s" : ""}`}
+          documentLabel={`les ${selected.size} offre${selected.size > 1 ? "s" : ""} sélectionnée${selected.size > 1 ? "s" : ""}`}
           defaultSubject={`Vos offres — ${chantierNom} — SDA Rénovation`}
+          hiddenFields={{ selectedIds: [...selected].join(",") }}
         />
       </div>
 

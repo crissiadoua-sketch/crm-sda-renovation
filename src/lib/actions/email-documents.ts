@@ -340,6 +340,8 @@ export async function envoyerVariantesGroupeesParEmail(
   const customSubject = (formData.get("subject") as string)?.trim() || undefined;
   const cc = (formData.get("cc") as string)?.trim() || undefined;
   const bcc = (formData.get("bcc") as string)?.trim() || undefined;
+  const selectedIdsRaw = (formData.get("selectedIds") as string)?.trim() || "";
+  const selectedIds = selectedIdsRaw ? selectedIdsRaw.split(",").filter(Boolean) : [];
 
   if (!to) return { ok: false, error: "Adresse email destinataire manquante." };
 
@@ -354,7 +356,12 @@ export async function envoyerVariantesGroupeesParEmail(
   if (!chantier) return { ok: false, error: "Chantier introuvable." };
 
   const variantes = await prisma.devis.findMany({
-    where: { chantierId, statut: { in: ["BROUILLON", "ENVOYE"] }, type: "INITIAL" },
+    where: {
+      chantierId,
+      ...(selectedIds.length > 0 ? { id: { in: selectedIds } } : {}),
+      statut: { in: ["BROUILLON", "ENVOYE"] },
+      type: "INITIAL",
+    },
     orderBy: { totalTTC: "asc" },
   });
 

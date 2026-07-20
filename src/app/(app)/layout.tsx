@@ -15,27 +15,32 @@ export default async function AppLayout({
   const [user, smtpConfigured] = await Promise.all([getUser(), Promise.resolve(emailConfigure())]);
 
   // Compter les conversations avec des messages non lus (envoyés par autrui après luAt)
-  const participations = await prisma.conversationParticipant.findMany({
-    where: { userId: user.id },
-    select: {
-      luAt: true,
-      conversation: {
-        select: {
-          messages: {
-            where: { senderId: { not: user.id } },
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            select: { createdAt: true },
+  let messagesNonLus = 0;
+  try {
+    const participations = await prisma.conversationParticipant.findMany({
+      where: { userId: user.id },
+      select: {
+        luAt: true,
+        conversation: {
+          select: {
+            messages: {
+              where: { senderId: { not: user.id } },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: { createdAt: true },
+            },
           },
         },
       },
-    },
-  });
-  const messagesNonLus = participations.filter((p) => {
-    const last = p.conversation.messages[0];
-    if (!last) return false;
-    return !p.luAt || last.createdAt > p.luAt;
-  }).length;
+    });
+    messagesNonLus = participations.filter((p) => {
+      const last = p.conversation.messages[0];
+      if (!last) return false;
+      return !p.luAt || last.createdAt > p.luAt;
+    }).length;
+  } catch {
+    // Non bloquant — le badge de messagerie reste à 0 si la requête échoue
+  }
 
   return (
     <AppShell

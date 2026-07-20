@@ -31,21 +31,28 @@ export default async function DevisPage({
 }) {
   const { q } = await searchParams;
 
-  const devisList = await prisma.devis.findMany({
-    where: q
-      ? {
-          OR: [
-            { numero: { contains: q } },
-            { objet: { contains: q } },
-            { chantier: { nom: { contains: q } } },
-            { client: { nom: { contains: q } } },
-            { client: { raisonSociale: { contains: q } } },
-          ],
-        }
-      : undefined,
-    include: { chantier: true, client: true },
-    orderBy: { dateCreation: "desc" },
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let devisList: any[] = [];
+  let dbError = false;
+  try {
+    devisList = await prisma.devis.findMany({
+      where: q
+        ? {
+            OR: [
+              { numero: { contains: q } },
+              { objet: { contains: q } },
+              { chantier: { nom: { contains: q } } },
+              { client: { nom: { contains: q } } },
+              { client: { raisonSociale: { contains: q } } },
+            ],
+          }
+        : undefined,
+      include: { chantier: true, client: true },
+      orderBy: { dateCreation: "desc" },
+    });
+  } catch {
+    dbError = true;
+  }
 
   // Détection des groupes de variantes (plusieurs BROUILLON sur le même chantier)
   const brouillonParChantier = new Map<string, number>();
@@ -57,6 +64,18 @@ export default async function DevisPage({
   const chantiersVariantes = new Set(
     [...brouillonParChantier.entries()].filter(([, n]) => n > 1).map(([id]) => id)
   );
+
+  if (dbError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+        <p className="text-lg font-bold text-slate-700">Connexion temporairement indisponible</p>
+        <p className="text-sm text-slate-400">La base de données ne répond pas. Actualisez la page.</p>
+        <a href="/devis" className="rounded-lg bg-brand-blue px-5 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 transition">
+          Actualiser
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

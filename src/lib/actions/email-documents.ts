@@ -409,9 +409,8 @@ export async function envoyerVariantesGroupeesParEmail(
   }).join("");
 
   const nb = variantesAvecToken.length;
-  const clientPrenom = chantier.client?.prenom ?? null;
 
-  const corps = salutation(clientPrenom, message)
+  const corps = (message ? `<p style="margin:0 0 20px;font-size:14px;color:#334155;line-height:1.6">${message.replace(/\n/g, "<br>")}</p>` : "")
     + cardsHtml
     + signature();
 

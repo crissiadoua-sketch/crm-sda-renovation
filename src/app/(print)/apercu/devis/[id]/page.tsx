@@ -77,7 +77,9 @@ export default async function ApercuDevisPage({
     <>
       <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}${sansPrix ? " · Sans prix" : ""}${synthese ? " · Synthèse" : ""}${descriptif ? " · Descriptif + totaux" : ""}`} noPrint={noPrint} />
 
-      <PageDeGarde devis={devis} />
+      <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">
+        <PageDeGarde devis={devis} />
+      </div>
 
       {/* Document A4 */}
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">

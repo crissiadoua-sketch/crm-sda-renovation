@@ -412,14 +412,7 @@ export async function envoyerVariantesGroupeesParEmail(
   const clientPrenom = chantier.client?.prenom ?? null;
 
   const corps = salutation(clientPrenom, message)
-    + `<p style="margin:0 0 20px;font-size:14px;color:#334155;line-height:1.6">
-      Nous avons préparé <strong>${nb} offre${nb > 1 ? "s" : ""}</strong> pour votre projet <strong>${chantier.nom}</strong>.
-      Comparez-les ci-dessous et cliquez sur le bouton de l'offre qui vous convient pour la consulter et la signer électroniquement.
-    </p>`
     + cardsHtml
-    + `<p style="margin:16px 0 0;font-size:12px;color:#94a3b8;line-height:1.6">
-      Votre signature électronique sera demandée lors de la consultation. Une fois signé, votre choix est définitivement enregistré et nous en serons notifiés immédiatement.
-    </p>`
     + signature();
 
   const subject = customSubject ?? `Vos offres — ${chantier.nom} — SDA Rénovation`;
@@ -431,7 +424,7 @@ export async function envoyerVariantesGroupeesParEmail(
       to,
       subject,
       html: emailLayout(`Vos offres — ${chantier.nom}`, corps, signataire),
-      text: `Bonjour,\n\n${message ? message + "\n\n" : ""}${nb} offre${nb > 1 ? "s" : ""} pour votre projet ${chantier.nom} :\n\n`
+      text: `Bonjour${chantier.client?.prenom ? ` ${chantier.client.prenom}` : ""},\n\n${message ? message + "\n\n" : ""}`
         + variantesAvecToken.map((v) => `• ${v.numero} — ${formatEuros(v.totalTTC ?? 0)} TTC${v.objet ? ` (${v.objet})` : ""}\n  ${APP_URL}/devis/consulter/${v.signatureToken}`).join("\n\n")
         + `\n\nCordialement,\nSDA Rénovation`,
       cc,

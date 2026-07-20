@@ -47,7 +47,7 @@ export function PageDeGarde({ devis }: { devis: {
   // ── MODÈLE APPEL D'OFFRE ──────────────────────────────────────────────────
   if (devis.modeleCouverture === "APPEL_OFFRE") {
     return (
-      <div className="relative min-h-[297mm] bg-white flex flex-col page-break-after-always">
+      <div className="relative bg-white flex flex-col page-break-after-always">
         {/* Bandeau latéral navy */}
         <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#1E2F6E]" />
         <div className="ml-6 flex flex-col h-full px-8 py-10">
@@ -79,7 +79,7 @@ export function PageDeGarde({ devis }: { devis: {
           </div>
 
           {/* Zone photo */}
-          <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 to-[#29ABE2]/10 h-[28rem] print:h-[120mm] flex items-center justify-center border border-[#1E2F6E]/10">
+          <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 to-[#29ABE2]/10 h-[18rem] print:h-[80mm] flex items-center justify-center border border-[#1E2F6E]/10">
             {devis.photoProjetUrl ? (
               <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
             ) : (
@@ -149,7 +149,7 @@ export function PageDeGarde({ devis }: { devis: {
   // ── MODÈLE RÉNOVATION ─────────────────────────────────────────────────────
   if (devis.modeleCouverture === "RENOVATION") {
     return (
-      <div className="relative min-h-[297mm] bg-white flex flex-col page-break-after-always overflow-hidden">
+      <div className="relative bg-white flex flex-col page-break-after-always overflow-hidden">
         {/* Bandeau dégradé haut */}
         <div className="h-4 w-full bg-gradient-to-r from-[#1E2F6E] via-[#29ABE2] to-[#F7941E]" />
 
@@ -167,7 +167,7 @@ export function PageDeGarde({ devis }: { devis: {
           </div>
 
           {/* Zone photo */}
-          <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 via-[#29ABE2]/5 to-slate-50 h-[32rem] print:h-[150mm] flex items-center justify-center border border-[#1E2F6E]/10">
+          <div className="relative mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 via-[#29ABE2]/5 to-slate-50 h-[18rem] print:h-[80mm] flex items-center justify-center border border-[#1E2F6E]/10">
             {devis.photoProjetUrl ? (
               <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
             ) : (
@@ -222,7 +222,7 @@ export function PageDeGarde({ devis }: { devis: {
   // ── MODÈLE CONSTRUCTION NEUVE ─────────────────────────────────────────────
   if (devis.modeleCouverture === "CONSTRUCTION_NEUVE") {
     return (
-      <div className="relative min-h-[297mm] bg-white flex flex-col page-break-after-always">
+      <div className="relative bg-white flex flex-col page-break-after-always">
         {/* Liseré tricolore de marque */}
         <div className="h-1.5 w-full bg-gradient-to-r from-[#1E2F6E] via-[#29ABE2] to-[#F7941E]" />
 
@@ -241,7 +241,7 @@ export function PageDeGarde({ devis }: { devis: {
           </div>
 
           {/* Zone photo agrandie, plein format */}
-          <div className="relative rounded-xl overflow-hidden bg-white/10 h-[32rem] print:h-[150mm] flex items-center justify-center mb-6 border border-white/20">
+          <div className="relative rounded-xl overflow-hidden bg-white/10 h-[18rem] print:h-[80mm] flex items-center justify-center mb-6 border border-white/20">
             {devis.photoProjetUrl ? (
               <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
             ) : (
@@ -305,7 +305,7 @@ export function PageDeGarde({ devis }: { devis: {
 
   // ── MODÈLE SERVICES (simplifié) ───────────────────────────────────────────
   return (
-    <div className="relative min-h-[297mm] bg-white flex flex-col page-break-after-always">
+    <div className="relative bg-white flex flex-col page-break-after-always">
       <div className="px-10 py-10 flex flex-col flex-1">
         {/* En-tête épuré */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-6 mb-8">
@@ -331,7 +331,7 @@ export function PageDeGarde({ devis }: { devis: {
         </div>
 
         {/* Zone photo */}
-        <div className="relative mb-8 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 to-[#29ABE2]/10 h-[28rem] print:h-[120mm] flex items-center justify-center border border-[#1E2F6E]/10">
+        <div className="relative mb-8 rounded-xl overflow-hidden bg-gradient-to-br from-[#1E2F6E]/5 to-[#29ABE2]/10 h-[18rem] print:h-[80mm] flex items-center justify-center border border-[#1E2F6E]/10">
           {devis.photoProjetUrl ? (
             <img src={urlFichier(devis.photoProjetUrl)} alt="Photo du projet" className="absolute inset-0 h-full w-full object-cover" style={photoStyle} />
           ) : (

@@ -60,6 +60,28 @@ export function RichTextEditor({
     }
   }, [value]);
 
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.querySelectorAll<HTMLUListElement>("ul").forEach((ul) => {
+      if (styleBase?.bulletStyle) ul.style.listStyleType = styleBase.bulletStyle;
+      else ul.style.removeProperty("list-style-type");
+    });
+    const html = ref.current.innerHTML;
+    if (html !== lastValue.current) { lastValue.current = html; onChange(html); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [styleBase?.bulletStyle]);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.querySelectorAll<HTMLOListElement>("ol").forEach((ol) => {
+      if (styleBase?.numberStyle) ol.style.listStyleType = styleBase.numberStyle;
+      else ol.style.removeProperty("list-style-type");
+    });
+    const html = ref.current.innerHTML;
+    if (html !== lastValue.current) { lastValue.current = html; onChange(html); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [styleBase?.numberStyle]);
+
   const emit = () => {
     const html = ref.current?.innerHTML ?? "";
     lastValue.current = html;

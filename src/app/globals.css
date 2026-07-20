@@ -34,15 +34,27 @@ body {
    RichText) : le preflight Tailwind remet ul/ol à list-style:none par défaut. */
 .rich-text-content ul {
   list-style-type: var(--list-bullet-style, disc);
-  padding-left: 1.5rem;
+  list-style-position: outside;
+  padding-left: 1.4em;
+  margin: 0;
 }
 .rich-text-content ol {
   list-style-type: var(--list-number-style, decimal);
-  padding-left: 1.5rem;
+  list-style-position: outside;
+  padding-left: 1.4em;
+  margin: 0;
 }
 .rich-text-content li {
   display: list-item;
   /* whitespace-pre-wrap du contentEditable parent s'hérite et casse
      l'alignement des lignes qui wrappent dans un <li>. On le réinitialise. */
+  white-space: normal;
+  padding-left: 0.15em;
+}
+/* Évite les marges parasites quand execCommand insère un <div> ou <p> dans <li> */
+.rich-text-content li > p,
+.rich-text-content li > div {
+  margin: 0;
+  padding: 0;
   white-space: normal;
 }

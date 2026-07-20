@@ -336,14 +336,14 @@ export default async function ApercuDevisPage({
                   return (
                     <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <tr className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}>
-                        <td className="px-3 py-1.5 text-xs text-slate-400 pl-8">{ligne.codeArticle ?? "—"}</td>
-                        <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap"><RichText html={ligne.designation} style={lineStyle(ligne)} /></td>
-                        <td className="px-3 py-1.5 text-xs text-center text-slate-500">{ligne.unite ?? "—"}</td>
-                        <td className="px-3 py-1.5 text-xs text-right text-slate-700">{ligne.quantite?.toFixed(2) ?? "—"}</td>
+                        <td className="px-3 py-1.5 text-xs text-slate-400 pl-8 align-top">{ligne.codeArticle ?? "—"}</td>
+                        <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap align-top"><RichText html={ligne.designation} style={lineStyle(ligne)} /></td>
+                        <td className="px-3 py-1.5 text-xs text-center text-slate-500 align-top">{ligne.unite ?? "—"}</td>
+                        <td className="px-3 py-1.5 text-xs text-right text-slate-700 align-top">{ligne.quantite?.toFixed(2) ?? "—"}</td>
                         {!sansPrix && !descriptif && (
                           <>
-                            <td className="px-3 py-1.5 text-xs text-right text-slate-700">{ligne.prixUnitaireHT != null ? formatEuros(ligne.prixUnitaireHT) : "—"}</td>
-                            <td className="px-3 py-1.5 text-xs text-right font-medium text-slate-700">{ligne.totalHT != null ? formatEuros(ligne.totalHT) : "—"}</td>
+                            <td className="px-3 py-1.5 text-xs text-right text-slate-700 align-top">{ligne.prixUnitaireHT != null ? formatEuros(ligne.prixUnitaireHT) : "—"}</td>
+                            <td className="px-3 py-1.5 text-xs text-right font-medium text-slate-700 align-top">{ligne.totalHT != null ? formatEuros(ligne.totalHT) : "—"}</td>
                           </>
                         )}
                       </tr>

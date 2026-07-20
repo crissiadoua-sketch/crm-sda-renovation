@@ -20,18 +20,24 @@ export const verifySession = cache(async () => {
 export const getUser = cache(async () => {
   const session = await verifySession();
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      permissions: true,
-      passwordChangedAt: true,
-      createdAt: true,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        permissions: true,
+        passwordChangedAt: true,
+        createdAt: true,
+      },
+    });
+  } catch {
+    // Erreur DB (cold start Neon) — on redirige vers login plutôt que de faire planter le layout
+    redirect("/login");
+  }
 
   if (!user) {
     redirect("/login");

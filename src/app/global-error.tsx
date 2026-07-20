@@ -1,6 +1,6 @@
 "use client";
 
-export default function GlobalError({ reset }: { reset: () => void }) {
+export default function GlobalError({ unstable_retry }: { unstable_retry: () => void }) {
   return (
     <html lang="fr">
       <body style={{ margin: 0, fontFamily: "Arial, sans-serif", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
@@ -12,7 +12,7 @@ export default function GlobalError({ reset }: { reset: () => void }) {
             La base de données ne répond pas. Actualisez la page dans quelques secondes.
           </p>
           <button
-            onClick={reset}
+            onClick={unstable_retry}
             style={{ background: "#1E2F6E", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 24px", fontSize: "0.875rem", fontWeight: "600", cursor: "pointer" }}
           >
             Réessayer

@@ -5,10 +5,10 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 
 export default function AppError({
   error,
-  reset,
+  unstable_retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  unstable_retry: () => void;
 }) {
   useEffect(() => {
     console.error("[AppError]", error);
@@ -26,7 +26,7 @@ export default function AppError({
         </p>
       </div>
       <button
-        onClick={reset}
+        onClick={unstable_retry}
         className="inline-flex items-center gap-2 rounded-lg bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-blue/90 transition"
       >
         <RefreshCw className="h-4 w-4" />

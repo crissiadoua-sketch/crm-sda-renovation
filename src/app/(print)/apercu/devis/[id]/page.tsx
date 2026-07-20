@@ -330,6 +330,8 @@ export default async function ApercuDevisPage({
                       </tbody>
                     );
                   }
+                  // PRESTATION_COMPLEMENTAIRE → section dédiée ci-dessous, pas dans le tableau principal
+                  if (ligne.type === "PRESTATION_COMPLEMENTAIRE") return null;
                   // LIGNE normale
                   return (
                     <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>

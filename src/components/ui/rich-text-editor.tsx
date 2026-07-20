@@ -224,7 +224,7 @@ export function RichTextEditor({
 
           <div className="mx-0.5 h-4 w-px bg-slate-300" />
 
-          <button type="button" title="Liste à puces" onMouseDown={(e) => e.preventDefault()} onClick={() => applyList(false, "disc")} className={btnCls}>
+          <button type="button" title="Liste à puces" onMouseDown={(e) => e.preventDefault()} onClick={() => applyList(false, styleBase?.bulletStyle ?? "disc")} className={btnCls}>
             <List className="h-3 w-3" />
           </button>
           <select
@@ -238,7 +238,7 @@ export function RichTextEditor({
             {BULLET_STYLES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
           </select>
 
-          <button type="button" title="Liste numérotée" onMouseDown={(e) => e.preventDefault()} onClick={() => applyList(true, "decimal")} className={btnCls}>
+          <button type="button" title="Liste numérotée" onMouseDown={(e) => e.preventDefault()} onClick={() => applyList(true, styleBase?.numberStyle ?? "decimal")} className={btnCls}>
             <ListOrdered className="h-3 w-3" />
           </button>
           <select

@@ -48,11 +48,12 @@ export default async function ApercuDevisPage({
 
   function lineStyle(l: (typeof lignes)[0]): React.CSSProperties {
     try {
-      const s = JSON.parse(l.styleTexte ?? "{}") as { fontFamily?: string; fontSize?: number; color?: string; bulletStyle?: string; numberStyle?: string };
+      const s = JSON.parse(l.styleTexte ?? "{}") as { fontFamily?: string; fontSize?: number; color?: string; bulletStyle?: string; numberStyle?: string; textAlign?: string };
       return {
         fontFamily: s.fontFamily || undefined,
         fontSize: s.fontSize ? `${s.fontSize}px` : undefined,
         color: s.color || undefined,
+        textAlign: s.textAlign as React.CSSProperties["textAlign"] || undefined,
         ...(s.bulletStyle ? { "--list-bullet-style": s.bulletStyle } : {}),
         ...(s.numberStyle ? { "--list-number-style": s.numberStyle } : {}),
       } as React.CSSProperties;
@@ -217,8 +218,8 @@ export default async function ApercuDevisPage({
                           ligne.type === "CHAPITRE"
                             ? "py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#F7941E]/50"
                             : "py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200"
-                        }`}>
-                          <RichText html={ligne.designation} style={lineStyle(ligne)} />
+                        }`} style={lineStyle(ligne)}>
+                          <RichText html={ligne.designation} />
                         </td>
                         <td className={`px-3 text-right font-bold text-[#1E2F6E] ${
                           ligne.type === "CHAPITRE" ? "py-2 border-t-2 border-[#F7941E]/50" : "py-1.5 text-xs border-t border-slate-200"
@@ -271,8 +272,8 @@ export default async function ApercuDevisPage({
                       <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid", breakAfter: "avoid", pageBreakAfter: "avoid" }}>
                         {subtotalRows}
                         <tr className="bg-[#F7941E]/8">
-                          <td colSpan={nbCols} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#F7941E]/50 whitespace-pre-wrap">
-                            <RichText html={ligne.designation} style={lineStyle(ligne)} />
+                          <td colSpan={nbCols} className="px-3 py-2 font-bold text-[#1E2F6E] text-sm border-t-2 border-[#F7941E]/50 whitespace-pre-wrap" style={lineStyle(ligne)}>
+                            <RichText html={ligne.designation} />
                           </td>
                         </tr>
                         {clauses.length > 0 && (
@@ -298,7 +299,7 @@ export default async function ApercuDevisPage({
                         <tr className="bg-red-50/60">
                           <td colSpan={nbCols} className="px-3 py-2 pl-6 border-t border-red-100">
                             <p className="text-[9px] font-bold uppercase tracking-widest text-red-600 mb-0.5">Clause / réserve</p>
-                            <p className="text-xs italic text-red-700 whitespace-pre-wrap"><RichText html={ligne.designation} style={lineStyle(ligne)} /></p>
+                            <p className="text-xs italic text-red-700 whitespace-pre-wrap" style={lineStyle(ligne)}><RichText html={ligne.designation} /></p>
                           </td>
                         </tr>
                       </tbody>
@@ -309,8 +310,8 @@ export default async function ApercuDevisPage({
                       <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid", breakAfter: "avoid", pageBreakAfter: "avoid" }}>
                         {subtotalRows}
                         <tr className="bg-slate-50">
-                          <td colSpan={nbCols} className="px-3 py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200 whitespace-pre-wrap">
-                            <RichText html={ligne.designation} style={lineStyle(ligne)} />
+                          <td colSpan={nbCols} className="px-3 py-1.5 font-semibold text-slate-700 text-xs pl-6 border-t border-slate-200 whitespace-pre-wrap" style={lineStyle(ligne)}>
+                            <RichText html={ligne.designation} />
                           </td>
                         </tr>
                         {clauses.length > 0 && (
@@ -337,7 +338,7 @@ export default async function ApercuDevisPage({
                     <tbody key={ligne.id} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <tr className={i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}>
                         <td className="px-3 py-1.5 text-xs text-slate-400 pl-8 align-top">{ligne.codeArticle ?? "—"}</td>
-                        <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap align-top"><RichText html={ligne.designation} style={lineStyle(ligne)} /></td>
+                        <td className="px-3 py-1.5 text-xs text-slate-700 pl-8 whitespace-pre-wrap align-top" style={lineStyle(ligne)}><RichText html={ligne.designation} /></td>
                         <td className="px-3 py-1.5 text-xs text-center text-slate-500 align-top">{ligne.unite ?? "—"}</td>
                         <td className="px-3 py-1.5 text-xs text-right text-slate-700 align-top">{ligne.quantite?.toFixed(2) ?? "—"}</td>
                         {!sansPrix && !descriptif && (
@@ -452,7 +453,7 @@ export default async function ApercuDevisPage({
                     {options.map((opt, oi) => (
                       <tr key={opt.id} className={oi % 2 === 0 ? "bg-teal-50/40" : "bg-white"}>
                         <td className="px-3 py-1.5 text-[10px] text-teal-500 font-mono">Opt.{oi + 1}</td>
-                        <td className="px-3 py-1.5 text-xs text-teal-800"><RichText html={opt.designation} style={lineStyle(opt)} /></td>
+                        <td className="px-3 py-1.5 text-xs text-teal-800" style={lineStyle(opt)}><RichText html={opt.designation} /></td>
                         <td className="px-3 py-1.5 text-xs text-center text-slate-500">{opt.unite ?? "—"}</td>
                         <td className="px-3 py-1.5 text-xs text-right text-slate-700">{opt.quantite?.toFixed(2) ?? "—"}</td>
                         {!sansPrix && !descriptif && (

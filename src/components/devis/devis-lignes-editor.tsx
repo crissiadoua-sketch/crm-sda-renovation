@@ -3,6 +3,7 @@
 import React, { useActionState, useState, startTransition } from "react";
 import {
   Plus, Trash2, ChevronUp, ChevronDown, BookOpen, Save, Search, X, Eye, EyeOff,
+  AlignLeft, AlignCenter, AlignRight,
 } from "lucide-react";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { RichTextEditor, FONT_FAMILIES, FONT_SIZES, PRESET_COLORS, BULLET_STYLES, NUMBERING_STYLES } from "@/components/ui/rich-text-editor";
@@ -154,7 +155,7 @@ const typeLabels: Record<LigneType, string> = {
 
 const isPricedLine = (t: LigneType) => t === "LIGNE" || t === "PRESTATION_COMPLEMENTAIRE";
 
-interface DocStyle { fontFamily?: string; fontSize?: number; color?: string; bulletStyle?: string; numberStyle?: string }
+interface DocStyle { fontFamily?: string; fontSize?: number; color?: string; bulletStyle?: string; numberStyle?: string; textAlign?: "left" | "center" | "right" }
 type DocStyles = Partial<Record<LigneType, DocStyle>>;
 
 function parseStyleTexte(json: string): DocStyle {
@@ -626,6 +627,27 @@ export function DevisLignesEditor({
                     <option value="">Numéros…</option>
                     {NUMBERING_STYLES.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
                   </select>
+                  <div className="flex items-center gap-0.5">
+                    {(["left", "center", "right"] as const).map((align) => {
+                      const Icon = align === "left" ? AlignLeft : align === "center" ? AlignCenter : AlignRight;
+                      const title = align === "left" ? "Aligner à gauche" : align === "center" ? "Centrer" : "Aligner à droite";
+                      return (
+                        <button
+                          key={align}
+                          type="button"
+                          title={title}
+                          onClick={() => applyDocStyle(type, { textAlign: s.textAlign === align ? undefined : align })}
+                          className={`flex h-5 w-5 items-center justify-center rounded transition ${
+                            s.textAlign === align
+                              ? "bg-brand-blue/20 text-brand-blue"
+                              : "text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+                          }`}
+                        >
+                          <Icon className="h-3 w-3" />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}

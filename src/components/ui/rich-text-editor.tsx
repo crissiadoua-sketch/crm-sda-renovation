@@ -47,7 +47,7 @@ export function RichTextEditor({
   rows?: number;
   placeholder?: string;
   className?: string;
-  styleBase?: { fontFamily?: string; fontSize?: number; color?: string; bulletStyle?: string; numberStyle?: string };
+  styleBase?: { fontFamily?: string; fontSize?: number; color?: string; bulletStyle?: string; numberStyle?: string; textAlign?: "left" | "center" | "right" };
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastValue = useRef<string | null>(null);
@@ -301,6 +301,7 @@ export function RichTextEditor({
           fontFamily: styleBase?.fontFamily || undefined,
           fontSize: styleBase?.fontSize ? `${styleBase.fontSize}px` : undefined,
           color: styleBase?.color || undefined,
+          textAlign: styleBase?.textAlign || undefined,
           ...(styleBase?.bulletStyle ? { "--list-bullet-style": styleBase.bulletStyle } : {}),
           ...(styleBase?.numberStyle ? { "--list-number-style": styleBase.numberStyle } : {}),
         } as React.CSSProperties}

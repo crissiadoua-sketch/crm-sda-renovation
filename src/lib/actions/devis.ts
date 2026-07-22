@@ -8,6 +8,7 @@ import { prochainNumeroDocument } from "@/lib/codification";
 import { randomBytes } from "crypto";
 import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
 import { envoyerEmail } from "@/lib/email";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.sda-renovation.com";
 
@@ -283,7 +284,7 @@ export async function updateDevisLignes(
       ordre: index + 1,
       type: ligne.type,
       codeArticle: ligne.codeArticle ?? null,
-      designation: ligne.designation,
+      designation: sanitizeRichText(ligne.designation),
       unite: ligne.unite ?? null,
       quantite: ligne.quantite ?? null,
       prixUnitaireHT: ligne.prixUnitaireHT ?? null,

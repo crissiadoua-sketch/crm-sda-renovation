@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getNextOuvrageCode } from "@/lib/corps-etat";
 
+const stripHtml = (s: string) => s.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
 // ---------------------------------------------------------------------------
 // Schéma de validation — 3 offres × 4 champs
 // ---------------------------------------------------------------------------
@@ -198,6 +200,7 @@ export async function saveOuvrageFromDevis(data: {
   const ouvrage = await prisma.ouvrage.create({
     data: {
       ...data,
+      designation: stripHtml(data.designation),
       styleTexte: data.styleTexte ?? "{}",
       code,
       actif: true,

@@ -162,6 +162,18 @@ function parseStyleTexte(json: string): DocStyle {
   try { const p = JSON.parse(json); return (typeof p === "object" && p !== null) ? p as DocStyle : {}; } catch { return {}; }
 }
 
+// Supprime une propriété CSS des attributs style inline dans du HTML
+function stripCssProp(html: string, cssProp: string): string {
+  return html.replace(/style="([^"]*)"/g, (_m, styleStr: string) => {
+    const cleaned = styleStr
+      .split(";")
+      .map((d) => d.trim())
+      .filter((d) => d && !d.toLowerCase().startsWith(cssProp))
+      .join("; ");
+    return cleaned ? `style="${cleaned}"` : "";
+  });
+}
+
 function mergePatch(base: DocStyle, patch: Partial<DocStyle>): DocStyle {
   const result = { ...base };
   for (const [k, v] of Object.entries(patch) as [keyof DocStyle, string | number | undefined][]) {
@@ -419,8 +431,22 @@ export function DevisLignesEditor({
   function applyDocStyle(type: LigneType, patch: Partial<DocStyle>) {
     const newStyle = mergePatch(docStyles[type] ?? {}, patch);
     setDocStyles((cur) => ({ ...cur, [type]: newStyle }));
+    // Correspondance entre la clé DocStyle et la propriété CSS inline à nettoyer
+    const cssPropMap: Partial<Record<keyof DocStyle, string>> = {
+      color: "color",
+      fontFamily: "font-family",
+      fontSize: "font-size",
+      textAlign: "text-align",
+    };
     setRows((cur) =>
-      cur.map((r) => r.type !== type ? r : { ...r, styleTexte: JSON.stringify(newStyle) }),
+      cur.map((r) => {
+        if (r.type !== type) return r;
+        let designation = r.designation;
+        for (const [key, cssProp] of Object.entries(cssPropMap) as [keyof DocStyle, string][]) {
+          if (key in patch) designation = stripCssProp(designation, cssProp);
+        }
+        return { ...r, designation, styleTexte: JSON.stringify(newStyle) };
+      }),
     );
   }
 

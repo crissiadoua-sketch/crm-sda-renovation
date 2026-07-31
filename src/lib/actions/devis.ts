@@ -157,6 +157,60 @@ export async function creerAvenant(devisParentId: string) {
   redirect(`/devis/${avenant.id}`);
 }
 
+export async function dupliquerDevis(id: string) {
+  const source = await prisma.devis.findUnique({
+    where: { id },
+    include: { lignes: { orderBy: { ordre: "asc" } } },
+  });
+  if (!source) redirect("/devis");
+
+  const numero = await getNextDevisNumero();
+
+  const copie = await prisma.devis.create({
+    data: {
+      numero,
+      chantierId: source.chantierId,
+      clientId: source.clientId,
+      statut: "BROUILLON",
+      type: "INITIAL",
+      objet: source.objet ? `Copie — ${source.objet}` : null,
+      referenceMarche: source.referenceMarche,
+      maitreOuvrage: source.maitreOuvrage,
+      maitreOeuvre: source.maitreOeuvre,
+      lot: source.lot,
+      delaiExecution: source.delaiExecution,
+      modaliteReglement: source.modaliteReglement,
+      dateValidite: source.dateValidite,
+      totalHT: source.totalHT,
+      totalTVA: source.totalTVA,
+      totalTTC: source.totalTTC,
+      totalDS: source.totalDS,
+      lignes: {
+        create: source.lignes.map((l) => ({
+          ordre: l.ordre,
+          type: l.type,
+          codeArticle: l.codeArticle,
+          designation: l.designation,
+          unite: l.unite,
+          quantite: l.quantite,
+          prixUnitaireHT: l.prixUnitaireHT,
+          coutUnitaireDS: (l as typeof l & { coutUnitaireDS?: number | null }).coutUnitaireDS ?? null,
+          remise: l.remise,
+          tauxTVA: l.tauxTVA,
+          totalHT: l.totalHT,
+          styleTexte: (l as typeof l & { styleTexte?: string }).styleTexte ?? "{}",
+          clausesReserves: (l as typeof l & { clausesReserves?: string | null }).clausesReserves ?? null,
+          sousTotalMasque: (l as typeof l & { sousTotalMasque?: boolean }).sousTotalMasque ?? false,
+          sousTotalManuel: (l as typeof l & { sousTotalManuel?: number | null }).sousTotalManuel ?? null,
+        })),
+      },
+    },
+  });
+
+  revalidatePath("/devis");
+  redirect(`/devis/${copie.id}`);
+}
+
 export async function deleteDevis(id: string) {
   const _doc = await prisma.devis.findUnique({ where: { id }, select: { statut: true } });
   if (!_doc || _doc.statut !== "BROUILLON") return;

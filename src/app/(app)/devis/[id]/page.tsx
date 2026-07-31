@@ -11,6 +11,7 @@ import {
   updateDevisLignes,
   deleteDevis,
   creerAvenant,
+  dupliquerDevis,
   updateMentionsDevis,
   genererLienSignature,
 } from "@/lib/actions/devis";
@@ -213,6 +214,11 @@ export default async function DevisDetailPage({
           label={`Aperçu PDF sans prix — ${devis.numero}`}
           buttonLabel="📄 PDF sans prix"
         />
+        <form action={dupliquerDevis.bind(null, devis.id)}>
+          <button type="submit" className={buttonClasses("secondary")}>
+            Dupliquer ce devis
+          </button>
+        </form>
         {devis.type === "INITIAL" && (
           <form action={creerAvenant.bind(null, devis.id)}>
             <button type="submit" className={buttonClasses("secondary")}>

@@ -30,45 +30,12 @@ export async function TamponSDA({ className = "", compact = false }: TamponSDAPr
       {/* Panneau gauche — identité visuelle */}
       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1976D2] to-[#1B3F94] px-5 py-4 gap-2">
         {/* Logo SDA */}
-        <div
-          className="flex items-end justify-center gap-0 leading-none select-none"
-          style={{ fontFamily: "sans-serif" }}
-        >
+        <div className="leading-none select-none" style={{ fontFamily: "sans-serif" }}>
           <span
             className="font-black"
-            style={{
-              fontSize: 32,
-              background: "linear-gradient(135deg, #F7941E, #E6471D)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              lineHeight: 1,
-            }}
+            style={{ fontSize: 32, color: "#F7941E", lineHeight: 1 }}
           >
-            S
-          </span>
-          <span
-            className="font-black"
-            style={{
-              fontSize: 32,
-              background: "linear-gradient(135deg, #F7941E, #E6471D)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              lineHeight: 1,
-            }}
-          >
-            D
-          </span>
-          <span
-            className="font-black"
-            style={{
-              fontSize: 32,
-              background: "linear-gradient(135deg, #F7941E, #E6471D)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              lineHeight: 1,
-            }}
-          >
-            A
+            SDA
           </span>
         </div>
         <p className="text-white font-black text-[11px] tracking-[0.25em] uppercase">RÉNOVATION</p>

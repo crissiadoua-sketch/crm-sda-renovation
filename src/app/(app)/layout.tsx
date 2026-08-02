@@ -49,6 +49,7 @@ export default async function AppLayout({
       userPermissions={user.permissions}
       smtpConfigured={smtpConfigured}
       messagesNonLus={messagesNonLus}
+      backgroundImageUrl={user.backgroundImageUrl}
       banner={
         <PasswordAlertBanner
           passwordChangedAt={user.passwordChangedAt}

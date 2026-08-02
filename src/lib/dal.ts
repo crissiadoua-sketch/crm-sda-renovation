@@ -32,6 +32,7 @@ export const getUser = cache(async () => {
         permissions: true,
         passwordChangedAt: true,
         createdAt: true,
+        backgroundImageUrl: true,
       },
     });
   } catch {

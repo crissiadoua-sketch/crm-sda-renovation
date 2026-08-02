@@ -17,10 +17,11 @@ model User {
   passwordChangedAt DateTime?
   createdAt         DateTime                  @default(now())
   updatedAt         DateTime                  @updatedAt
-  telephone         String?
-  titre             String?
-  adresse           String?
-  societe           String?
+  telephone            String?
+  titre                String?
+  adresse              String?
+  societe              String?
+  backgroundImageUrl   String?
   conversations     ConversationParticipant[]
   messagesSendus    Message[]
   rapports          RapportMensuel[]

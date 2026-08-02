@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut, ImageIcon, Trash2, Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { filterNavGroups, type NavGroup } from "@/lib/nav";
 import { logout } from "@/lib/actions/auth";
@@ -114,6 +114,7 @@ export function AppShell({
   banner,
   smtpConfigured,
   messagesNonLus,
+  backgroundImageUrl,
 }: {
   user: CurrentUser;
   userRole: string;
@@ -122,9 +123,80 @@ export function AppShell({
   banner?: React.ReactNode;
   smtpConfigured?: boolean;
   messagesNonLus?: number;
+  backgroundImageUrl?: string | null;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [bgUrl, setBgUrl] = useState<string | null>(backgroundImageUrl ?? null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleWallpaperUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      alert("Image trop volumineuse (max 8 Mo)");
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/user/background", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.url) setBgUrl(data.url);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleWallpaperRemove() {
+    setUploading(true);
+    try {
+      await fetch("/api/user/background", { method: "DELETE" });
+      setBgUrl(null);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const WallpaperControls = () => (
+    <div className="border-t border-white/10 px-4 py-2 flex items-center justify-between gap-2">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleWallpaperUpload}
+      />
+      <button
+        type="button"
+        disabled={uploading}
+        onClick={() => fileInputRef.current?.click()}
+        className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition disabled:opacity-50"
+        title="Changer le fond d'écran"
+      >
+        {uploading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <ImageIcon className="h-3.5 w-3.5" />
+        )}
+        <span>Fond d'écran</span>
+      </button>
+      {bgUrl && !uploading && (
+        <button
+          type="button"
+          onClick={handleWallpaperRemove}
+          className="flex items-center gap-1 text-xs text-white/30 hover:text-red-400 transition"
+          title="Supprimer le fond d'écran"
+        >
+          <Trash2 className="h-3 w-3" />
+          <span>Supprimer</span>
+        </button>
+      )}
+    </div>
+  );
 
   const navGroups = filterNavGroups(userRole, userPermissions);
 
@@ -143,6 +215,7 @@ export function AppShell({
         </div>
         <SidebarNav pathname={pathname} navGroups={navGroups} smtpConfigured={smtpConfigured} messagesNonLus={messagesNonLus} />
         <UserFooter user={user} />
+        <WallpaperControls />
       </aside>
 
       {/* Sidebar — mobile drawer */}
@@ -173,6 +246,7 @@ export function AppShell({
               messagesNonLus={messagesNonLus}
             />
             <UserFooter user={user} />
+            <WallpaperControls />
           </aside>
         </div>
       )}
@@ -193,7 +267,18 @@ export function AppShell({
           </div>
         </header>
         {banner}
-        <main id="main-content" className="min-w-0 flex-1 overflow-x-hidden bg-slate-50 p-4 sm:p-6 print:bg-white print:p-0">{children}</main>
+        <main
+          id="main-content"
+          className={`min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 print:bg-white print:p-0 ${bgUrl ? "" : "bg-slate-50"}`}
+          style={bgUrl ? {
+            backgroundImage: `url(${bgUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundAttachment: "local",
+          } : undefined}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

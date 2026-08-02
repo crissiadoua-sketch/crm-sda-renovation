@@ -73,19 +73,17 @@ function WallpaperPanel({
         ))}
       </div>
 
-      {/* Label natif → déclenche le file input sans JS .click() */}
-      <input
-        id={inputId}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        disabled={uploading}
-        onChange={onFileChange}
-      />
+      {/* Input à l'intérieur du label — déclenchement natif garanti */}
       <label
-        htmlFor={inputId}
         className={`flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-brand-orange px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-orange-dark ${uploading ? "pointer-events-none opacity-50" : ""}`}
       >
+        <input
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          disabled={uploading}
+          onChange={onFileChange}
+        />
         {uploading ? (
           <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Chargement…</>
         ) : (
@@ -278,16 +276,20 @@ export function AppShell({
   const [panelOpen, setPanelOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState("all");
   const [uploading, setUploading] = useState(false);
+  const [wallpaperVersion, setWallpaperVersion] = useState(0);
 
   const wallpapersObj = useMemo<Record<string, string>>(() => {
     try { return JSON.parse(wallpapersJson); } catch { return {}; }
   }, [wallpapersJson]);
 
-  // Détermine le fond actif pour la page courante
+  // Détermine la page active et l'URL de fond (blob privé servi par /api/user/wallpaper)
   const pageKey =
     pathname === "/" ? "/" :
     ["/recherche", "/meteo", "/messagerie"].find((p) => pathname.startsWith(p)) ?? "";
-  const activeBg = wallpapersObj[pageKey] || wallpapersObj["all"] || null;
+  const effectivePage = wallpapersObj[pageKey] ? pageKey : wallpapersObj["all"] ? "all" : null;
+  const activeBg = effectivePage
+    ? `/api/user/wallpaper?page=${encodeURIComponent(effectivePage)}&v=${wallpaperVersion}`
+    : null;
 
   async function handleWallpaperUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -303,7 +305,11 @@ export function AppShell({
       fd.append("page", selectedPage);
       const res = await fetch("/api/user/background", { method: "POST", body: fd });
       const data = await res.json();
-      if (data.wallpapers) setWallpapersJson(JSON.stringify(data.wallpapers));
+      if (data.wallpapers) {
+        setWallpapersJson(JSON.stringify(data.wallpapers));
+        setWallpaperVersion((v) => v + 1);
+        setPanelOpen(false);
+      }
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -315,7 +321,10 @@ export function AppShell({
     try {
       const res = await fetch(`/api/user/background?page=${encodeURIComponent(page)}`, { method: "DELETE" });
       const data = await res.json();
-      if (data.wallpapers !== undefined) setWallpapersJson(JSON.stringify(data.wallpapers));
+      if (data.wallpapers !== undefined) {
+        setWallpapersJson(JSON.stringify(data.wallpapers));
+        setWallpaperVersion((v) => v + 1);
+      }
     } finally {
       setUploading(false);
     }

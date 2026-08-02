@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { put, del } from "@vercel/blob";
-import { randomBytes } from "node:crypto";
-import path from "node:path";
 import { decrypt } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { stockerFichier, supprimerFichierStocke } from "@/lib/blob-storage";
 
 async function getUserId(): Promise<string | null> {
   const cookieStore = await cookies();
@@ -35,20 +33,14 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { wallpapers: true } });
   const wallpapersObj = parseWallpapers(user?.wallpapers);
 
+  // Supprime l'ancien blob pour cette page
   if (wallpapersObj[page]) {
-    try { await del(wallpapersObj[page]); } catch { /* déjà absent */ }
+    await supprimerFichierStocke(wallpapersObj[page]);
   }
 
-  const ext = path.extname(file.name) || ".jpg";
-  const nomFichier = `${randomBytes(8).toString("hex")}${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const { url } = await stockerFichier(file, `backgrounds/${userId}`);
+  wallpapersObj[page] = url;
 
-  const blob = await put(`backgrounds/${userId}/${nomFichier}`, buffer, {
-    access: "public",
-    contentType: file.type,
-  });
-
-  wallpapersObj[page] = blob.url;
   await prisma.user.update({ where: { id: userId }, data: { wallpapers: JSON.stringify(wallpapersObj) } });
   return NextResponse.json({ wallpapers: wallpapersObj });
 }
@@ -63,7 +55,7 @@ export async function DELETE(req: NextRequest) {
   const wallpapersObj = parseWallpapers(user?.wallpapers);
 
   if (wallpapersObj[page]) {
-    try { await del(wallpapersObj[page]); } catch { /* déjà absent */ }
+    await supprimerFichierStocke(wallpapersObj[page]);
     delete wallpapersObj[page];
     await prisma.user.update({ where: { id: userId }, data: { wallpapers: JSON.stringify(wallpapersObj) } });
   }

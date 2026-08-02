@@ -4,12 +4,23 @@ import { FileSpreadsheet, FileText } from "lucide-react";
 import { calculerBilan } from "@/lib/bilan-template";
 import { formatEuros, formatDate } from "@/lib/format";
 import { BilanForm } from "./bilan-form";
+import { BILAN_CODES } from "@/lib/plan-comptable";
 
-function LigneTable({ label, valeur, gras = false, badge }: { label: string; valeur: number; gras?: boolean; badge?: React.ReactNode }) {
+function CodeBadge({ code }: { code?: string }) {
+  if (!code) return null;
+  return (
+    <span className="ml-1.5 rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-400">
+      {code}
+    </span>
+  );
+}
+
+function LigneTable({ label, valeur, gras = false, badge, code }: { label: string; valeur: number; gras?: boolean; badge?: React.ReactNode; code?: string }) {
   return (
     <tr className={gras ? "border-t border-slate-200 bg-slate-50" : ""}>
       <td className={`px-4 py-1.5 ${gras ? "font-semibold text-slate-700" : "text-slate-600"}`}>
         {label}
+        {!gras && <CodeBadge code={code} />}
         {badge}
       </td>
       <td className={`px-4 py-1.5 text-right ${gras ? "font-bold text-brand-navy" : "text-slate-700"}`}>
@@ -123,16 +134,17 @@ export default async function BilanPage({
           </div>
           <table className="w-full text-sm">
             <tbody className="divide-y divide-slate-50">
-              <LigneTable label="Capital souscrit non appelé" valeur={data.actif.capitalSouscritNonAppele} />
-              <LigneTable label="Immobilisations incorporelles (net)" valeur={data.actif.immobilise.incorporelles.net} />
-              <LigneTable label="Immobilisations corporelles (net)" valeur={data.actif.immobilise.corporelles.net} />
-              <LigneTable label="Immobilisations financières (net)" valeur={data.actif.immobilise.financieres.net} />
+              <LigneTable label="Capital souscrit non appelé" valeur={data.actif.capitalSouscritNonAppele} code="109" />
+              <LigneTable label="Immobilisations incorporelles (net)" valeur={data.actif.immobilise.incorporelles.net} code="20x − 280x" />
+              <LigneTable label="Immobilisations corporelles (net)" valeur={data.actif.immobilise.corporelles.net} code="21x − 281x" />
+              <LigneTable label="Immobilisations financières (net)" valeur={data.actif.immobilise.financieres.net} code="26x, 27x − 296x, 297x" />
               <LigneTable label="Total Actif immobilisé" valeur={data.actif.immobilise.total} gras />
               {data.actif.circulant.lignes.map((l) => (
                 <LigneTable
                   key={l.key}
                   label={l.label}
                   valeur={l.valeur}
+                  code={BILAN_CODES[l.key]}
                   badge={l.key === "disponibilites" && data.disponibilitesSource ? (
                     <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
                       Auto · Relevé du {formatDate(data.disponibilitesSource.dateImport)}{data.disponibilitesSource.banque ? ` · ${data.disponibilitesSource.banque}` : ""}
@@ -153,12 +165,12 @@ export default async function BilanPage({
           <table className="w-full text-sm">
             <tbody className="divide-y divide-slate-50">
               {data.passif.capitauxPropres.lignes.map((l) => (
-                <LigneTable key={l.key} label={l.label} valeur={l.valeur} />
+                <LigneTable key={l.key} label={l.label} valeur={l.valeur} code={BILAN_CODES[l.key]} />
               ))}
               <LigneTable label="Total Capitaux propres" valeur={data.passif.capitauxPropres.total} gras />
-              <LigneTable label="Provisions pour risques et charges" valeur={data.passif.provisionsRisquesCharges} />
+              <LigneTable label="Provisions pour risques et charges" valeur={data.passif.provisionsRisquesCharges} code="15x" />
               {data.passif.dettes.lignes.map((l) => (
-                <LigneTable key={l.key} label={l.label} valeur={l.valeur} />
+                <LigneTable key={l.key} label={l.label} valeur={l.valeur} code={BILAN_CODES[l.key]} />
               ))}
               <LigneTable label="Total Emprunts et dettes" valeur={data.passif.dettes.total} gras />
               <LigneTable label="TOTAL PASSIF" valeur={data.passif.totalPassif} gras />
@@ -175,23 +187,23 @@ export default async function BilanPage({
         <table className="w-full text-sm">
           <tbody className="divide-y divide-slate-50">
             {data.compteResultat.produitsExploitation.lignes.map((l) => (
-              <LigneTable key={l.key} label={l.label} valeur={l.valeur} />
+              <LigneTable key={l.key} label={l.label} valeur={l.valeur} code={BILAN_CODES[l.key]} />
             ))}
             <LigneTable label="Total produits d'exploitation" valeur={data.compteResultat.produitsExploitation.total} gras />
             {data.compteResultat.chargesExploitation.lignes.map((l) => (
-              <LigneTable key={l.key} label={l.label} valeur={l.valeur} />
+              <LigneTable key={l.key} label={l.label} valeur={l.valeur} code={BILAN_CODES[l.key]} />
             ))}
             <LigneTable label="Total charges d'exploitation" valeur={data.compteResultat.chargesExploitation.total} gras />
             <LigneTable label="Résultat d'exploitation" valeur={data.compteResultat.resultatExploitation} gras />
-            <LigneTable label="Produits financiers" valeur={data.compteResultat.produitsFinanciers} />
-            <LigneTable label="Charges financières" valeur={data.compteResultat.chargesFinancieres} />
+            <LigneTable label="Produits financiers" valeur={data.compteResultat.produitsFinanciers} code="76x" />
+            <LigneTable label="Charges financières" valeur={data.compteResultat.chargesFinancieres} code="66x" />
             <LigneTable label="Résultat financier" valeur={data.compteResultat.resultatFinancier} gras />
             <LigneTable label="Résultat courant avant impôts" valeur={data.compteResultat.resultatCourantAvantImpots} gras />
-            <LigneTable label="Produits exceptionnels" valeur={data.compteResultat.produitsExceptionnels} />
-            <LigneTable label="Charges exceptionnelles" valeur={data.compteResultat.chargesExceptionnelles} />
+            <LigneTable label="Produits exceptionnels" valeur={data.compteResultat.produitsExceptionnels} code="77x" />
+            <LigneTable label="Charges exceptionnelles" valeur={data.compteResultat.chargesExceptionnelles} code="67x" />
             <LigneTable label="Résultat exceptionnel" valeur={data.compteResultat.resultatExceptionnel} gras />
-            <LigneTable label="Participation des salariés" valeur={data.compteResultat.participationSalaries} />
-            <LigneTable label="Impôts sur les bénéfices" valeur={data.compteResultat.impotsBenefices} />
+            <LigneTable label="Participation des salariés" valeur={data.compteResultat.participationSalaries} code="691" />
+            <LigneTable label="Impôts sur les bénéfices" valeur={data.compteResultat.impotsBenefices} code="695" />
             <LigneTable label="RÉSULTAT DE L'EXERCICE" valeur={data.compteResultat.resultatNet} gras />
           </tbody>
         </table>

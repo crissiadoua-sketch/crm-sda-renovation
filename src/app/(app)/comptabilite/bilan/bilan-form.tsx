@@ -6,14 +6,21 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { toDateInputValue } from "@/lib/format";
 import { saveBilanExercice, type SaveBilanState } from "@/lib/actions/bilan";
 import type { BilanExercice } from "@/generated/prisma/client";
+import { BILAN_CODES } from "@/lib/plan-comptable";
 
 type Champ = { key: string; label: string };
 
 function MoneyField({ champ, defaultValue }: { champ: Champ; defaultValue: number | null | undefined }) {
+  const code = BILAN_CODES[champ.key];
   return (
     <div>
       <label htmlFor={champ.key} className="mb-1 block text-xs font-medium text-slate-600">
         {champ.label}
+        {code && (
+          <span className="ml-1.5 rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-400">
+            {code}
+          </span>
+        )}
       </label>
       <input
         id={champ.key}
@@ -166,6 +173,7 @@ export function BilanForm({
         <div>
           <label htmlFor="creancesClientsManuel" className="mb-1 block text-xs font-medium text-slate-600">
             Créances clients et comptes rattachés
+            <span className="ml-1.5 rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-400">411, 416</span>
           </label>
           <input
             id="creancesClientsManuel"

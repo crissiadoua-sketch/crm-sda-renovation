@@ -415,10 +415,9 @@ export function AppShell({
           id="main-content"
           className={`min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 print:bg-white print:p-0 ${activeBg ? "" : "bg-slate-50"}`}
           style={activeBg ? {
-            backgroundImage: `url(${activeBg})`,
+            backgroundImage: `url("${activeBg}")`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            backgroundAttachment: "local",
           } : undefined}
         >
           {children}

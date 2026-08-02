@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, LogOut, ImageIcon, Loader2, LayoutDashboard, Search, Cloud, MessageSquare } from "lucide-react";
@@ -29,7 +29,7 @@ function WallpaperPanel({
   selectedPage,
   uploading,
   onSelectPage,
-  onChoose,
+  onFileChange,
   onRemove,
   onClose,
 }: {
@@ -37,11 +37,12 @@ function WallpaperPanel({
   selectedPage: string;
   uploading: boolean;
   onSelectPage: (page: string) => void;
-  onChoose: () => void;
+  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: (page: string) => void;
   onClose: () => void;
 }) {
   const defined = WALLPAPER_PAGES.filter((p) => wallpapers[p.key]);
+  const inputId = "wallpaper-file-input";
 
   return (
     <div className="absolute bottom-full left-0 right-0 mx-2 mb-1 z-20 rounded-xl border border-white/10 bg-[#0d1a3e] p-3 shadow-2xl">
@@ -72,18 +73,25 @@ function WallpaperPanel({
         ))}
       </div>
 
-      <button
-        type="button"
+      {/* Label natif → déclenche le file input sans JS .click() */}
+      <input
+        id={inputId}
+        type="file"
+        accept="image/*"
+        className="sr-only"
         disabled={uploading}
-        onClick={onChoose}
-        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-orange px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-orange-dark disabled:opacity-50"
+        onChange={onFileChange}
+      />
+      <label
+        htmlFor={inputId}
+        className={`flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-brand-orange px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-orange-dark ${uploading ? "pointer-events-none opacity-50" : ""}`}
       >
         {uploading ? (
           <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Chargement…</>
         ) : (
           <><ImageIcon className="h-3.5 w-3.5" /> Choisir une image</>
         )}
-      </button>
+      </label>
 
       {defined.length > 0 && (
         <div className="mt-3 border-t border-white/10 pt-2">
@@ -113,7 +121,7 @@ function WallpaperControls({
   panelOpen,
   onToggle,
   onSelectPage,
-  onChoose,
+  onFileChange,
   onRemove,
 }: {
   wallpapers: Record<string, string>;
@@ -122,7 +130,7 @@ function WallpaperControls({
   panelOpen: boolean;
   onToggle: () => void;
   onSelectPage: (page: string) => void;
-  onChoose: () => void;
+  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: (page: string) => void;
 }) {
   return (
@@ -133,7 +141,7 @@ function WallpaperControls({
           selectedPage={selectedPage}
           uploading={uploading}
           onSelectPage={onSelectPage}
-          onChoose={onChoose}
+          onFileChange={onFileChange}
           onRemove={onRemove}
           onClose={onToggle}
         />
@@ -270,7 +278,6 @@ export function AppShell({
   const [panelOpen, setPanelOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState("all");
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const wallpapersObj = useMemo<Record<string, string>>(() => {
     try { return JSON.parse(wallpapersJson); } catch { return {}; }
@@ -299,7 +306,7 @@ export function AppShell({
       if (data.wallpapers) setWallpapersJson(JSON.stringify(data.wallpapers));
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      e.target.value = "";
     }
   }
 
@@ -327,20 +334,12 @@ export function AppShell({
     panelOpen,
     onToggle: () => setPanelOpen((v) => !v),
     onSelectPage: setSelectedPage,
-    onChoose: () => fileInputRef.current?.click(),
+    onFileChange: handleWallpaperUpload,
     onRemove: handleWallpaperRemove,
   };
 
   return (
     <div className="flex min-h-screen">
-      {/* Input fichier unique — ref stable */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleWallpaperUpload}
-      />
 
       {/* Sidebar — desktop */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col bg-gradient-to-b from-brand-blue to-brand-navy print:hidden">

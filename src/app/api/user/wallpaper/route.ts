@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   const result = await recupererBufferFichier(blobUrl);
   if (!result) return new NextResponse("Image unavailable", { status: 404 });
 
-  return new NextResponse(result.buffer, {
+  return new NextResponse(new Uint8Array(result.buffer), {
     headers: {
       "Content-Type": result.contentType,
       "Cache-Control": "private, max-age=3600, must-revalidate",

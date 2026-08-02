@@ -87,6 +87,48 @@ function SidebarNav({
   );
 }
 
+function WallpaperControls({
+  uploading,
+  hasBg,
+  onChoose,
+  onRemove,
+}: {
+  uploading: boolean;
+  hasBg: boolean;
+  onChoose: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="border-t border-white/10 px-4 py-2 flex items-center justify-between gap-2">
+      <button
+        type="button"
+        disabled={uploading}
+        onClick={onChoose}
+        className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition disabled:opacity-50"
+        title="Changer le fond d'écran"
+      >
+        {uploading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <ImageIcon className="h-3.5 w-3.5" />
+        )}
+        <span>Fond d'écran</span>
+      </button>
+      {hasBg && !uploading && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="flex items-center gap-1 text-xs text-white/30 hover:text-red-400 transition"
+          title="Supprimer le fond d'écran"
+        >
+          <Trash2 className="h-3 w-3" />
+          <span>Supprimer</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function UserFooter({ user }: { user: CurrentUser }) {
   const roleLabel = ROLE_LABELS[user.role] ?? user.role;
   return (
@@ -161,8 +203,22 @@ export function AppShell({
     }
   }
 
-  const WallpaperControls = () => (
-    <div className="border-t border-white/10 px-4 py-2 flex items-center justify-between gap-2">
+  const navGroups = filterNavGroups(userRole, userPermissions);
+
+  const currentLabel =
+    navGroups.flatMap((g) => g.items).find((item) => isActive(pathname, item.href))?.label ??
+    "Tableau de bord";
+
+  const wallpaperProps = {
+    uploading,
+    hasBg: !!bgUrl,
+    onChoose: () => fileInputRef.current?.click(),
+    onRemove: handleWallpaperRemove,
+  };
+
+  return (
+    <div className="flex min-h-screen">
+      {/* Input fichier unique — ref stable */}
       <input
         ref={fileInputRef}
         type="file"
@@ -170,42 +226,7 @@ export function AppShell({
         className="hidden"
         onChange={handleWallpaperUpload}
       />
-      <button
-        type="button"
-        disabled={uploading}
-        onClick={() => fileInputRef.current?.click()}
-        className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition disabled:opacity-50"
-        title="Changer le fond d'écran"
-      >
-        {uploading ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <ImageIcon className="h-3.5 w-3.5" />
-        )}
-        <span>Fond d'écran</span>
-      </button>
-      {bgUrl && !uploading && (
-        <button
-          type="button"
-          onClick={handleWallpaperRemove}
-          className="flex items-center gap-1 text-xs text-white/30 hover:text-red-400 transition"
-          title="Supprimer le fond d'écran"
-        >
-          <Trash2 className="h-3 w-3" />
-          <span>Supprimer</span>
-        </button>
-      )}
-    </div>
-  );
 
-  const navGroups = filterNavGroups(userRole, userPermissions);
-
-  const currentLabel =
-    navGroups.flatMap((g) => g.items).find((item) => isActive(pathname, item.href))?.label ??
-    "Tableau de bord";
-
-  return (
-    <div className="flex min-h-screen">
       {/* Sidebar — desktop */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col bg-gradient-to-b from-brand-blue to-brand-navy print:hidden">
         <div className="flex items-center px-6 py-6">
@@ -215,7 +236,7 @@ export function AppShell({
         </div>
         <SidebarNav pathname={pathname} navGroups={navGroups} smtpConfigured={smtpConfigured} messagesNonLus={messagesNonLus} />
         <UserFooter user={user} />
-        <WallpaperControls />
+        <WallpaperControls {...wallpaperProps} />
       </aside>
 
       {/* Sidebar — mobile drawer */}
@@ -246,7 +267,7 @@ export function AppShell({
               messagesNonLus={messagesNonLus}
             />
             <UserFooter user={user} />
-            <WallpaperControls />
+            <WallpaperControls {...wallpaperProps} />
           </aside>
         </div>
       )}

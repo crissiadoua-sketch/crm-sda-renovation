@@ -3,14 +3,22 @@ import { EmailsDocument } from "@/components/ui/emails-document";
 import { formatDate, formatEuros } from "@/lib/format";
 import { calculerBilan } from "@/lib/bilan-template";
 import { PrintToolbar } from "./print-toolbar";
+import { BILAN_CODES } from "@/lib/plan-comptable";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function Ligne({ label, valeur, gras = false }: { label: string; valeur: number; gras?: boolean }) {
+function Ligne({ label, valeur, gras = false, code }: { label: string; valeur: number; gras?: boolean; code?: string }) {
   return (
     <tr style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className={gras ? "bg-slate-50 font-bold" : ""}>
-      <td className="border border-slate-200 px-2 py-1.5">{label}</td>
+      <td className="border border-slate-200 px-2 py-1.5">
+        {label}
+        {code && !gras && (
+          <span style={{ marginLeft: 5, fontSize: "0.75em", color: "#94a3b8", fontFamily: "monospace" }}>
+            ({code})
+          </span>
+        )}
+      </td>
       <td className="border border-slate-200 px-2 py-1.5 text-right">{formatEuros(valeur)}</td>
     </tr>
   );
@@ -19,16 +27,18 @@ function Ligne({ label, valeur, gras = false }: { label: string; valeur: number;
 export default async function ApercuBilanPage({
   searchParams,
 }: {
-  searchParams: Promise<{ annee?: string }>;
+  searchParams: Promise<{ annee?: string; codes?: string }>;
 }) {
-  const { annee: anneeParam } = await searchParams;
+  const { annee: anneeParam, codes } = await searchParams;
   const annee = parseInt(anneeParam ?? String(new Date().getFullYear()), 10);
+  const showCodes = codes === "1";
   const data = await calculerBilan(annee);
   const cr = data.compteResultat;
+  const c = (key: string) => showCodes ? BILAN_CODES[key] : undefined;
 
   return (
     <>
-      <PrintToolbar label={`Bilan — ${annee}`} />
+      <PrintToolbar label={`Bilan — ${annee}`} showCodes={showCodes} />
 
       <div className="mx-auto my-8 w-full max-w-[297mm] bg-white shadow-xl print:my-0 print:shadow-none">
         <div className="px-10 py-8 print:px-7 print:py-4">
@@ -79,12 +89,12 @@ export default async function ApercuBilanPage({
                 </tr>
               </thead>
               <tbody>
-                <Ligne label="Capital souscrit non appelé" valeur={data.actif.capitalSouscritNonAppele} />
-                <Ligne label="Immobilisations incorporelles (net)" valeur={data.actif.immobilise.incorporelles.net} />
-                <Ligne label="Immobilisations corporelles (net)" valeur={data.actif.immobilise.corporelles.net} />
-                <Ligne label="Immobilisations financières (net)" valeur={data.actif.immobilise.financieres.net} />
+                <Ligne label="Capital souscrit non appelé" valeur={data.actif.capitalSouscritNonAppele} code={c("capitalSouscritNonAppele")} />
+                <Ligne label="Immobilisations incorporelles (net)" valeur={data.actif.immobilise.incorporelles.net} code={showCodes ? "20x − 280x" : undefined} />
+                <Ligne label="Immobilisations corporelles (net)" valeur={data.actif.immobilise.corporelles.net} code={showCodes ? "21x − 281x" : undefined} />
+                <Ligne label="Immobilisations financières (net)" valeur={data.actif.immobilise.financieres.net} code={showCodes ? "26x, 27x − 296x, 297x" : undefined} />
                 <Ligne label="Total Actif immobilisé" valeur={data.actif.immobilise.total} gras />
-                {data.actif.circulant.lignes.map((l) => <Ligne key={l.key} label={l.label} valeur={l.valeur} />)}
+                {data.actif.circulant.lignes.map((l) => <Ligne key={l.key} label={l.label} valeur={l.valeur} code={c(l.key)} />)}
                 <Ligne label="Total Actif circulant" valeur={data.actif.circulant.total} gras />
                 <Ligne label="TOTAL ACTIF" valeur={data.actif.totalActif} gras />
               </tbody>
@@ -97,10 +107,10 @@ export default async function ApercuBilanPage({
                 </tr>
               </thead>
               <tbody>
-                {data.passif.capitauxPropres.lignes.map((l) => <Ligne key={l.key} label={l.label} valeur={l.valeur} />)}
+                {data.passif.capitauxPropres.lignes.map((l) => <Ligne key={l.key} label={l.label} valeur={l.valeur} code={c(l.key)} />)}
                 <Ligne label="Total Capitaux propres" valeur={data.passif.capitauxPropres.total} gras />
-                <Ligne label="Provisions pour risques et charges" valeur={data.passif.provisionsRisquesCharges} />
-                {data.passif.dettes.lignes.map((l) => <Ligne key={l.key} label={l.label} valeur={l.valeur} />)}
+                <Ligne label="Provisions pour risques et charges" valeur={data.passif.provisionsRisquesCharges} code={showCodes ? "15x" : undefined} />
+                {data.passif.dettes.lignes.map((l) => <Ligne key={l.key} label={l.label} valeur={l.valeur} code={c(l.key)} />)}
                 <Ligne label="Total Emprunts et dettes" valeur={data.passif.dettes.total} gras />
                 <Ligne label="TOTAL PASSIF" valeur={data.passif.totalPassif} gras />
               </tbody>
@@ -116,20 +126,20 @@ export default async function ApercuBilanPage({
               </tr>
             </thead>
             <tbody>
-              {cr.produitsExploitation.lignes.map((l) => <Ligne key={l.key} label={l.label} valeur={l.valeur} />)}
+              {cr.produitsExploitation.lignes.map((l) => <Ligne key={l.key} label={l.label} valeur={l.valeur} code={c(l.key)} />)}
               <Ligne label="Total produits d'exploitation" valeur={cr.produitsExploitation.total} gras />
-              {cr.chargesExploitation.lignes.map((l) => <Ligne key={l.key} label={l.label} valeur={l.valeur} />)}
+              {cr.chargesExploitation.lignes.map((l) => <Ligne key={l.key} label={l.label} valeur={l.valeur} code={c(l.key)} />)}
               <Ligne label="Total charges d'exploitation" valeur={cr.chargesExploitation.total} gras />
               <Ligne label="Résultat d'exploitation" valeur={cr.resultatExploitation} gras />
-              <Ligne label="Produits financiers" valeur={cr.produitsFinanciers} />
-              <Ligne label="Charges financières" valeur={cr.chargesFinancieres} />
+              <Ligne label="Produits financiers" valeur={cr.produitsFinanciers} code={showCodes ? "76x" : undefined} />
+              <Ligne label="Charges financières" valeur={cr.chargesFinancieres} code={showCodes ? "66x" : undefined} />
               <Ligne label="Résultat financier" valeur={cr.resultatFinancier} gras />
               <Ligne label="Résultat courant avant impôts" valeur={cr.resultatCourantAvantImpots} gras />
-              <Ligne label="Produits exceptionnels" valeur={cr.produitsExceptionnels} />
-              <Ligne label="Charges exceptionnelles" valeur={cr.chargesExceptionnelles} />
+              <Ligne label="Produits exceptionnels" valeur={cr.produitsExceptionnels} code={showCodes ? "77x" : undefined} />
+              <Ligne label="Charges exceptionnelles" valeur={cr.chargesExceptionnelles} code={showCodes ? "67x" : undefined} />
               <Ligne label="Résultat exceptionnel" valeur={cr.resultatExceptionnel} gras />
-              <Ligne label="Participation des salariés" valeur={cr.participationSalaries} />
-              <Ligne label="Impôts sur les bénéfices" valeur={cr.impotsBenefices} />
+              <Ligne label="Participation des salariés" valeur={cr.participationSalaries} code={showCodes ? "691" : undefined} />
+              <Ligne label="Impôts sur les bénéfices" valeur={cr.impotsBenefices} code={showCodes ? "695" : undefined} />
               <Ligne label="RÉSULTAT DE L'EXERCICE" valeur={cr.resultatNet} gras />
             </tbody>
           </table>

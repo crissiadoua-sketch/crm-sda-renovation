@@ -21,7 +21,7 @@ model User {
   titre                String?
   adresse              String?
   societe              String?
-  backgroundImageUrl   String?
+  wallpapers           String?
   conversations     ConversationParticipant[]
   messagesSendus    Message[]
   rapports          RapportMensuel[]

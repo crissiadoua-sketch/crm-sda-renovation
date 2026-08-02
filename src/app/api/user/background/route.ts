@@ -12,6 +12,11 @@ async function getUserId(): Promise<string | null> {
   return session?.userId ?? null;
 }
 
+function parseWallpapers(raw: string | null | undefined): Record<string, string> {
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
 export async function POST(req: NextRequest) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
@@ -25,9 +30,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Image trop volumineuse (max 8 Mo)" }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { backgroundImageUrl: true } });
-  if (user?.backgroundImageUrl) {
-    try { await del(user.backgroundImageUrl); } catch { /* déjà absent */ }
+  const page = (formData.get("page") as string) || "all";
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { wallpapers: true } });
+  const wallpapersObj = parseWallpapers(user?.wallpapers);
+
+  if (wallpapersObj[page]) {
+    try { await del(wallpapersObj[page]); } catch { /* déjà absent */ }
   }
 
   const ext = path.extname(file.name) || ".jpg";
@@ -39,18 +48,24 @@ export async function POST(req: NextRequest) {
     contentType: file.type,
   });
 
-  await prisma.user.update({ where: { id: userId }, data: { backgroundImageUrl: blob.url } });
-  return NextResponse.json({ url: blob.url });
+  wallpapersObj[page] = blob.url;
+  await prisma.user.update({ where: { id: userId }, data: { wallpapers: JSON.stringify(wallpapersObj) } });
+  return NextResponse.json({ wallpapers: wallpapersObj });
 }
 
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { backgroundImageUrl: true } });
-  if (user?.backgroundImageUrl) {
-    try { await del(user.backgroundImageUrl); } catch { /* déjà absent */ }
-    await prisma.user.update({ where: { id: userId }, data: { backgroundImageUrl: null } });
+  const page = req.nextUrl.searchParams.get("page") || "all";
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { wallpapers: true } });
+  const wallpapersObj = parseWallpapers(user?.wallpapers);
+
+  if (wallpapersObj[page]) {
+    try { await del(wallpapersObj[page]); } catch { /* déjà absent */ }
+    delete wallpapersObj[page];
+    await prisma.user.update({ where: { id: userId }, data: { wallpapers: JSON.stringify(wallpapersObj) } });
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ wallpapers: wallpapersObj });
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, LogOut, ImageIcon, Trash2, Loader2 } from "lucide-react";
+import { Menu, X, LogOut, ImageIcon, Loader2, LayoutDashboard, Search, Cloud, MessageSquare } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { filterNavGroups, type NavGroup } from "@/lib/nav";
 import { logout } from "@/lib/actions/auth";
@@ -15,6 +15,145 @@ type CurrentUser = {
   email: string;
   role: string;
 };
+
+const WALLPAPER_PAGES = [
+  { key: "all", label: "Toutes les pages", Icon: ImageIcon },
+  { key: "/", label: "Tableau de bord", Icon: LayoutDashboard },
+  { key: "/recherche", label: "Recherche & Google", Icon: Search },
+  { key: "/meteo", label: "Journal Météo BTP", Icon: Cloud },
+  { key: "/messagerie", label: "Messagerie", Icon: MessageSquare },
+];
+
+function WallpaperPanel({
+  wallpapers,
+  selectedPage,
+  uploading,
+  onSelectPage,
+  onChoose,
+  onRemove,
+  onClose,
+}: {
+  wallpapers: Record<string, string>;
+  selectedPage: string;
+  uploading: boolean;
+  onSelectPage: (page: string) => void;
+  onChoose: () => void;
+  onRemove: (page: string) => void;
+  onClose: () => void;
+}) {
+  const defined = WALLPAPER_PAGES.filter((p) => wallpapers[p.key]);
+
+  return (
+    <div className="absolute bottom-full left-0 right-0 mx-2 mb-1 z-20 rounded-xl border border-white/10 bg-[#0d1a3e] p-3 shadow-2xl">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-semibold text-white/80">Fond d'écran</span>
+        <button onClick={onClose} className="text-white/40 hover:text-white text-xs leading-none">✕</button>
+      </div>
+
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-white/30">Appliquer à</p>
+      <div className="mb-3 flex flex-col gap-0.5">
+        {WALLPAPER_PAGES.map(({ key, label, Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onSelectPage(key)}
+            className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition ${
+              selectedPage === key
+                ? "bg-brand-orange/20 text-brand-orange"
+                : "text-white/55 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="flex-1 truncate">{label}</span>
+            {wallpapers[key] && (
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        disabled={uploading}
+        onClick={onChoose}
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-orange px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-orange-dark disabled:opacity-50"
+      >
+        {uploading ? (
+          <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Chargement…</>
+        ) : (
+          <><ImageIcon className="h-3.5 w-3.5" /> Choisir une image</>
+        )}
+      </button>
+
+      {defined.length > 0 && (
+        <div className="mt-3 border-t border-white/10 pt-2">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-white/30">Fonds définis</p>
+          {defined.map(({ key, label }) => (
+            <div key={key} className="flex items-center justify-between py-0.5">
+              <span className="truncate text-[11px] text-white/50">{label}</span>
+              <button
+                type="button"
+                onClick={() => onRemove(key)}
+                className="ml-2 shrink-0 text-[11px] text-white/30 transition hover:text-red-400"
+              >
+                Supprimer
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WallpaperControls({
+  wallpapers,
+  selectedPage,
+  uploading,
+  panelOpen,
+  onToggle,
+  onSelectPage,
+  onChoose,
+  onRemove,
+}: {
+  wallpapers: Record<string, string>;
+  selectedPage: string;
+  uploading: boolean;
+  panelOpen: boolean;
+  onToggle: () => void;
+  onSelectPage: (page: string) => void;
+  onChoose: () => void;
+  onRemove: (page: string) => void;
+}) {
+  return (
+    <div className="relative">
+      {panelOpen && (
+        <WallpaperPanel
+          wallpapers={wallpapers}
+          selectedPage={selectedPage}
+          uploading={uploading}
+          onSelectPage={onSelectPage}
+          onChoose={onChoose}
+          onRemove={onRemove}
+          onClose={onToggle}
+        />
+      )}
+      <div className="border-t border-white/10 px-4 py-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex items-center gap-1.5 text-xs text-white/40 transition hover:text-white/70"
+        >
+          <ImageIcon className="h-3.5 w-3.5" />
+          <span>Fond d'écran</span>
+          {Object.keys(wallpapers).length > 0 && (
+            <span className="ml-1 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
@@ -87,48 +226,6 @@ function SidebarNav({
   );
 }
 
-function WallpaperControls({
-  uploading,
-  hasBg,
-  onChoose,
-  onRemove,
-}: {
-  uploading: boolean;
-  hasBg: boolean;
-  onChoose: () => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div className="border-t border-white/10 px-4 py-2 flex items-center justify-between gap-2">
-      <button
-        type="button"
-        disabled={uploading}
-        onClick={onChoose}
-        className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition disabled:opacity-50"
-        title="Changer le fond d'écran"
-      >
-        {uploading ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <ImageIcon className="h-3.5 w-3.5" />
-        )}
-        <span>Fond d'écran</span>
-      </button>
-      {hasBg && !uploading && (
-        <button
-          type="button"
-          onClick={onRemove}
-          className="flex items-center gap-1 text-xs text-white/30 hover:text-red-400 transition"
-          title="Supprimer le fond d'écran"
-        >
-          <Trash2 className="h-3 w-3" />
-          <span>Supprimer</span>
-        </button>
-      )}
-    </div>
-  );
-}
-
 function UserFooter({ user }: { user: CurrentUser }) {
   const roleLabel = ROLE_LABELS[user.role] ?? user.role;
   return (
@@ -156,7 +253,7 @@ export function AppShell({
   banner,
   smtpConfigured,
   messagesNonLus,
-  backgroundImageUrl,
+  wallpapers: wallpapersProp,
 }: {
   user: CurrentUser;
   userRole: string;
@@ -165,13 +262,25 @@ export function AppShell({
   banner?: React.ReactNode;
   smtpConfigured?: boolean;
   messagesNonLus?: number;
-  backgroundImageUrl?: string | null;
+  wallpapers?: string | null;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [bgUrl, setBgUrl] = useState<string | null>(backgroundImageUrl ?? null);
+  const [wallpapersJson, setWallpapersJson] = useState<string>(wallpapersProp ?? "{}");
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [selectedPage, setSelectedPage] = useState("all");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const wallpapersObj = useMemo<Record<string, string>>(() => {
+    try { return JSON.parse(wallpapersJson); } catch { return {}; }
+  }, [wallpapersJson]);
+
+  // Détermine le fond actif pour la page courante
+  const pageKey =
+    pathname === "/" ? "/" :
+    ["/recherche", "/meteo", "/messagerie"].find((p) => pathname.startsWith(p)) ?? "";
+  const activeBg = wallpapersObj[pageKey] || wallpapersObj["all"] || null;
 
   async function handleWallpaperUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -184,20 +293,22 @@ export function AppShell({
     try {
       const fd = new FormData();
       fd.append("file", file);
+      fd.append("page", selectedPage);
       const res = await fetch("/api/user/background", { method: "POST", body: fd });
       const data = await res.json();
-      if (data.url) setBgUrl(data.url);
+      if (data.wallpapers) setWallpapersJson(JSON.stringify(data.wallpapers));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
-  async function handleWallpaperRemove() {
+  async function handleWallpaperRemove(page: string) {
     setUploading(true);
     try {
-      await fetch("/api/user/background", { method: "DELETE" });
-      setBgUrl(null);
+      const res = await fetch(`/api/user/background?page=${encodeURIComponent(page)}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.wallpapers !== undefined) setWallpapersJson(JSON.stringify(data.wallpapers));
     } finally {
       setUploading(false);
     }
@@ -209,9 +320,13 @@ export function AppShell({
     navGroups.flatMap((g) => g.items).find((item) => isActive(pathname, item.href))?.label ??
     "Tableau de bord";
 
-  const wallpaperProps = {
+  const wallpaperControlsProps = {
+    wallpapers: wallpapersObj,
+    selectedPage,
     uploading,
-    hasBg: !!bgUrl,
+    panelOpen,
+    onToggle: () => setPanelOpen((v) => !v),
+    onSelectPage: setSelectedPage,
     onChoose: () => fileInputRef.current?.click(),
     onRemove: handleWallpaperRemove,
   };
@@ -236,7 +351,7 @@ export function AppShell({
         </div>
         <SidebarNav pathname={pathname} navGroups={navGroups} smtpConfigured={smtpConfigured} messagesNonLus={messagesNonLus} />
         <UserFooter user={user} />
-        <WallpaperControls {...wallpaperProps} />
+        <WallpaperControls {...wallpaperControlsProps} />
       </aside>
 
       {/* Sidebar — mobile drawer */}
@@ -267,7 +382,7 @@ export function AppShell({
               messagesNonLus={messagesNonLus}
             />
             <UserFooter user={user} />
-            <WallpaperControls {...wallpaperProps} />
+            <WallpaperControls {...wallpaperControlsProps} />
           </aside>
         </div>
       )}
@@ -290,9 +405,9 @@ export function AppShell({
         {banner}
         <main
           id="main-content"
-          className={`min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 print:bg-white print:p-0 ${bgUrl ? "" : "bg-slate-50"}`}
-          style={bgUrl ? {
-            backgroundImage: `url(${bgUrl})`,
+          className={`min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 print:bg-white print:p-0 ${activeBg ? "" : "bg-slate-50"}`}
+          style={activeBg ? {
+            backgroundImage: `url(${activeBg})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundAttachment: "local",

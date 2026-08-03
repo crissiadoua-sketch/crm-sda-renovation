@@ -252,26 +252,47 @@ export function ControleEtSignature({
         <div className="bg-[#1E2F6E]/5 px-5 py-3 border-b border-slate-100">
           <p className="text-xs font-bold uppercase tracking-widest text-[#1E2F6E]">Décision de réception</p>
           <p className="text-xs text-slate-500 mt-0.5">
-            Sélectionnez votre décision concernant la réception des travaux / prestations.
+            {role === "PRESTATAIRE"
+              ? "Décision établie par SDA Rénovation — lecture seule."
+              : "Sélectionnez votre décision concernant la réception des travaux / prestations."}
           </p>
         </div>
         <div className="px-5 py-4 flex flex-col gap-3">
-          {RESULTAT_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setResultat(opt.value)}
-              className={`flex items-center gap-3 w-full rounded-xl border-2 px-4 py-3 text-left transition ${
-                resultat === opt.value ? opt.activeCls : opt.cls
-              }`}
-            >
-              <span className="text-xl shrink-0">{opt.icon}</span>
-              <span className={`font-semibold text-sm ${opt.textCls}`}>{opt.label}</span>
-              {resultat === opt.value && (
-                <span className={`ml-auto text-xs font-bold ${opt.textCls}`}>✓ Sélectionné</span>
-              )}
-            </button>
-          ))}
+          {RESULTAT_OPTIONS.map((opt) => {
+            const isSelected = resultat === opt.value;
+            if (role === "PRESTATAIRE") {
+              if (!isSelected) return null;
+              return (
+                <div
+                  key={opt.value}
+                  className={`flex items-center gap-3 w-full rounded-xl border-2 px-4 py-3 ${opt.activeCls}`}
+                >
+                  <span className="text-xl shrink-0">{opt.icon}</span>
+                  <span className={`font-semibold text-sm ${opt.textCls}`}>{opt.label}</span>
+                  <span className={`ml-auto text-xs font-bold ${opt.textCls}`}>Décision de SDA Rénovation</span>
+                </div>
+              );
+            }
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setResultat(opt.value)}
+                className={`flex items-center gap-3 w-full rounded-xl border-2 px-4 py-3 text-left transition ${
+                  isSelected ? opt.activeCls : opt.cls
+                }`}
+              >
+                <span className="text-xl shrink-0">{opt.icon}</span>
+                <span className={`font-semibold text-sm ${opt.textCls}`}>{opt.label}</span>
+                {isSelected && (
+                  <span className={`ml-auto text-xs font-bold ${opt.textCls}`}>✓ Sélectionné</span>
+                )}
+              </button>
+            );
+          })}
+          {role === "PRESTATAIRE" && !resultat && (
+            <p className="text-xs text-slate-400 italic">Aucune décision enregistrée pour le moment.</p>
+          )}
         </div>
       </div>
 

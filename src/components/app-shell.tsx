@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, LogOut, ImageIcon, Loader2, LayoutDashboard, Search, Cloud, MessageSquare } from "lucide-react";
@@ -277,6 +277,7 @@ export function AppShell({
   const [selectedPage, setSelectedPage] = useState("all");
   const [uploading, setUploading] = useState(false);
   const [wallpaperVersion, setWallpaperVersion] = useState(0);
+  const [bgBlobUrl, setBgBlobUrl] = useState<string | null>(null);
 
   const wallpapersObj = useMemo<Record<string, string>>(() => {
     try { return JSON.parse(wallpapersJson); } catch { return {}; }
@@ -285,11 +286,31 @@ export function AppShell({
   // Détermine la page active et l'URL de fond (blob privé servi par /api/user/wallpaper)
   const pageKey =
     pathname === "/" ? "/" :
-    ["/recherche", "/meteo", "/messagerie"].find((p) => pathname.startsWith(p)) ?? "";
+    ["/recherche", "/meteo", "/messagerie"].find((p) => pathname?.startsWith(p)) ?? "";
   const effectivePage = wallpapersObj[pageKey] ? pageKey : wallpapersObj["all"] ? "all" : null;
   const activeBg = effectivePage
     ? `/api/user/wallpaper?page=${encodeURIComponent(effectivePage)}&v=${wallpaperVersion}`
     : null;
+
+  // Charge l'image via fetch() avec credentials pour que Chrome envoie bien le cookie de session.
+  // CSS background-image peut être bloqué par Chrome ; un blob URL local contourne le problème.
+  useEffect(() => {
+    if (!activeBg) { setBgBlobUrl(null); return; }
+    let revoked = false;
+    let objectUrl: string | null = null;
+    fetch(activeBg, { credentials: "include" })
+      .then((r) => (r.ok ? r.blob() : null))
+      .then((blob) => {
+        if (revoked || !blob) return;
+        objectUrl = URL.createObjectURL(blob);
+        setBgBlobUrl(objectUrl);
+      })
+      .catch(() => {});
+    return () => {
+      revoked = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [activeBg]);
 
   async function handleWallpaperUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -413,9 +434,9 @@ export function AppShell({
         {banner}
         <main
           id="main-content"
-          className={`min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 print:bg-white print:p-0 ${activeBg ? "" : "bg-slate-50"}`}
-          style={activeBg ? {
-            backgroundImage: `url("${activeBg}")`,
+          className={`min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 print:bg-white print:p-0 ${bgBlobUrl ? "" : "bg-slate-50"}`}
+          style={bgBlobUrl ? {
+            backgroundImage: `url("${bgBlobUrl}")`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           } : undefined}

@@ -9,10 +9,14 @@ export const revalidate = 0;
 
 export default async function ApercuOrdreMissionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ paraphes?: string }>;
 }) {
   const { id } = await params;
+  const { paraphes } = await searchParams;
+  const showParaphes = paraphes === "1";
 
   const [om, parametres] = await Promise.all([
     prisma.ordreMission.findUnique({
@@ -35,7 +39,7 @@ export default async function ApercuOrdreMissionPage({
 
   return (
     <>
-      <PrintToolbar label={`Ordre de mission — ${om.numero}`} />
+      <PrintToolbar label={`Ordre de mission — ${om.numero}`} showParaphes={showParaphes} />
 
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">
         <div className="px-10 py-8 print:px-7 print:py-4 text-sm">
@@ -147,10 +151,22 @@ export default async function ApercuOrdreMissionPage({
               <div key={label}>
                 <p className="mb-16 text-sm font-medium text-slate-600 whitespace-pre-line">{label}</p>
                 <div className="border-b border-slate-300" />
-                <p className="mt-1 text-xs text-slate-400">Signature</p>
+                <p className="mt-1 text-xs text-slate-400">Lu et approuvé — Signature</p>
               </div>
             ))}
           </div>
+
+          {/* Paraphes sur chaque page */}
+          {showParaphes && (
+            <div
+              aria-hidden
+              className="print:flex hidden items-center justify-between"
+              style={{ position: "fixed", bottom: 0, left: 0, right: 0, borderTop: "1px solid #e2e8f0", backgroundColor: "white", padding: "3px 28mm", fontSize: "8px", color: "#94a3b8" }}
+            >
+              <span>Initiales SDA : _______________</span>
+              <span>Lu et approuvé — Initiales intervenant : _______________</span>
+            </div>
+          )}
 
           {/* Pied */}
           <div className="mt-8 border-t border-slate-100 pt-4 text-center text-[10px] text-slate-400">

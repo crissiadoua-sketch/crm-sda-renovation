@@ -22,11 +22,12 @@ export default async function ApercuDevisPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ sansPrix?: string; synthese?: string; descriptif?: string; noPrint?: string }>;
+  searchParams: Promise<{ sansPrix?: string; synthese?: string; descriptif?: string; noPrint?: string; paraphes?: string }>;
 }) {
   const { id } = await params;
-  const { sansPrix: sansPrixParam, synthese: syntheseParam, descriptif: descriptifParam, noPrint: noPrintParam } = await searchParams;
-  const sansPrix  = sansPrixParam  === "1";
+  const { sansPrix: sansPrixParam, synthese: syntheseParam, descriptif: descriptifParam, noPrint: noPrintParam, paraphes: paraphesParam } = await searchParams;
+  const sansPrix     = sansPrixParam  === "1";
+  const showParaphes = paraphesParam  === "1";
   const synthese  = syntheseParam  === "1";
   const descriptif = descriptifParam === "1";
   const noPrint   = noPrintParam   === "1";
@@ -75,7 +76,7 @@ export default async function ApercuDevisPage({
 
   return (
     <>
-      <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}${sansPrix ? " · Sans prix" : ""}${synthese ? " · Synthèse" : ""}${descriptif ? " · Descriptif + totaux" : ""}`} noPrint={noPrint} />
+      <PrintToolbar label={`Aperçu PDF — ${devis.numero} · ${devis.statut}${sansPrix ? " · Sans prix" : ""}${synthese ? " · Synthèse" : ""}${descriptif ? " · Descriptif + totaux" : ""}`} noPrint={noPrint} showParaphes={showParaphes} />
 
       <div className="mx-auto my-8 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">
         <PageDeGarde devis={devis} />
@@ -534,7 +535,7 @@ export default async function ApercuDevisPage({
                       <p className="text-xs text-slate-400 mt-1">Lieu et date</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400 mb-1">Signature du client (précédée de la mention « Bon pour accord ») :</p>
+                      <p className="text-xs text-slate-400 mb-1">Lu et approuvé — Bon pour accord — Signature du client :</p>
                       <div className="h-16 w-full rounded border border-dashed border-slate-300 bg-white" />
                     </div>
                   </div>
@@ -560,6 +561,18 @@ export default async function ApercuDevisPage({
 
       {/* Annexe — Conditions générales de vente */}
       {!sansPrix && <CGVAnnexe />}
+
+      {/* Paraphes sur chaque page */}
+      {showParaphes && (
+        <div
+          aria-hidden
+          className="print:flex hidden items-center justify-between"
+          style={{ position: "fixed", bottom: 0, left: 0, right: 0, borderTop: "1px solid #e2e8f0", backgroundColor: "white", padding: "3px 28mm", fontSize: "8px", color: "#94a3b8" }}
+        >
+          <span>Initiales SDA : _______________</span>
+          <span>Lu et approuvé — Initiales client : _______________</span>
+        </div>
+      )}
 
       {/* CSS print */}
       <style>{`

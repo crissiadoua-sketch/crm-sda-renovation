@@ -22,10 +22,14 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default async function ApercuPvReceptionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ paraphes?: string }>;
 }) {
   const { id } = await params;
+  const { paraphes } = await searchParams;
+  const showParaphes = paraphes === "1";
 
   const pvr = await prisma.pvReception.findUnique({
     where: { id },
@@ -101,7 +105,7 @@ export default async function ApercuPvReceptionPage({
 
   return (
     <>
-      <PrintToolbar label={`${titrePV} ${pvr.numero}`} />
+      <PrintToolbar label={`${titrePV} ${pvr.numero}`} showParaphes={showParaphes} />
 
       <div className="mx-auto my-6 w-full max-w-[210mm] bg-white shadow-xl print:my-0 print:shadow-none">
         <div className="px-10 py-8 print:px-7 print:py-4 text-sm">
@@ -527,6 +531,18 @@ export default async function ApercuPvReceptionPage({
           </div>
         </div>
       </div>
+
+      {/* Paraphes sur chaque page */}
+      {showParaphes && (
+        <div
+          aria-hidden
+          className="print:flex hidden items-center justify-between"
+          style={{ position: "fixed", bottom: 0, left: 0, right: 0, borderTop: "1px solid #e2e8f0", backgroundColor: "white", padding: "3px 28mm", fontSize: "8px", color: "#94a3b8" }}
+        >
+          <span>Initiales SDA : _______________</span>
+          <span>Lu et approuvé — Initiales : _______________</span>
+        </div>
+      )}
 
       <style>{`
         @media print {

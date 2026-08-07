@@ -6,10 +6,14 @@ import { PrintToolbar } from "./print-toolbar";
 
 export default async function ApercuContratSousTraitancePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ paraphes?: string }>;
 }) {
   const { id } = await params;
+  const { paraphes } = await searchParams;
+  const showParaphes = paraphes === "1";
 
   const contrat = await prisma.contratSousTraitance.findUnique({
     where: { id },
@@ -28,7 +32,7 @@ export default async function ApercuContratSousTraitancePage({
 
   return (
     <>
-      <PrintToolbar label={`Convention de sous-traitance — ${contrat.numero}`} />
+      <PrintToolbar label={`Convention de sous-traitance — ${contrat.numero}`} showParaphes={showParaphes} />
 
       <style>{`
         @media print { .pb { break-before: page; } }
@@ -352,7 +356,7 @@ export default async function ApercuContratSousTraitancePage({
               <p className="text-xs mt-3">Nom : Christopher SIADOUA</p>
               <p className="text-xs mt-1">Qualité : ____________________________</p>
               <p className="text-xs mt-4">Date : ____________________________</p>
-              <p className="text-xs mt-8 mb-1">Signature et cachet de l&apos;entreprise</p>
+              <p className="text-xs mt-8 mb-1">Lu et approuvé — Signature et cachet de l&apos;entreprise</p>
               <div className="sign-line" />
               <div style={{ height: "60px" }} />
             </div>
@@ -367,7 +371,7 @@ export default async function ApercuContratSousTraitancePage({
               ) : (
                 <p className="text-xs mt-4">Date : ____________________________</p>
               )}
-              <p className="text-xs mt-8 mb-1">Signature et cachet de l&apos;entreprise</p>
+              <p className="text-xs mt-8 mb-1">Lu et approuvé — Signature et cachet de l&apos;entreprise</p>
               <div className="sign-line" />
               <div style={{ height: "60px" }} />
             </div>
@@ -426,6 +430,18 @@ export default async function ApercuContratSousTraitancePage({
           </p>
         </div>
       </div>
+
+      {/* Paraphes sur chaque page */}
+      {showParaphes && (
+        <div
+          aria-hidden
+          className="print:flex hidden items-center justify-between"
+          style={{ position: "fixed", bottom: 0, left: 0, right: 0, borderTop: "1px solid #e2e8f0", backgroundColor: "white", padding: "3px 28mm", fontSize: "8px", color: "#94a3b8" }}
+        >
+          <span>Initiales SDA : _______________</span>
+          <span>Lu et approuvé — Initiales partenaire : _______________</span>
+        </div>
+      )}
     </>
   );
 }
